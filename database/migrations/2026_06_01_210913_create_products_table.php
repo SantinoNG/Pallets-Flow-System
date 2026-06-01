@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nameProduct');
             $table->integer('price');
             $table->integer('currentStock');
+            $table->integer('currentStock2');
             $table->timestamps();
         });
     }
