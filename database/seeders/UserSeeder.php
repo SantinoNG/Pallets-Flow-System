@@ -1,41 +1,27 @@
 <?php
 
 namespace Database\Seeders;
-
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
-class UserSeeder extends Seeder
-{
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
-    {
-
-        // Creamos un usuario administrador por defecto
-        $admin = User::create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('1234')
+class UserSeeder extends Seeder {
+    public function run(): void {
+        DB::table('users')->insert([
+            ['email' => 'admin@ecommerce.com',    'password' => Hash::make('admin1234'),    'id_role' => 1, 'session' => null],
+            ['email' => 'vendedor@ecommerce.com', 'password' => Hash::make('vendedor1234'), 'id_role' => 2, 'session' => null],
+            ['email' => 'deposito@ecommerce.com', 'password' => Hash::make('deposito1234'), 'id_role' => 3, 'session' => null],
+            ['email' => 'cliente@gmail.com',      'password' => Hash::make('cliente1234'),  'id_role' => 4, 'session' => null],
         ]);
-        $admin->assignRole('Administrador');
 
-        $usuario1 = User::create([
-            'name' => 'Carlos VIllalba',
-            'email' => 'carlos@example.com',
-            'password' => bcrypt('1234')
+        DB::table('employees')->insert([
+            ['id_user' => 1, 'id_role' => 1, 'first_name' => 'Carlos', 'last_name' => 'Gómez',   'phone' => '3764-100200'],
+            ['id_user' => 2, 'id_role' => 2, 'first_name' => 'Lucía',  'last_name' => 'Ramírez', 'phone' => '3764-200300'],
+            ['id_user' => 3, 'id_role' => 3, 'first_name' => 'Martín', 'last_name' => 'López',   'phone' => '3764-300400'],
         ]);
-        $usuario1->assignRole('Empleado');
 
-        $usuario2 = User::create([
-            'name' => 'Juan Perez',
-            'email' => 'juanperez@example.com',
-            'password' => bcrypt('1234')
+        DB::table('customers')->insert([
+            ['id_user' => 4, 'first_name' => 'Ana', 'last_name' => 'Torres', 'address' => 'San Martín 450, Posadas', 'phone' => '3764-500600'],
         ]);
-        $usuario2->assignRole('Cliente');
-
-
     }
 }

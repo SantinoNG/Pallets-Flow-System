@@ -45,15 +45,9 @@ return [
         'default_model' => null,
     ],
 
-    'table_names' => [
-
-        /*
-         * When using the "HasRoles" trait from this package, we need to know which
-         * table should be used to retrieve your roles. We have chosen a basic
-         * default value but you may easily change it to any table you like.
-         */
-
-        'roles' => 'roles',
+        'table_names' => [
+    'roles'       => 'spatie_roles',        // antes: 'roles'
+    'permissions' => 'spatie_permissions',
 
         /*
          * When using the "HasPermissions" trait from this package, we need to know which
@@ -214,6 +208,6 @@ return [
          * file. Using 'default' here means to use the `default` set in cache.php.
          */
 
-        'store' => 'default',
+        'store' => 'array',
     ],
 ];
