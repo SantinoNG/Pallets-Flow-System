@@ -17,6 +17,8 @@ class User extends Authenticatable implements Auditable
     use HasFactory, Notifiable, HasRoles;
     use \OwenIt\Auditing\Auditable;
 
+    protected $primaryKey = 'id_user';
+
     /**
      * The attributes that are mass assignable.
      *
