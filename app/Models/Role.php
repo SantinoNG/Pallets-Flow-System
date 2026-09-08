@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Role extends Model
 {
     protected $primaryKey = 'id_role';
+    
+        public function getRouteKeyName(): string
+    {
+        return 'id_role';
+    }
     protected $fillable = ['role_name', 'description'];
 
     public function users()
