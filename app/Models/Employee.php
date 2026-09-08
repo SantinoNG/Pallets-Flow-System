@@ -10,6 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 class Employee extends Model
 {
     protected $primaryKey = 'id_employee';
+
+    public function getRouteKeyName(): string
+    {
+        return 'id_employee';
+    }
+
     protected $fillable = ['id_user', 'id_role', 'first_name', 'last_name', 'phone'];
 
     public function user()

@@ -10,6 +10,7 @@ use Illuminate\Notifications\Notifiable;
 
 use Spatie\Permission\Traits\HasRoles;
 use OwenIt\Auditing\Contracts\Auditable;
+use App\Models\Employee;
 
 class User extends Authenticatable implements Auditable
 {
@@ -18,6 +19,11 @@ class User extends Authenticatable implements Auditable
     use \OwenIt\Auditing\Auditable;
 
     protected $primaryKey = 'id_user';
+
+    public function employee()
+{
+    return $this->hasOne(Employee::class, 'id_user');
+}
 
     /**
      * The attributes that are mass assignable.
