@@ -24,7 +24,7 @@
                 @endif
 
                 <div class="overflow-x-auto shadow-md sm:rounded-lg">
-                    <table class="w-full text-sm text-left text-gray-500">
+                    <table class="w-full text-sm text-left text-gray-500" id="myTable">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3">ID</th>
@@ -77,4 +77,11 @@
             </div>
         </div>
     </div>
+    <script src="https://cdn.datatables.net/v/dt/dt-3.0.3/datatables.min.js" ></script>
+    <script>
+        const table = new DataTable('#myTable', {
+	// Configuration options
+    });
+
+    </script>
 </x-app-layout>

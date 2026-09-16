@@ -42,14 +42,10 @@
                                     @endforelse
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    @can('editar_roles')
-                                    <a href="{{ route('users.roles.edit', $user->id) }}" 
-                                       class="font-medium text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-2 rounded-md transition">
-                                        Gestionar Roles
-                                    </a>
-                                    @else
-                                        <span class="text-gray-400 italic">Solo lectura</span>
-                                    @endcan
+                                <a href="{{ route('users.roles.edit', $user->id_user) }}" 
+                                     class="font-medium text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-2 rounded-md transition">
+                                     Gestionar Roles
+                                 </a>
                                 </td>
                             </tr>
                             @endforeach

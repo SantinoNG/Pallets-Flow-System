@@ -8,6 +8,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('users', function (Blueprint $table) {
             $table->id('id_user');
+            $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
             $table->foreignId('id_role')->constrained('roles', 'id_role');

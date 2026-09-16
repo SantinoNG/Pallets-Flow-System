@@ -10,24 +10,28 @@ class UserSeeder extends Seeder {
         DB::table('users')->insert([
             [
                 'email'    => 'admin@ecommerce.com',
+                'name'     => 'Admin',
                 'password' => Hash::make('admin1234'),
                 'id_role'  => 1,
                 'session'  => null,
             ],
             [
                 'email'    => 'vendedor@ecommerce.com',
+                'name'     => 'Vendedor',
                 'password' => Hash::make('vendedor1234'),
                 'id_role'  => 2,
                 'session'  => null,
             ],
             [
                 'email'    => 'deposito@ecommerce.com',
+                'name'     => 'Depósito',
                 'password' => Hash::make('deposito1234'),
                 'id_role'  => 3,
                 'session'  => null,
             ],
             [
                 'email'    => 'cliente@gmail.com',
+                'name'     => 'Cliente',
                 'password' => Hash::make('cliente1234'),
                 'id_role'  => 4,
                 'session'  => null,
