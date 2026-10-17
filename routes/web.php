@@ -4,6 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\SupplierController;
 
 // -----------------------------------------------------------------------------
 // RUTAS PÚBLICAS
@@ -76,6 +78,29 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 });
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// MÓDULO DE ARTÍCULOS
+// -----------------------------------------------------------------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
+    Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
+    Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store');
+    Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');
+    Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
+    Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
+});
+
+// -----------------------------------------------------------------------------
+// MÓDULO DE PROVEEDORES
+// -----------------------------------------------------------------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+    Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
+    Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
+    Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+});
+// -----------------------------------------------------------------------------
 require __DIR__.'/auth.php';

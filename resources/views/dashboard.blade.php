@@ -11,7 +11,7 @@
             {{-- Bienvenida --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">
-                    Bienvenido, {{ auth()->user()->name }} 
+                    Bienvenido, {{ auth()->user()->name }}
                 </h3>
                 <p class="text-sm text-gray-500">
                     Panel de administración del sistema PalletStore.
@@ -29,12 +29,10 @@
                        class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition group">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xl">
-                                
+                                🏷️
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                                    Roles
-                                </p>
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">Roles</p>
                                 <p class="text-xs text-gray-500">Crear, editar y eliminar roles</p>
                             </div>
                         </div>
@@ -44,12 +42,10 @@
                        class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition group">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xl">
-                                
+                                👤
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                                    Empleados
-                                </p>
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">Empleados</p>
                                 <p class="text-xs text-gray-500">Gestión del personal del sistema</p>
                             </div>
                         </div>
@@ -59,17 +55,42 @@
                        class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition group">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xl">
-                                
+                                👥
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                                    Usuarios
-                                </p>
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">Usuarios</p>
                                 <p class="text-xs text-gray-500">Gestión de cuentas del sistema</p>
                             </div>
                         </div>
                     </a>
 
+                    <a href="{{ route('articles.index') }}"
+                       class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xl">
+                                📦
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">Artículos</p>
+                                <p class="text-xs text-gray-500">Gestión del catálogo e inventario</p>
+                            </div>
+                        </div>
+                    </a>
+                                <a href="{{ route('suppliers.index') }}" class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-xl">
+                                🏭
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">
+                                    Proveedores
+                                </p>
+                                <p class="text-xs text-gray-500">Gestión de proveedores y materias primas</p>
+                            </div>
+                        </div>
+                    </a>
+
+                </div> 
                 </div>
             </div>
 
