@@ -1,9 +1,30 @@
 <div class="space-y-6">
-    
+
+    {{--
+        Filtro de periodo. wire:model.live hace que el cambio se envie al
+        servidor en el momento y el componente se re-renderice con los datos
+        del nuevo periodo.
+    --}}
+    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between gap-4">
+        <div>
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Panel de control</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Datos reales de la base de datos</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <label for="periodo" class="text-xs font-semibold text-slate-500 uppercase">Periodo</label>
+            <select id="periodo" wire:model.live="periodo"
+                    class="rounded border-slate-300 text-sm shadow-sm focus:border-amber-500 focus:ring-amber-500">
+                @foreach (\App\Livewire\Dashboard::PERIODOS as $valor => $texto)
+                    <option value="{{ $valor }}">{{ $texto }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+
     <!-- Tarjetas KPI / Métricas rápidas -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        
-        <!-- Venta Estimada -->
+
+        <!-- Ventas del Periodo -->
         <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
             <div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
                 <svg class="w-6 h-6 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -11,7 +32,7 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase">Ventas del Mes</p>
+                <p class="text-xs font-semibold text-gray-500 uppercase">Ventas del Periodo</p>
                 <h3 class="text-lg font-bold text-slate-900">${{ number_format($totalVentas, 2, ',', '.') }}</h3>
             </div>
         </div>
@@ -58,13 +79,13 @@
 
     <!-- Sección de Gráficos con Chart.js -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         <!-- Gráfico 1: Rendimiento de Ventas (Bar Chart) -->
         <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm" wire:ignore>
             <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Rendimiento de Ventas ($)</h3>
             <div class="relative h-72">
-                <canvas id="salesChart" 
-                        data-labels='@json($ventasMes["labels"])' 
+                <canvas id="salesChart"
+                        data-labels='@json($ventasMes["labels"])'
                         data-values='@json($ventasMes["data"])'></canvas>
             </div>
         </div>
@@ -73,67 +94,213 @@
         <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" wire:ignore>
             <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Estado de Inventario</h3>
             <div class="relative h-72 flex items-center justify-center">
-                <canvas id="stockChart" 
-                        data-labels='@json($stockPorCategoria["labels"])' 
+                <canvas id="stockChart"
+                        data-labels='@json($stockPorCategoria["labels"])'
                         data-values='@json($stockPorCategoria["data"])'></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Script de Inicialización de Chart.js -->
+    <!-- Segunda fila de gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Gráfico 3: Top productos vendidos (Bar Chart horizontal) -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" wire:ignore>
+            <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Top Productos Vendidos (unidades)</h3>
+            <div class="relative h-72">
+                <canvas id="topProductsChart"
+                        data-labels='@json($topProductos["labels"])'
+                        data-values='@json($topProductos["data"])'></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico 4: Medios de pago (Pie Chart) -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" wire:ignore>
+            <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Facturación por Medio de Pago</h3>
+            <div class="relative h-72 flex items-center justify-center">
+                <canvas id="paymentChart"
+                        data-labels='@json($mediosPago["labels"])'
+                        data-values='@json($mediosPago["data"])'></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla: materias primas y su stock -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Materias Primas</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs uppercase text-slate-500 border-b border-gray-200">
+                        <th class="py-2 pr-4">Materia prima</th>
+                        <th class="py-2 pr-4 text-right">Stock actual</th>
+                        <th class="py-2 pr-4 text-right">Stock mínimo</th>
+                        <th class="py-2 text-right">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($materiaPrimaStock['labels'] as $i => $materia)
+                        @php $actual = $materiaPrimaStock['actual'][$i]; $minimo = $materiaPrimaStock['minimo'][$i]; @endphp
+                        <tr class="border-b border-gray-100">
+                            <td class="py-2 pr-4 text-slate-700">{{ $materia }}</td>
+                            <td class="py-2 pr-4 text-right font-semibold text-slate-900">{{ $actual }}</td>
+                            <td class="py-2 pr-4 text-right text-slate-500">{{ $minimo }}</td>
+                            <td class="py-2 text-right">
+                                @if ($actual <= $minimo)
+                                    <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Reponer</span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">OK</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-4 text-center text-slate-500">
+                                No hay materias primas con stock registrado.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{--
+        Inicialización de Chart.js.
+
+        Los <canvas> están en wire:ignore, así que Livewire no los reemplaza al
+        re-renderizar. Eso obliga a destruir el chart anterior antes de crear
+        uno nuevo (si no, se apilan dos gráficos sobre el mismo canvas) y a
+        re-inicializar los charts cuando el componente se actualiza, por
+        ejemplo al cambiar el filtro de periodo.
+    --}}
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // 1. Gráfico de Ventas
-            const canvasSales = document.getElementById('salesChart');
-            if (canvasSales) {
-                const labelsSales = JSON.parse(canvasSales.dataset.labels || '[]');
-                const valuesSales = JSON.parse(canvasSales.dataset.values || '[]');
+        (function () {
+            const instancias = {};
 
-                new Chart(canvasSales.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: labelsSales,
-                        datasets: [{
-                            label: 'Ventas Totales ($)',
-                            data: valuesSales,
-                            backgroundColor: '#d97706',
-                            borderRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-                            x: { grid: { display: false } }
+            function crear(id, config) {
+                const canvas = document.getElementById(id);
+                if (!canvas) return;
+
+                // Si ya hay un chart en ese canvas, se destruye primero
+                if (instancias[id]) {
+                    instancias[id].destroy();
+                    delete instancias[id];
+                }
+
+                instancias[id] = new Chart(canvas.getContext('2d'), config);
+            }
+
+            function initCharts() {
+                if (typeof Chart === 'undefined') return;
+
+                // 1. Gráfico de Ventas
+                const cVentas = document.getElementById('salesChart');
+                if (cVentas) {
+                    crear('salesChart', {
+                        type: 'bar',
+                        data: {
+                            labels: JSON.parse(cVentas.dataset.labels || '[]'),
+                            datasets: [{
+                                label: 'Ventas Totales ($)',
+                                data: JSON.parse(cVentas.dataset.values || '[]'),
+                                backgroundColor: '#d97706',
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                                x: { grid: { display: false } }
+                            }
                         }
-                    }
-                });
+                    });
+                }
+
+                // 2. Gráfico de Stock
+                const cStock = document.getElementById('stockChart');
+                if (cStock) {
+                    crear('stockChart', {
+                        type: 'doughnut',
+                        data: {
+                            labels: JSON.parse(cStock.dataset.labels || '[]'),
+                            datasets: [{
+                                data: JSON.parse(cStock.dataset.values || '[]'),
+                                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom' } }
+                        }
+                    });
+                }
+
+                // 3. Gráfico de Top productos
+                const cTop = document.getElementById('topProductsChart');
+                if (cTop) {
+                    crear('topProductsChart', {
+                        type: 'bar',
+                        data: {
+                            labels: JSON.parse(cTop.dataset.labels || '[]'),
+                            datasets: [{
+                                label: 'Unidades vendidas',
+                                data: JSON.parse(cTop.dataset.values || '[]'),
+                                backgroundColor: '#3b82f6',
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                                y: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+
+                // 4. Gráfico de Medios de pago
+                const cPago = document.getElementById('paymentChart');
+                if (cPago) {
+                    crear('paymentChart', {
+                        type: 'pie',
+                        data: {
+                            labels: JSON.parse(cPago.dataset.labels || '[]'),
+                            datasets: [{
+                                data: JSON.parse(cPago.dataset.values || '[]'),
+                                backgroundColor: ['#d97706', '#10b981', '#3b82f6', '#ef4444']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom' } }
+                        }
+                    });
+                }
             }
 
-            // 2. Gráfico de Stock
-            const canvasStock = document.getElementById('stockChart');
-            if (canvasStock) {
-                const labelsStock = JSON.parse(canvasStock.dataset.labels || '[]');
-                const valuesStock = JSON.parse(canvasStock.dataset.values || '[]');
+            // Al cargar la página
+            document.addEventListener('DOMContentLoaded', initCharts);
 
-                new Chart(canvasStock.getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: labelsStock,
-                        datasets: [{
-                            data: valuesStock,
-                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
-                    }
+            // Cuando Livewire actualiza el componente (por ejemplo al cambiar
+            // el periodo), los datos del canvas cambian y hay que redibujar.
+            document.addEventListener('livewire:init', () => {
+                initCharts();
+
+                Livewire.hook('morph', () => {
+                    // Se espera a que Livewire termine de morphar el DOM
+                    setTimeout(initCharts, 50);
                 });
-            }
-        });
+            });
+        })();
     </script>
 </div>

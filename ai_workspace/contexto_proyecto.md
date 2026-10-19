@@ -90,21 +90,24 @@ Notas:
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
 | **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas) | `CartController`, vistas `cart/*` |
-| Ventas / Comprobantes | Solo capa de datos (modelos + migraciones + seeder). Sin `SaleController` ni vistas propias: el comprobante se ve desde `cart.receipt` | `Sale`, `Receipt` |
+| **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. | `SaleController`, vistas `sales/*`, `Sale` |
+| Dashboard | **Funcional con datos reales.** Componente Livewire con 5 consultas agregadas a la base y selector de periodo (30 días / 90 días / 6 meses / año / todo). Charts de Chart.js se re-inicializan en cada morph de Livewire. | `app/Livewire/Dashboard.php`, `views/livewire/dashboard.blade.php` |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
 1. **RESUELTO** — `Cart` ya declara `protected $table = 'cart'`.
-2. **PENDIENTE** — `ProductController`, `ProductPolicy`, `ProductFactory`, `StoreProductRequest` y `UpdateProductRequest` referencian `App\Models\Product`, que **no existe**; son restos de `artisan make:*` (el módulo se renombró a `Article`). No hay ruta que los use, pero `ProductFactory` revienta si alguien lo invoca.
+2. **RESUELTO** — Se eliminaron `ProductController`, `ProductPolicy`, `ProductFactory`, `StoreProductRequest` y `UpdateProductRequest`: todos referenciaban `App\Models\Product`, que no existe (el módulo se renombró a `Article`) y ningún route los usaba.
 3. **RESUELTO** — El catálogo de roles quedó alineado: `RoleSeeder` crea `Jefe`, `Administrador`, `Encargado`, `Cliente`, `Vendedor`, `Deposito` (los dos últimos faltaban y se agregaron). `spatie_roles` ahora se puebla como espejo del catálogo, así que `@role(...)` y el middleware `role:` funcionan. El `Supervisor` inexistente se reemplazó por `Jefe|Administrador`.
 4. **RESUELTO** — `RegisteredUserController` asigna el rol con `User::asignarRol()`, que escribe `users.id_role` y el espejo en Spatie. `id_role` sigue fuera del `$fillable` a propósito.
 5. **RESUELTO** — `User` ahora tiene `hasOne Customer` (`customer()`).
 6. **RESUELTO** — Livewire se usa en el dashboard (`app/Livewire/Dashboard.php` + `views/livewire/dashboard.blade.php`).
-7. **PARCIAL** — Tests: los de Breeze más `CartTest` (dominio). Faltan tests de artículos, proveedores, empleados y roles.
-8. **PENDIENTE** — El dashboard (`app/Livewire/Dashboard.php`) tiene los datos de los charts **hardcodeados** (`$totalVentas = 348000` y arrays fijos). Hay que conectarlos a la base.
+7. **PARCIAL** — Tests: los de Breeze más `CartTest` y `SalesTest` (dominio). Faltan tests de artículos, proveedores, empleados y roles.
+8. **RESUELTO** — El dashboard ya lee los datos de la base. `SaleSeeder` genera 6 ventas repartidas en los últimos 6 meses con fechas, distintos medios de pago y empleados, para que los agregaciones tengan con qué trabajar. `totalVentas` sale de `SUM(quantity * unit_price)` sobre `cart_items` unido a `sales`.
 9. **PENDIENTE** — `layouts/navigation.blade.php` (navbar viejo de Breeze) no lo incluye ninguna vista: es código muerto. `layouts/app.blade.php` es el sidebar real.
-10. **PENDIENTE** — Módulo de Ventas: no existe `SaleController` ni vistas de ventas, aunque `routes/web.php` importa `SaleController` (import muerto). Solo se llega a la venta por el flujo del carrito.
+10. **RESUELTO** — Módulo de Ventas implementado: `SaleController` (index/show/pdf), vistas `sales/*`, rutas `sales.index`, `sales.show` y `sales.pdf`, y `SalesTest` con 9 casos.
 11. **PENDIENTE** — `PLANtemplate.md` se referencia en la sección 8 pero **no existe** en `ai_workspace/`.
+12. **PENDIENTE** — `/sales` solo tiene middleware `auth`: el Cliente ve las ventas de todos. Debería filtrar por su propio `id_customer` (o restringirse a Jefe/Administrador/Vendedor).
+13. **PENDIENTE** — `SaleSeeder` resuelve cliente, empleados y artículos **por nombre** en vez de por id, porque los ids son `auto_increment` y no se puede asumir que coincidan con los de los otros seeders. Vale la pena extender ese criterio a los seeders que quedan.
 
 ## 8. Convenciones para cambios futuros
 

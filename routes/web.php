@@ -86,7 +86,15 @@ Route::middleware(['auth'])->group(function () {
 // -----------------------------------------------------------------------------
 // MÓDULO DE ARTÍCULOS
 // -----------------------------------------------------------------------------
-Route::middleware(['auth'])->group(function () {
+// Control de acceso por rol (middleware de Spatie, registrado en
+// bootstrap/app.php con el alias 'role').
+//
+// El inventario lo gestionan Jefe, Administrador, Encargado y Depósito.
+// NO entran el Vendedor ni el Cliente.
+//
+// El middleware de Spatie lee la tabla `spatie_roles`, que se puebla como
+// espejo del catálogo de `roles` (ver RoleSeeder y User::asignarRol()).
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Deposito'])->group(function () {
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
     Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
     Route::get('/articles/pdf', [ArticleController::class, 'exportPdf'])->name('articles.pdf');
@@ -99,7 +107,9 @@ Route::middleware(['auth'])->group(function () {
 // -----------------------------------------------------------------------------
 // MÓDULO DE PROVEEDORES
 // -----------------------------------------------------------------------------
-Route::middleware(['auth'])->group(function () {
+// Los proveedores y las materias primas los gestionan Jefe, Administrador
+// y Encargado. El Depósito sólo consulta stock, no gestiona proveedores.
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function () {
     Route::get('/proveedores/pdf', [SupplierController::class, 'exportPdf'])->name('suppliers.pdf');
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
     Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
@@ -121,6 +131,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/cart/{cart}/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
     Route::post('/cart/{cart}/confirm', [CartController::class, 'confirmSale'])->name('cart.confirm');
     Route::get('/sales/{sale}/receipt', [CartController::class, 'showReceipt'])->name('cart.receipt');
+});
+
+// -----------------------------------------------------------------------------
+// MÓDULO DE VENTAS
+// -----------------------------------------------------------------------------
+// Listado, detalle y comprobante en PDF de las ventas realizadas.
+//
+// Antes solo se llegaba a una venta por el flujo del carrito, y el import de
+// SaleController en este archivo no correspondía a ningún archivo existente.
+Route::middleware(['auth'])->group(function () {
+    Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+    Route::get('/sales/{sale}/pdf', [SaleController::class, 'pdf'])->name('sales.pdf');
 });
 // -----------------------------------------------------------------------------
 require __DIR__.'/auth.php';
