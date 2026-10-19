@@ -7,6 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Article extends Model
 {
     protected $primaryKey = 'id_article';
+
+    /**
+     * La ruta debe usar la PK real de la tabla.
+     * Sin esto, Route::modelBinding() buscaria por 'id',
+     * columna que no existe en estas tablas.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'id_article';
+    }
     protected $fillable = ['article_name', 'description', 'unit_price'];
  
     public function stock() {

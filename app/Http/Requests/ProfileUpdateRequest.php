@@ -24,7 +24,19 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+
+                /*
+                 * Se pasa el MODELO entero en vez de ->id a proposito.
+                 *
+                 * Cuando la clave primaria no se llama "id" (en este proyecto
+                 * es `id_user`), pasar el id suelto hace que la regla unique
+                 * compare contra la columna equivocada y el usuario que edita
+                 * su propio perfil recibe "El campo correo electrónico ya ha
+                 * sido registrado".
+                 *
+                 * Laravel resuelve bien la PK cuando le pasás el modelo.
+                 */
+                Rule::unique(User::class)->ignore($this->user()),
             ],
         ];
     }

@@ -7,6 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Customer extends Model
 {
     protected $primaryKey = 'id_customer';
+
+    /**
+     * La ruta debe usar la PK real de la tabla.
+     * Sin esto, Route::modelBinding() buscaria por 'id',
+     * columna que no existe en estas tablas.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'id_customer';
+    }
     protected $fillable = ['id_user', 'first_name', 'last_name', 'address', 'phone'];
  
     public function user() {

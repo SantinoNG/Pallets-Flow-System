@@ -3,89 +3,114 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Role;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-
-// Mostrar el formulario con los roles
-    public function editRoles(User $user)
+    /**
+     * Solo los administradores pueden ver o tocar la gestión de roles.
+     *
+     * Antes estas rutas tenian únicamente middleware('auth'), así que
+     * cualquier usuario logueado podía llamar /usuarios/{cualquiera}/roles
+     * y ascenderse a sí mismo.
+     */
+    private function authorizeAdmin(Request $request): void
     {
-        // Traemos todos los roles de la base de datos
-        $roles = Role::all(); 
-        
+        abort_unless(
+            $request->user()?->isAdmin(),
+            403,
+            'Solo un administrador puede gestionar los roles de los usuarios.'
+        );
+    }
+
+    /**
+     * Listado de usuarios.
+     */
+    public function index(Request $request)
+    {
+        $this->authorizeAdmin($request);
+
+        $users = User::latest()->paginate(10);
+
+        return view('users.index', compact('users'));
+    }
+
+    /**
+     * Muestra el formulario para asignar un rol a un usuario.
+     *
+     * Usa App\Models\Role (tabla `roles`, PK `id_role`, columna `role_name`),
+     * que es el sistema de roles real del proyecto.
+     *
+     * Antes importaba Spatie\Permission\Models\Role, que lee `spatie_roles`
+     * (tabla vacía), por lo que la página se renderizaba con 0 checkboxes.
+     */
+    public function editRoles(Request $request, User $user)
+    {
+        $this->authorizeAdmin($request);
+
+        $roles = Role::orderBy('role_name')->get();
+
         return view('users.roles', compact('user', 'roles'));
     }
 
-    // Guardar los roles seleccionados
+    /**
+     * Guarda el rol seleccionado.
+     *
+     * users.id_role es una FK simple: cada usuario tiene UN solo rol.
+     * Por eso el formulario es un <select>, no checkboxes.
+     *
+     * Antes usaba syncRoles() de Spatie sin validar nada, lo que sincronizaba
+     * contra spatie_roles (vacía) y contra model_has_roles.
+     */
     public function updateRoles(Request $request, User $user)
     {
-        // Spatie tiene un método mágico llamado "syncRoles".
-        // Lo que hace es: mira los roles que llegaron del formulario, 
-        // se los asigna al usuario, y le quita los que no estén marcados.
-        $user->syncRoles($request->roles);
+        $this->authorizeAdmin($request);
 
-        // Volvemos a la página anterior con un mensaje de éxito
-        return redirect()->back()->with('success', 'Roles actualizados correctamente.');
+        $validated = $request->validate([
+            'id_role' => ['required', 'integer', 'exists:roles,id_role'],
+        ]);
+
+        // id_role no está en $fillable a propósito (es un campo que solo debe
+        // cambiar desde aquí), por eso se usa forceFill.
+        $user->forceFill(['id_role' => $validated['id_role']])->save();
+
+        return redirect()
+            ->route('users.roles.edit', $user->id_user)
+            ->with('success', 'Roles actualizados correctamente.');
     }
 
-
-
-    /**
-     * Display a listing of the resource.
+    /*
+     * Los métodos siguientes quedan vacíos a propósito: no tienen rutas ni
+     * vistas asociadas. Si se implementan, hay que agregarle validación
+     * y autorización como en los de arriba.
      */
-    public function index()
-    {
-        $users = User::latest()->paginate(10);
-        
-    // IMPORTANTE: Asegurate que diga 'users.index' y que tenga el return
-    return view('users.index', compact('users'));
-    }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         //
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //
