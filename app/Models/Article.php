@@ -2,10 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Article extends Model
 {
+    /**
+     * @use HasFactory<\Database\Factories\ArticleFactory>
+     *
+     * HasFactory habilita Article::factory(). Sin este trait el metodo no
+     * existe y el CartTest falla con:
+     *
+     *     Call to undefined method App\Models\Article::factory()
+     */
+    use HasFactory;
+
     protected $primaryKey = 'id_article';
 
     /**
@@ -17,8 +28,9 @@ class Article extends Model
     {
         return 'id_article';
     }
+
     protected $fillable = ['article_name', 'description', 'unit_price'];
- 
+
     public function stock() {
         return $this->hasOne(ProductStock::class, 'id_article');
     }

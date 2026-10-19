@@ -4,6 +4,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\SaleController;
 
 // -----------------------------------------------------------------------------
 // RUTAS PÚBLICAS
@@ -43,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
  * el Administrador puede entrar a ver el formulario y guardar cambios.
  */
 Route::middleware(['auth'])->group(function () {
+    Route::get('/usuarios/pdf', [UserController::class, 'exportPdf'])->name('users.pdf');
     Route::get('/usuarios/{user}/roles', [UserController::class, 'editRoles'])->name('users.roles.edit');
     Route::put('/usuarios/{user}/roles', [UserController::class, 'updateRoles'])->name('users.roles.update');
 });
@@ -71,11 +76,51 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+    Route::get('/employees/pdf', [EmployeeController::class, 'exportPdf'])->name('employees.pdf');
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
     Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 });
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// MÓDULO DE ARTÍCULOS
+// -----------------------------------------------------------------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
+    Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
+    Route::get('/articles/pdf', [ArticleController::class, 'exportPdf'])->name('articles.pdf');
+    Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store');
+    Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');
+    Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
+    Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
+});
+
+// -----------------------------------------------------------------------------
+// MÓDULO DE PROVEEDORES
+// -----------------------------------------------------------------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/proveedores/pdf', [SupplierController::class, 'exportPdf'])->name('suppliers.pdf');
+    Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+    Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
+    Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
+    Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+});
+
+// -----------------------------------------------------------------------------
+// MÓDULO DE VENTAS / CARRITO
+// -----------------------------------------------------------------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart', [CartController::class, 'createOrGetCart'])->name('cart.create');
+    Route::get('/cart/{cart}', [CartController::class, 'show'])->name('cart.show');
+    Route::post('/cart/{cart}/items', [CartController::class, 'addItem'])->name('cart.addItem');
+    Route::delete('/cart/{cart}/items/{item}', [CartController::class, 'removeItem'])->name('cart.removeItem');
+    Route::get('/cart/{cart}/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+    Route::post('/cart/{cart}/confirm', [CartController::class, 'confirmSale'])->name('cart.confirm');
+    Route::get('/sales/{sale}/receipt', [CartController::class, 'showReceipt'])->name('cart.receipt');
+});
+// -----------------------------------------------------------------------------
 require __DIR__.'/auth.php';

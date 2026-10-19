@@ -17,8 +17,9 @@ class RawMaterial extends Model
     {
         return 'id_raw_material';
     }
+
     protected $fillable = ['description', 'id_supplier'];
- 
+
     public function supplier() {
         return $this->belongsTo(Supplier::class, 'id_supplier');
     }

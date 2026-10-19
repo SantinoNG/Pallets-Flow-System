@@ -1,0 +1,197 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Customer;
+use App\Models\Article;
+use App\Models\Sale;
+use App\Models\Receipt;
+use App\Models\ProductStock;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class CartController extends Controller
+{
+    // PASO 1 — Muestra el formulario para iniciar una venta
+    public function index()
+    {
+        $customers = Customer::with('user')->get();
+        $articles  = Article::with('stock')->get();
+        $cart      = null;
+
+        return view('cart.index', compact('customers', 'articles', 'cart'));
+    }
+
+    // PASO 2 — Crea o recupera el carrito activo del cliente
+    public function createOrGetCart(Request $request)
+    {
+        $request->validate([
+            'id_customer' => 'required|exists:customers,id_customer',
+        ]);
+
+        // Buscar carrito activo o crear uno nuevo (DSD-4 paso 3)
+        $cart = Cart::where('id_customer', $request->id_customer)
+                    ->where('status', 'active')
+                    ->first();
+
+        if (!$cart) {
+            $cart = Cart::create([
+                'id_customer' => $request->id_customer,
+                'status'      => 'active',
+            ]);
+        }
+
+        return redirect()->route('cart.show', $cart->id_cart);
+    }
+
+    // PASO 3 — Muestra el carrito con sus items
+    public function show(Cart $cart)
+    {
+        $cart->load('items.article', 'customer.user');
+        $articles = Article::with('stock')->get();
+        $subtotal = $cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
+
+        return view('cart.show', compact('cart', 'articles', 'subtotal'));
+    }
+
+    // PASO 4 — Agrega un artículo al carrito (DSD-4)
+    public function addItem(Request $request, Cart $cart)
+    {
+        $request->validate([
+            'id_article' => 'required|exists:articles,id_article',
+            'quantity'   => 'required|integer|min:1',
+        ]);
+
+        $article = Article::with('stock')->findOrFail($request->id_article);
+
+        // Verificar stock (DSD-4 paso 2)
+        $stock = $article->stock;
+        if (!$stock || $stock->remaining_quantity < $request->quantity) {
+            return back()->with('error', 'Stock insuficiente. Disponible: ' . ($stock->remaining_quantity ?? 0));
+        }
+
+        // Verificar si el artículo ya existe en el carrito (DSD-4 paso 4)
+        $item = CartItem::where('id_cart', $cart->id_cart)
+                        ->where('id_article', $request->id_article)
+                        ->first();
+
+        if ($item) {
+            // Verificar que la nueva cantidad total no supere el stock
+            $newQty = $item->quantity + $request->quantity;
+            if ($newQty > $stock->remaining_quantity) {
+                return back()->with('error', 'Stock insuficiente para esa cantidad.');
+            }
+            $item->quantity = $newQty;
+            $item->save();
+        } else {
+            // Crear nuevo CartItem (DSD-4 paso 5)
+            CartItem::create([
+                'id_cart'    => $cart->id_cart,
+                'id_article' => $request->id_article,
+                'quantity'   => $request->quantity,
+                'unit_price' => $article->unit_price,
+            ]);
+        }
+
+        return back()->with('success', '«' . $article->article_name . '» agregado al carrito.');
+    }
+
+    // PASO 5 — Elimina o reduce un item del carrito (DSD-5)
+    public function removeItem(Request $request, Cart $cart, CartItem $item)
+    {
+        // Si la cantidad a eliminar >= cantidad actual, borrar el item completo
+        if ($request->quantity >= $item->quantity) {
+            $item->delete();
+        } else {
+            $item->quantity -= $request->quantity;
+            $item->save();
+        }
+
+        // Si el carrito queda vacío, marcarlo como abandonado (DSD-5 paso 6)
+        if ($cart->items()->count() === 0) {
+            $cart->status = 'abandoned';
+            $cart->save();
+            return redirect()->route('cart.index')
+                             ->with('success', 'Carrito vaciado.');
+        }
+
+        return back()->with('success', 'Artículo eliminado del carrito.');
+    }
+
+    // PASO 6 — Muestra el formulario de confirmación de venta
+    public function checkout(Cart $cart)
+    {
+        $cart->load('items.article', 'customer.user');
+        $subtotal = $cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
+
+        return view('cart.checkout', compact('cart', 'subtotal'));
+    }
+
+    // PASO 7 — Confirma la venta, descuenta stock, genera Sale y Receipt
+    public function confirmSale(Request $request, Cart $cart)
+    {
+        $request->validate([
+            'payment_method' => 'required|string|in:Efectivo,Tarjeta de crédito,Tarjeta de débito,Transferencia',
+        ]);
+
+        // Verificar que el carrito tenga items
+        if ($cart->items->count() === 0) {
+            return back()->with('error', 'El carrito está vacío.');
+        }
+
+        // Verificar stock de todos los items antes de confirmar
+        foreach ($cart->items as $item) {
+            $stock = ProductStock::where('id_article', $item->id_article)->first();
+            if (!$stock || $stock->remaining_quantity < $item->quantity) {
+                return back()->with('error', 'Stock insuficiente para «' . $item->article->article_name . '».');
+            }
+        }
+
+        // Usar transacción para que todo se guarde o nada (seguridad)
+        DB::transaction(function () use ($cart, $request) {
+
+            // Marcar carrito como completado
+            $cart->status = 'completed';
+            $cart->save();
+
+            // Crear la venta (Sale)
+            $sale = Sale::create([
+                'id_cart'        => $cart->id_cart,
+                'id_customer'    => $cart->id_customer,
+               'id_employee' => auth()->user()->employee?->id_employee ?? null,
+                'payment_method' => $request->payment_method,
+            ]);
+
+            // Descontar stock y crear comprobante
+            foreach ($cart->items as $item) {
+                $stock = ProductStock::where('id_article', $item->id_article)->first();
+                $stock->remaining_quantity -= $item->quantity;
+                $stock->save();
+            }
+
+            // Crear el comprobante (Receipt)
+            Receipt::create([
+                'id_sale'    => $sale->id_sale,
+                'issue_date' => now()->toDateString(),
+                'due_date'   => now()->addDays(30)->toDateString(),
+            ]);
+        });
+
+        // Obtener la venta recién creada para redirigir al comprobante
+        $sale = Sale::where('id_cart', $cart->id_cart)->first();
+
+        return redirect()->route('cart.receipt', $sale->id_sale)
+                         ->with('success', 'Venta registrada exitosamente.');
+    }
+
+    // PASO 8 — Muestra el comprobante de la venta
+    public function showReceipt(Sale $sale)
+    {
+        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
+        $subtotal = $sale->cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
+
+        return view('cart.receipt', compact('sale', 'subtotal'));
+    }
+}

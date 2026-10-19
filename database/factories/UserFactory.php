@@ -39,7 +39,7 @@ class UserFactory extends Factory
              *
              * Se usa el rol "Cliente" porque es el de menor privilegio: para
              * probar autenticacion no hace falta que el usuario sea admin.
-             * Si el test necesita permisos, usar ->state(['id_role' => ...]).
+             * Si el test necesita permisos, usar ->withRol('Administrador').
              */
             'id_role' => $this->rolPorDefecto(),
         ];
@@ -52,6 +52,10 @@ class UserFactory extends Factory
      * sobre una base SQLite en memoria, y lo que se inserta en un test se
      * revierte al terminar. Un id cacheado apuntaria a una fila que ya no
      * existe y el INSERT fallaria con "FOREIGN KEY constraint failed".
+     *
+     * Se busca el rol del catalogo real del proyecto (Cliente, Vendedor,
+     * Deposito, Administrador, Encargado, Jefe) y no uno generado al azar,
+     * para que los tests usen los mismos roles que la aplicacion.
      */
     private function rolPorDefecto(): int
     {

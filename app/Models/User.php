@@ -19,6 +19,7 @@ class User extends Authenticatable implements Auditable
     use \OwenIt\Auditing\Auditable;
 
     protected $primaryKey = 'id_user';
+    public $rememberTokenName = null;
 
     /**
      * La ruta debe usar la PK real de la tabla.

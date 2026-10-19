@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Cart extends Model
 {
+    protected $table = 'cart';
     protected $primaryKey = 'id_cart';
 
     /**
@@ -17,8 +18,9 @@ class Cart extends Model
     {
         return 'id_cart';
     }
+
     protected $fillable = ['id_customer', 'status'];
- 
+
     public function customer() {
         return $this->belongsTo(Customer::class, 'id_customer');
     }
