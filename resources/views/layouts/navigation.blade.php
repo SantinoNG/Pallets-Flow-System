@@ -15,16 +15,16 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                   @hasanyrole('Administrador|Supervisor')
+                   @role('Jefe|Administrador')
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                         {{ __('Usuarios y Roles') }}
                     </x-nav-link>
                     <x-nav-link :href="route('cart.index')" :active="request()->routeIs('cart.*')">
                         {{ __('Carrito') }}
                     </x-nav-link>
-                    @endhasanyrole
+                    @endrole
                     <x-nav-link :href="route('tutorial')" :active="request()->routeIs('tutorial')">
-                        {{ __('Guía Técnica') }}
+                        {{ __('GuÃ­a TÃ©cnica') }}
                     </x-nav-link>
 
                         

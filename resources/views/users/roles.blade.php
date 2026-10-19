@@ -59,7 +59,7 @@
                             @foreach($roles as $role)
                                 <option
                                     value="{{ $role->id_role }}"
-                                    @selected((int) $user->id_role === (int) $role->id_role)
+                                    @selected($user->hasRole($role->role_name))
                                 >
                                     {{ $role->role_name }}
                                 </option>

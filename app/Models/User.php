@@ -58,13 +58,17 @@ class User extends Authenticatable implements Auditable
     /**
      * Rol propio del proyecto (tabla `roles`, PK `id_role`, columna `role_name`).
      *
-     * OJO: este es el sistema de roles REAL del proyecto, el que usan
-     * RoleSeeder, RoleController y employees.id_role.
+     * Este es el catalogo de roles de NEGOCIO del proyecto: define que roles
+     * existen. Lo usan RoleSeeder, RoleController y employees.id_role.
      *
-     * Spatie (HasRoles) tambien esta instalado y lee la tabla `spatie_roles`,
-     * que esta vacia. Los dos sistemas conviven pero NO son lo mismo:
-     * users.id_role es una FK simple (un solo rol por usuario), mientras que
-     * Spatie usa una tabla puente y permite varios roles.
+     * Spatie (HasRoles) lee la tabla `spatie_roles`, que es el ESPEJO del
+     * catalogo para la capa de autorizacion (@hasrole, middleware role:).
+     * config/permission.php los separa a proposito:
+     *
+     *     'roles' => 'spatie_roles',        // antes: 'roles'
+     *
+     * Los dos sistemas se mantienen sincronizados con asignarRol(), que
+     * escribe en los dos lados de una sola vez.
      */
     public function role()
     {
@@ -72,12 +76,61 @@ class User extends Authenticatable implements Auditable
     }
 
     /**
-     * Un usuario es administrador si su rol (propio) es "Administrador".
-     * Se usa para proteger /usuarios y /roles.
+     * Asigna un rol al usuario, en LOS DOS sistemas a la vez.
+     *
+     * - `users.id_role`  -> FK de negocio (un solo rol por usuario)
+     * - `model_has_roles` -> capa Spatie (lo que leen @hasrole y el
+     *   middleware role:), usada para decidir si alguien ve o no una seccion
+     *
+     * Hacerlo siempre por aca es lo que evita que se desincronicen: antes
+     * `spatie_roles` estaba vacia, asi que @hasanyrole(...) devolvia false
+     * para todo el mundo y el menu mostraba links que luego daban 403.
+     *
+     * @param  string  $nombreRol  Nombre del rol del catalogo (ej: 'Administrador')
+     */
+    public function asignarRol(string $nombreRol): void
+    {
+        $rol = Role::where('role_name', $nombreRol)->first();
+
+        if ($rol === null) {
+            throw new \InvalidArgumentException(
+                "El rol '{$nombreRol}' no existe en el catalogo de roles."
+            );
+        }
+
+        // id_role NO esta en $fillable a proposito (para que nadie se lo
+        // asigne con un mass assignment), asi que va con forceFill.
+        $this->forceFill(['id_role' => $rol->id_role])->save();
+
+        // Espejo en Spatie. findOrCreate se asegura de que el rol exista en
+        // `spatie_roles` con el guard 'web' (asi funciona aunque se haya
+        // creado un rol nuevo sin volver a correr el RoleSeeder) y despues
+        // syncRoles() deja al usuario con ese rol y solo ese.
+        \Spatie\Permission\Models\Role::findOrCreate($nombreRol, 'web');
+
+        $this->syncRoles([$nombreRol]);
+    }
+
+    /**
+     * Roles que pueden administrar usuarios y roles (Jefe o Administrador).
+     *
+     * Se consulta por Spatie, que es la capa que usan las directivas de
+     * Blade y el middleware, para que haya una sola fuente de verdad.
      */
     public function isAdmin(): bool
     {
-        return $this->role?->role_name === 'Administrador';
+        return $this->hasAnyRole(['Jefe', 'Administrador']);
+    }
+
+    /**
+     * El usuario autenticado, como Cliente.
+     *
+     * Faltaba: no habia forma directa de obtener el cliente del usuario
+     * logueado, que es lo que necesita el modulo de carrito.
+     */
+    public function customer()
+    {
+        return $this->hasOne(Customer::class, 'id_user');
     }
 
     /**

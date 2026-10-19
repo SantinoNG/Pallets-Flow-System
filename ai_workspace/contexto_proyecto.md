@@ -52,7 +52,7 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 
 | Modelo | Tabla | PK | Relaciones |
 |---|---|---|---|
-| `User` | `users` | `id_user` | `hasOne Employee`. Usa `HasRoles` (Spatie) y `Auditable`. `$rememberTokenName = null`. **No tiene relación a `Customer`.** |
+| `User` | `users` | `id_user` | `hasOne Employee`, `hasOne Customer` (`customer()`), `belongsTo Role` (`role()`, rol de negocio). Usa `HasRoles` (Spatie) y `Auditable`. `$rememberTokenName = null`. `isAdmin()` delega en Spatie (`Jefe` o `Administrador`). `asignarRol($nombre)` escribe **los dos** sistemas de roles (ver sección 6). |
 | `Role` (propio) | `roles` | `id_role` | `hasMany User`, `hasMany Employee` |
 | `Employee` | `employees` | `id_employee` | `belongsTo User`, `belongsTo Role`, `hasMany Sale` |
 | `Customer` | `customers` | `id_customer` | `belongsTo User`, `hasMany Cart` (`carts`), `hasMany Sale` |
@@ -61,8 +61,8 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 | `RawMaterialStock` | `raw_material_stock` | `id_raw_material` | `belongsTo RawMaterial` |
 | `Article` | `articles` | `id_article` | `hasOne ProductStock`, `belongsToMany RawMaterial` (pivote `article_materials`), `hasMany CartItem` |
 | `ProductStock` | `product_stock` | `id_article` | `belongsTo Article` |
-| `Cart` | `cart` | `id_cart` | `belongsTo Customer`, `hasMany CartItem` (`items`), `hasOne Sale`. **Falta `protected $table = 'cart'`** (Laravel inferiría `carts`). |
-| `CartItem` | `cart_items` | `id_cart_item` | `belongsTo Cart`, `belongsTo Article`. Sin `getRouteKeyName()` ni casts. |
+| `Cart` | `cart` | `id_cart` | `belongsTo Customer`, `hasMany CartItem` (`items`), `hasOne Sale`. Declara `protected $table = 'cart'`. |
+| `CartItem` | `cart_items` | `id_cart_item` | `belongsTo Cart`, `belongsTo Article`. Con `getRouteKeyName()`. |
 | `Sale` | `sales` | `id_sale` | `belongsTo Cart`, `belongsTo Customer`, `belongsTo Employee`, `hasOne Receipt` |
 | `Receipt` | `receipts` | `id_receipt` | `belongsTo Sale` |
 
@@ -83,35 +83,41 @@ Notas:
 | Módulo | Estado | Archivos clave |
 |---|---|---|
 | Autenticación / Perfil (Breeze) | Funcional | `routes/auth.php`, `Auth/*`, `ProfileController` |
-| Usuarios y asignación de roles (Spatie) | Funcional | `UserController`, vistas `users/*` |
-| Roles | Rutas y controlador presentes | `RoleController`, vistas `roles/*` |
+| Usuarios y asignación de roles | Funcional. **Dos capas sincronizadas**: `users.id_role` (rol de negocio, FK simple) y `model_has_roles` (Spatie, capa de autorización). Se asignan siempre juntas con `User::asignarRol()`. `spatie_roles` es el espejo de `roles`. | `UserController`, `RoleController`, vistas `users/*`, `roles/*` |
+| Roles | CRUD completo. Al crear/editar/borrar un rol se mantiene el espejo en `spatie_roles` | `RoleController`, vistas `roles/*` |
 | Empleados | CRUD | `EmployeeController`, vistas `employees/*` |
 | Artículos (+ stock + materias primas) | CRUD | `ArticleController`, vistas `articles/*` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
-| **Carrito de compras** | **Solo capa de datos** (migraciones + modelos); sin controladores, rutas ni vistas | ver `001_plan_carrito_compras.md` |
-| Ventas / Comprobantes | Solo capa de datos (modelos + migraciones + seeder) | `Sale`, `Receipt` |
+| **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas) | `CartController`, vistas `cart/*` |
+| Ventas / Comprobantes | Solo capa de datos (modelos + migraciones + seeder). Sin `SaleController` ni vistas propias: el comprobante se ve desde `cart.receipt` | `Sale`, `Receipt` |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
-1. `Cart` no declara `$table = 'cart'` → cualquier consulta Eloquent fallará con "table carts not found".
-2. `ProductController`, `ProductPolicy`, `StoreProductRequest` y `UpdateProductRequest` referencian `App\Models\Product`, que **no existe**; son restos de `artisan make:*` (policies/requests con `authorize() = false`). No hay ruta que los use.
-3. `RoleSeeder` crea los roles `Jefe`, `Administrador`, `Encargado`, `Cliente`, pero `navigation.blade.php` usa `@hasanyrole('Administrador|Supervisor')` (`Supervisor` no existe) y los comentarios de `UserSeeder` hablan de "Vendedor/Depósito". No se verificó si los roles Spatie están sembrados en `spatie_roles`.
-4. `users.id_role` es NOT NULL pero `id_role` no está en `User::$fillable` (no se revisó `RegisteredUserController`).
-5. `User` no tiene relación `customer()`; hoy no hay forma directa de obtener el `Customer` del usuario autenticado.
-6. Livewire está instalado y sin uso; el resto del código es Blade + controladores tradicionales.
-7. Tests: solo los de Breeze; ningún test de dominio.
+1. **RESUELTO** — `Cart` ya declara `protected $table = 'cart'`.
+2. **PENDIENTE** — `ProductController`, `ProductPolicy`, `ProductFactory`, `StoreProductRequest` y `UpdateProductRequest` referencian `App\Models\Product`, que **no existe**; son restos de `artisan make:*` (el módulo se renombró a `Article`). No hay ruta que los use, pero `ProductFactory` revienta si alguien lo invoca.
+3. **RESUELTO** — El catálogo de roles quedó alineado: `RoleSeeder` crea `Jefe`, `Administrador`, `Encargado`, `Cliente`, `Vendedor`, `Deposito` (los dos últimos faltaban y se agregaron). `spatie_roles` ahora se puebla como espejo del catálogo, así que `@role(...)` y el middleware `role:` funcionan. El `Supervisor` inexistente se reemplazó por `Jefe|Administrador`.
+4. **RESUELTO** — `RegisteredUserController` asigna el rol con `User::asignarRol()`, que escribe `users.id_role` y el espejo en Spatie. `id_role` sigue fuera del `$fillable` a propósito.
+5. **RESUELTO** — `User` ahora tiene `hasOne Customer` (`customer()`).
+6. **RESUELTO** — Livewire se usa en el dashboard (`app/Livewire/Dashboard.php` + `views/livewire/dashboard.blade.php`).
+7. **PARCIAL** — Tests: los de Breeze más `CartTest` (dominio). Faltan tests de artículos, proveedores, empleados y roles.
+8. **PENDIENTE** — El dashboard (`app/Livewire/Dashboard.php`) tiene los datos de los charts **hardcodeados** (`$totalVentas = 348000` y arrays fijos). Hay que conectarlos a la base.
+9. **PENDIENTE** — `layouts/navigation.blade.php` (navbar viejo de Breeze) no lo incluye ninguna vista: es código muerto. `layouts/app.blade.php` es el sidebar real.
+10. **PENDIENTE** — Módulo de Ventas: no existe `SaleController` ni vistas de ventas, aunque `routes/web.php` importa `SaleController` (import muerto). Solo se llega a la venta por el flujo del carrito.
+11. **PENDIENTE** — `PLANtemplate.md` se referencia en la sección 8 pero **no existe** en `ai_workspace/`.
 
 ## 8. Convenciones para cambios futuros
 
 - Mantener PKs `id_<entidad>` y `getRouteKeyName()` en modelos usados con route model binding.
 - Comentarios en español; seguir el estilo de los controladores existentes.
+- **Roles**: el catálogo es la tabla `roles` (columna `role_name`). Cualquier rol nuevo se crea ahí y se refleja en `spatie_roles`; a los usuarios se les asigna con `User::asignarRol($nombre)`, que escribe en los dos sistemas a la vez. No usar `syncRoles()` ni `assignRole()` por separado.
+- **Autorización de usuarios/roles**: `User::isAdmin()` (Jefe o Administrador). Para proteger rutas con el middleware de Spatie usar `->middleware('role:Jefe|Administrador')`.
 - Registrar cada cambio nuevo en este archivo (sección 4, 5, 6) y crear el plan siguiente en `ai_workspace/NNN_plan_<tema>.md` siguiendo `PLANtemplate.md`.
 
 ## 9. Planes de `ai_workspace`
 
 | Archivo | Descripción | Estado |
 |---|---|---|
-| `PLANtemplate.md` | Plantilla ExecPlan (openai-codex-exec-plan) | Referencia |
+| `PLANtemplate.md` | Plantilla ExecPlan (openai-codex-exec-plan) | Referencia. **No está en el repositorio** (ver deuda técnica 11) |
 | `PLAN.md` | Ejemplo de ExecPlan completado (del repo origen, no pertenece a este proyecto) | Referencia |
-| `001_plan_carrito_compras.md` | Scaffolding del Carrito de Compras | Pendiente de ejecución |
+| `001_plan_carrito_compras.md` | Scaffolding del Carrito de Compras | **Ejecutado** (commits `eb8fed6`, `2c57837`, `f23f1b7`). Los checkboxes de "Progress" siguen sin marcar |

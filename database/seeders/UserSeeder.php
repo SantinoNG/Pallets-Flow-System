@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -83,6 +84,24 @@ class UserSeeder extends Seeder
             $userIds[$u['email']] = (int) DB::table('users')
                 ->where('email', $u['email'])
                 ->value('id_user');
+
+            /*
+             * Espejo en Spatie.
+             *
+             * DB::table()->insert() escribe en la base pero NO dispara los
+             * eventos de Eloquent, asi que el trait HasRoles no se entera
+             * y `model_has_roles` queda vacia. Por eso, despues de insertar,
+             * se carga el modelo y se le asigna el rol con asignarRol(), que
+             * escribe en users.id_role y en la capa de Spatie a la vez.
+             *
+             * Sin esto, spatie_roles queda vacia y cualquier chequeo de rol
+             * (@hasrole, middleware role:) devuelve false para todo el mundo.
+             */
+            $user = User::where('email', $u['email'])->first();
+
+            if ($user !== null) {
+                $user->asignarRol($u['rol']);
+            }
         }
 
         /*

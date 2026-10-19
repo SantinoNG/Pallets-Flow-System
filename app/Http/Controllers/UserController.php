@@ -71,9 +71,17 @@ class UserController extends Controller
             'id_role' => ['required', 'integer', 'exists:roles,id_role'],
         ]);
 
-        // id_role no está en $fillable a propósito (es un campo que solo debe
-        // cambiar desde aquí), por eso se usa forceFill.
-        $user->forceFill(['id_role' => $validated['id_role']])->save();
+        /*
+         * Se busca el rol por id y se delega en asignarRol(), que escribe
+         * users.id_role Y el espejo en Spatie (model_has_roles).
+         *
+         * Antes se usaba syncRoles() de Spatie contra la tabla `spatie_roles`,
+         * que estaba vacia: se sincronizaba contra una tabla sin los roles
+         * del sistema y `users.id_role` nunca se actualizaba.
+         */
+        $rol = Role::findOrFail($validated['id_role']);
+
+        $user->asignarRol($rol->role_name);
 
         return redirect()
             ->route('users.roles.edit', $user->id_user)

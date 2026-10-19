@@ -44,32 +44,30 @@ class RegisteredUserController extends Controller
          *
          *     SQLSTATE[HY000]: Field 'id_role' doesn't have a default value
          *
-         * Se usa forceFill() y NO create() a proposito: `id_role` esta fuera
-         * del $fillable del modelo (a posta, para que nadie pueda asignarse
-         * un rol arbitrario con un mass assignment), asi que hay que setearlo
-         * explicitamente. Con create() Laravel lo descarta en silencio y el
-         * INSERT sale sin la columna.
+         * Se usa asignarRol(), que escribe users.id_role y el espejo en
+         * Spatie a la vez. Con create() / forceFill() el campo se descartaba
+         * en silencio (esta fuera del $fillable) y el INSERT salia sin la
+         * columna.
          *
          * El rol esta hardcodeado aca y NO viene del formulario: si llegara
          * del request, cualquiera podria registrarse eligiendo Administrador.
          */
-        $rolCliente = Role::where('role_name', 'Cliente')->first();
-
-        if ($rolCliente === null) {
-            // Roles vacio: es un error de configuracion, no del usuario.
-            throw ValidationException::withMessages([
-                'email' => 'No hay roles cargados en el sistema. Contacta al administrador.',
-            ]);
-        }
-
         $user = new User();
         $user->forceFill([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'id_role' => $rolCliente->id_role,
         ]);
-        $user->save();
+
+        /*
+         * OJO: NO se llama save() aca. users.id_role es NOT NULL, asi que un
+         * INSERT sin esa columna revienta con "NOT NULL constraint failed:
+         * users.id_role". asignarRol() es la que hace el save, ya con
+         * id_role puesto.
+         *
+         * Rol minimo: Cliente. asignarRol() valida que exista en el catalogo.
+         */
+        $user->asignarRol('Cliente');
 
         event(new Registered($user));
 

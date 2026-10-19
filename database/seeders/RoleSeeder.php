@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class RoleSeeder extends Seeder
 {
@@ -42,6 +43,28 @@ class RoleSeeder extends Seeder
                 ['role_name' => $rol['role_name']],
                 ['description' => $rol['description']]
             );
+        }
+
+        /*
+         * Espejo del catalogo en `spatie_roles`.
+         *
+         * config/permission.php separa a proposito las dos tablas:
+         *
+         *     'roles' => 'spatie_roles',        // antes: 'roles'
+         *
+         * - `roles`       -> catalogo de negocio (id_role, role_name)
+         * - `spatie_roles` -> capa de autorizacion (name, guard_name)
+         *
+         * Spatie NO puede leer la tabla `roles` porque espera una columna
+         * `name` y la custom se llama `role_name`. Por eso son dos tablas.
+         *
+         * Este bucle copia el catalogo a `spatie_roles` para que las
+         * directivas de Blade (@hasrole, @hasanyrole) y el middleware
+         * `role:` puedan usarse. Sin esto, spatie_roles queda vacia y
+         * cualquier chequeo de rol devuelve false para todo el mundo.
+         */
+        foreach ($roles as $rol) {
+            SpatieRole::findOrCreate($rol['role_name'], 'web');
         }
     }
 }

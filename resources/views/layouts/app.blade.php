@@ -27,7 +27,7 @@
                         <span class="font-bold text-lg text-white tracking-wide">Pallet<span class="text-amber-500">Store</span></span>
                     </div>
 
-                    <!-- Navegación -->
+                    <!-- NavegaciÃ³n -->
                     <nav class="p-4 space-y-1.5 text-xs font-semibold">
                         <p class="px-3 text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-2">Panel de Control</p>
                         
@@ -37,12 +37,12 @@
                             <span>Dashboard</span>
                         </a>
 
-                        <p class="px-3 text-[10px] uppercase text-slate-500 font-bold tracking-wider mt-6 mb-2">Catálogo e Inventario</p>
+                        <p class="px-3 text-[10px] uppercase text-slate-500 font-bold tracking-wider mt-6 mb-2">CatÃ¡logo e Inventario</p>
 
-                        <!-- Artículos -->
+                        <!-- ArtÃ­culos -->
                         <a href="{{ route('articles.index') ?? '#' }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('articles.*') ? 'bg-amber-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                            <span>Artículos</span>
+                            <span>ArtÃ­culos</span>
                         </a>
 
                         <!-- Proveedores -->
@@ -51,7 +51,7 @@
                             <span>Proveedores</span>
                         </a>
 
-                        <p class="px-3 text-[10px] uppercase text-slate-500 font-bold tracking-wider mt-6 mb-2">Administración</p>
+                        <p class="px-3 text-[10px] uppercase text-slate-500 font-bold tracking-wider mt-6 mb-2">AdministraciÃ³n</p>
 
                         <!-- Empleados -->
                         <a href="{{ route('employees.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('employees.*') ? 'bg-amber-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
@@ -60,10 +60,12 @@
                         </a>
 
                         <!-- Usuarios & Roles -->
+                          @role('Jefe|Administrador')
                         <a href="{{ route('users.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('users.*') ? 'bg-amber-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                             <span>Usuarios y Roles</span>
                         </a>
+                          @endrole
 
                         <!-- Carrito -->
                         <a href="{{ route('cart.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('cart.*') ? 'bg-amber-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
@@ -86,16 +88,16 @@
                     </div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="text-slate-400 hover:text-red-400 transition p-1" title="Cerrar sesión">
+                        <button type="submit" class="text-slate-400 hover:text-red-400 transition p-1" title="Cerrar sesiÃ³n">
                             <svg class="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                         </button>
                     </form>
                 </div>
             </aside>
 
-            <!-- ÁREA PRINCIPAL -->
+            <!-- ÃREA PRINCIPAL -->
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-                <!-- Topbar Móvil / Contenedor Superior -->
+                <!-- Topbar MÃ³vil / Contenedor Superior -->
                 @if (isset($header))
                     <header class="bg-white border-b border-gray-200 py-4 px-6 sm:px-8 shadow-sm">
                         {{ $header }}
