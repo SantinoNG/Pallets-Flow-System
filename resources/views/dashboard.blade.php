@@ -63,7 +63,20 @@
                             </div>
                         </div>
                     </a>
-
+                    <a href="{{ route('cart.index') }}"
+                        class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-green-400 hover:shadow-md transition group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600 text-xl">
+                                🛒
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900 group-hover:text-green-600 transition">
+                                     Nueva Venta
+                                    </p>
+                                    <p class="text-xs text-gray-500">Registrar venta y emitir comprobante</p>
+                                </div>
+                            </div>
+                        </a>
                     <a href="{{ route('articles.index') }}"
                        class="bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition group">
                         <div class="flex items-center gap-4">
