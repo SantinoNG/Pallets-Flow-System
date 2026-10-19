@@ -6,14 +6,52 @@ use App\Models\Supplier;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialStock;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SupplierController extends Controller
 {
-    // READ — Lista todos los proveedores con sus materias primas
-    public function index()
+    // READ — Lista todos los proveedores aplicando filtros de búsqueda
+    public function index(Request $request)
     {
-        $suppliers = Supplier::with('rawMaterials')->get();
+        $query = Supplier::with('rawMaterials');
+
+        // Filtro por nombre de empresa
+        if ($request->filled('company_name')) {
+            $query->where('company_name', 'like', '%' . $request->company_name . '%');
+        }
+
+        // Filtro por materia prima (busca en la tabla relacionada)
+        if ($request->filled('raw_material')) {
+            $query->whereHas('rawMaterials', function ($q) use ($request) {
+                $q->where('description', 'like', '%' . $request->raw_material . '%');
+            });
+        }
+
+        $suppliers = $query->paginate(10)->withQueryString();
+
         return view('suppliers.index', compact('suppliers'));
+    }
+
+    // EXPORTAR PDF — Reutiliza la lógica de filtrado para el documento
+    public function exportPdf(Request $request)
+    {
+        $query = Supplier::with('rawMaterials');
+
+        if ($request->filled('company_name')) {
+            $query->where('company_name', 'like', '%' . $request->company_name . '%');
+        }
+
+        if ($request->filled('raw_material')) {
+            $query->whereHas('rawMaterials', function ($q) use ($request) {
+                $q->where('description', 'like', '%' . $request->raw_material . '%');
+            });
+        }
+
+        $suppliers = $query->get(); // Obtenemos todos los resultados filtrados sin paginar
+
+        $pdf = Pdf::loadView('suppliers.pdf', compact('suppliers'));
+        
+        return $pdf->download('reporte_proveedores.pdf');
     }
 
     // CREATE paso 1 — Muestra formulario vacío
@@ -33,32 +71,26 @@ class SupplierController extends Controller
             'materials.*'    => 'required|string|max:255',
         ]);
 
-        // Paso 2 del DSD-6: crear y guardar Supplier
         $supplier = new Supplier();
         $supplier->company_name   = $request->company_name;
         $supplier->supplier_email = $request->supplier_email;
         $supplier->supplier_phone = $request->supplier_phone;
         $supplier->save();
 
-        // Paso 3-5 del DSD-6: por cada materia prima buscar o crear + stock
         foreach ($request->materials as $description) {
             if (empty(trim($description))) continue;
 
-            // Paso 4 del DSD-6: buscar si ya existe la materia prima
             $rawMaterial = RawMaterial::where('description', trim($description))->first();
 
             if ($rawMaterial) {
-                // Si existe: actualizar su proveedor
                 $rawMaterial->id_supplier = $supplier->id_supplier;
                 $rawMaterial->save();
             } else {
-                // Si no existe: crear nueva materia prima
                 $rawMaterial = new RawMaterial();
                 $rawMaterial->description  = trim($description);
                 $rawMaterial->id_supplier  = $supplier->id_supplier;
                 $rawMaterial->save();
 
-                // Paso 5 del DSD-6: crear stock inicial en 0
                 $stock = new RawMaterialStock();
                 $stock->id_raw_material    = $rawMaterial->id_raw_material;
                 $stock->remaining_quantity = 0;

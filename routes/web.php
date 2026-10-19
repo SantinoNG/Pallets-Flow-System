@@ -7,6 +7,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\SaleController;
 
 // -----------------------------------------------------------------------------
 // RUTAS PÚBLICAS
@@ -46,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
  * el Administrador puede entrar a ver el formulario y guardar cambios.
  */
 Route::middleware(['auth'])->group(function () {
+    Route::get('/usuarios/pdf', [UserController::class, 'exportPdf'])->name('users.pdf');
     Route::get('/usuarios/{user}/roles', [UserController::class, 'editRoles'])->name('users.roles.edit');
     Route::put('/usuarios/{user}/roles', [UserController::class, 'updateRoles'])->name('users.roles.update');
 });
@@ -74,6 +76,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+    Route::get('/employees/pdf', [EmployeeController::class, 'exportPdf'])->name('employees.pdf');
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
     Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
@@ -97,6 +100,7 @@ Route::middleware(['auth'])->group(function () {
 // MÓDULO DE PROVEEDORES
 // -----------------------------------------------------------------------------
 Route::middleware(['auth'])->group(function () {
+    Route::get('/proveedores/pdf', [SupplierController::class, 'exportPdf'])->name('suppliers.pdf');
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
     Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
     Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');

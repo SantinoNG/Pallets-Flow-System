@@ -5,47 +5,53 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Requests\StoreEmployeeRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EmployeeController extends Controller
 {
-    // READ — Lista todos los empleados con sus relaciones
-    public function index()
+    public function index(Request $request)
     {
-        $employees = Employee::with(['user', 'role'])->get();
-        return view('employees.index', compact('employees'));
+        $query = Employee::with(['user', 'role']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('id_role')) {
+            $query->where('id_role', $request->id_role);
+        }
+
+        $employees = $query->latest('id_employee')->paginate(10)->withQueryString();
+        $roles = Role::all();
+
+        return view('employees.index', compact('employees', 'roles'));
     }
 
-    // CREATE paso 1 — Muestra el formulario con usuarios y roles disponibles
     public function create()
     {
-        // Traemos usuarios que todavía no tienen empleado asignado
         $users = User::whereDoesntHave('employee')->get();
         $roles = Role::all();
         return view('employees.create', compact('users', 'roles'));
     }
 
-    // CREATE paso 2 — Valida y guarda
-    public function store(Request $request)
+    // Reemplazamos $request->validate() por StoreEmployeeRequest
+    public function store(StoreEmployeeRequest $request)
     {
-        $request->validate([
-            'id_user'    => 'required|exists:users,id_user|unique:employees,id_user',
-            'id_role'    => 'required|exists:roles,id_role',
-            'first_name' => 'required|string|max:255',
-            'last_name'  => 'required|string|max:255',
-            'phone'      => 'nullable|string|max:20',
-        ]);
-
-        Employee::create($request->only('id_user', 'id_role', 'first_name', 'last_name', 'phone'));
+        Employee::create($request->validated());
 
         return redirect()->route('employees.index')
                          ->with('success', 'Empleado registrado exitosamente.');
     }
 
-    // UPDATE paso 1 — Muestra el formulario con datos actuales
     public function edit(Employee $employee)
     {
-        // Al editar incluimos el usuario actual del empleado para que aparezca en el select
         $users = User::whereDoesntHave('employee')
                      ->orWhere('id_user', $employee->id_user)
                      ->get();
@@ -53,29 +59,42 @@ class EmployeeController extends Controller
         return view('employees.edit', compact('employee', 'users', 'roles'));
     }
 
-    // UPDATE paso 2 — Valida y actualiza
-    public function update(Request $request, Employee $employee)
+    // Reemplazamos $request->validate() por UpdateEmployeeRequest
+    public function update(UpdateEmployeeRequest $request, Employee $employee)
     {
-        $request->validate([
-            'id_user'    => 'required|exists:users,id_user|unique:employees,id_user,' . $employee->id_employee . ',id_employee',
-            'id_role'    => 'required|exists:roles,id_role',
-            'first_name' => 'required|string|max:255',
-            'last_name'  => 'required|string|max:255',
-            'phone'      => 'nullable|string|max:20',
-        ]);
-
-        $employee->update($request->only('id_user', 'id_role', 'first_name', 'last_name', 'phone'));
+        $employee->update($request->validated());
 
         return redirect()->route('employees.index')
                          ->with('success', 'Empleado actualizado exitosamente.');
     }
 
-    // DELETE — Elimina el empleado
     public function destroy(Employee $employee)
     {
         $employee->delete();
 
         return redirect()->route('employees.index')
                          ->with('success', 'Empleado eliminado exitosamente.');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $query = Employee::with(['user', 'role']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('id_role')) {
+            $query->where('id_role', $request->id_role);
+        }
+
+        $employees = $query->latest('id_employee')->get();
+        $pdf = Pdf::loadView('employees.pdf', compact('employees'));
+
+        return $pdf->download('reporte_empleados.pdf');
     }
 }
