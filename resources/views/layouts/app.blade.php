@@ -46,7 +46,7 @@
 
                     <!-- Navegación -->
                     <nav class="p-4 space-y-1.5 text-xs font-semibold">
-                        <p class="px-3 text-[10px] uppercase text-zinc-500 font-bold tracking-wider mb-2">Panel de Control</p>
+                        <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mb-2">Panel de Control</p>
                         
                         <!-- Dashboard -->
                         <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('dashboard') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
@@ -54,7 +54,7 @@
                             <span>Dashboard</span>
                         </a>
 
-                        <p class="px-3 text-[10px] uppercase text-zinc-500 font-bold tracking-wider mt-6 mb-2">Catálogo e Inventario</p>
+                        <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mt-6 mb-2">Catálogo e Inventario</p>
 
                         <!-- Artículos -->
                         @role('Jefe|Administrador|Encargado|Deposito')
@@ -72,7 +72,7 @@
                         </a>
                         @endrole
 
-                        <p class="px-3 text-[10px] uppercase text-zinc-500 font-bold tracking-wider mt-6 mb-2">Administración</p>
+                        <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mt-6 mb-2">Administración</p>
 
                         <!-- Empleados -->
                         @role('Jefe|Administrador|Encargado')
@@ -115,7 +115,7 @@
                         </div>
                         <div class="truncate text-xs">
                             <p class="font-semibold text-white truncate">{{ Auth::user()->name }}</p>
-                            <p class="text-zinc-500 text-[10px] truncate">{{ Auth::user()->email }}</p>
+                            <p class="text-zinc-400 text-[10px] truncate">{{ Auth::user()->email }}</p>
                         </div>
                     </div>
                     <form method="POST" action="{{ route('logout') }}">

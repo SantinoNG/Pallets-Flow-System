@@ -62,6 +62,33 @@ acción primaria es del color de marca); los radios de esquina se achicaron
 (`rounded-lg` = 0.25rem); la paginación de Laravel, que usaba su azul, se
 publicó al proyecto y se reestiló.
 
+### PDF siempre en rojo
+
+El botón de PDF no era consistente: artículos, empleados y proveedores usaban
+`bg-red-600`, pero el link "PDF" del listado de ventas era gris y el
+"Descargar comprobante" del detalle era naranja de marca.
+
+Ahora **los seis son rojos**. Es la única acción de la interfaz que conserva
+el rojo de Tailwind, y es a propósito: el rojo queda reservado para lo que
+genera un documento o saca datos del sistema, y lo separa del naranja de
+marca.
+
+De paso: la ruta `users.pdf` existía y funcionaba, pero **ninguna vista tenía
+un botón** que llegara a ella. Se agregó el "Exportar PDF" en
+`users/index.blade.php`.
+
+### Rótulos en blanco
+
+En modo oscuro quedaban textos apagados sobre el fondo grafito. Los rótulos
+en mayúsculas de las tarjetas del dashboard ("Ventas del Periodo", "Artículos
+Activos"...) y los encabezados de la tabla de stock pasaron a **blanco puro**
+(`zinc-100`): son el texto que define cada tarjeta. El texto de apoyo
+(subtítulos, contadores) se queda en gris claro (`zinc-300`) para no competir
+con los datos.
+
+Verificado en el navegador: **0 elementos** con el gris apagado `zinc-500` en
+el dashboard.
+
 ### Archivos
 
 | Archivo | Cambio |

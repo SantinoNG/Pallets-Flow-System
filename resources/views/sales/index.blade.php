@@ -106,7 +106,7 @@
                                         <a href="{{ route('sales.show', $venta->id_sale) }}"
                                            class="text-hazard-600 hover:text-hazard-800 font-medium">Ver</a>
                                         <a href="{{ route('sales.pdf', $venta->id_sale) }}"
-                                           class="text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 font-medium">PDF</a>
+                                           class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">PDF</a>
                                     </td>
                                 </tr>
                             @empty

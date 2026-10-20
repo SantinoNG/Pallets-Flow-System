@@ -36,19 +36,23 @@ $paginas = [
 // verdadero, /login redirige al dashboard).
 $paginasInvitado = ['/login', '/register'];
 
-// clase clara => contraparte oscura que DEBERIA existir
+// clase clara => contrapartes oscuras que DEBERIAN existir
+//
+// Se aceptan varias porque no todas las etiquetas apagadas se oscurecen
+// igual: los rotulos de las tarjetas del dashboard van en blanco puro
+// (zinc-100), mientras que el texto de apoyo se deja en gris claro.
 $deberia = [
-    'bg-white'        => 'dark:bg-zinc-900',
-    'bg-gray-50'      => 'dark:bg-zinc-950',
-    'bg-gray-100'     => 'dark:bg-zinc-950',
-    'text-gray-900'   => 'dark:text-zinc-100',
-    'text-gray-800'   => 'dark:text-zinc-100',
-    'text-gray-700'   => 'dark:text-zinc-200',
-    'text-gray-600'   => 'dark:text-zinc-300',
-    'text-gray-500'   => 'dark:text-zinc-400',
-    'border-gray-100' => 'dark:border-zinc-800',
-    'border-gray-200' => 'dark:border-zinc-800',
-    'border-gray-300' => 'dark:border-zinc-700',
+    'bg-white'        => ['dark:bg-zinc-900'],
+    'bg-gray-50'      => ['dark:bg-zinc-950'],
+    'bg-gray-100'     => ['dark:bg-zinc-950'],
+    'text-gray-900'   => ['dark:text-zinc-100'],
+    'text-gray-800'   => ['dark:text-zinc-100'],
+    'text-gray-700'   => ['dark:text-zinc-200', 'dark:text-zinc-100'],
+    'text-gray-600'   => ['dark:text-zinc-300', 'dark:text-zinc-200'],
+    'text-gray-500'   => ['dark:text-zinc-400', 'dark:text-zinc-300', 'dark:text-zinc-100'],
+    'border-gray-100' => ['dark:border-zinc-800'],
+    'border-gray-200' => ['dark:border-zinc-800'],
+    'border-gray-300' => ['dark:border-zinc-700'],
 ];
 
 $totalHuecos = 0;
@@ -65,7 +69,17 @@ function revisar(string $p, string $html, array $deberia, int &$totalHuecos): vo
         $tokens = preg_split('/\s+/', trim($bloque));
         foreach ($tokens as $t) {
             if (! isset($deberia[$t])) continue;
-            if (in_array($deberia[$t], $tokens, true)) continue;
+
+            // Basta con que aparezca una de las variantes aceptadas.
+            $tiene = false;
+            foreach ($deberia[$t] as $oscura) {
+                if (in_array($oscura, $tokens, true)) {
+                    $tiene = true;
+                    break;
+                }
+            }
+            if ($tiene) continue;
+
             $huecos[$t] = ($huecos[$t] ?? 0) + 1;
         }
     }
@@ -74,7 +88,8 @@ function revisar(string $p, string $html, array $deberia, int &$totalHuecos): vo
         $totalHuecos += array_sum($huecos);
         echo "  " . str_pad($p, 26) . " " . count($huecos) . " clases sin variante dark:\n";
         foreach ($huecos as $clase => $n) {
-            echo "      " . str_pad($clase, 22) . "x$n   (falta {$deberia[$clase]})\n";
+            echo "      " . str_pad($clase, 22) . "x$n   (falta una de: "
+                . implode(' | ', $deberia[$clase]) . ")\n";
         }
     } else {
         echo "  " . str_pad($p, 26) . " OK\n";

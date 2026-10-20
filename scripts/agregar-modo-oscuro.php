@@ -37,6 +37,7 @@ $mapa = [
     'text-zinc-800'        => 'dark:text-zinc-100',
     'text-zinc-700'        => 'dark:text-zinc-200',
     'text-zinc-600'        => 'dark:text-zinc-300',
+    'text-zinc-500'        => 'dark:text-zinc-300',
 
     // bordes
     'border-gray-100'      => 'dark:border-zinc-800',

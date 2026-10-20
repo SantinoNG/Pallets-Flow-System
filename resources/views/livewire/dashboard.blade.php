@@ -8,10 +8,10 @@
     <div class="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm flex items-center justify-between gap-4">
         <div>
             <h2 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 uppercase tracking-wider">Panel de control</h2>
-            <p class="text-xs text-zinc-500 mt-0.5">Datos reales de la base de datos</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-300 mt-0.5">Datos reales de la base de datos</p>
         </div>
         <div class="flex items-center gap-2">
-            <label for="periodo" class="text-xs font-semibold text-zinc-500 uppercase">Periodo</label>
+            <label for="periodo" class="text-xs font-semibold text-zinc-500 dark:text-zinc-300 uppercase">Periodo</label>
             <select id="periodo" wire:model.live="periodo"
                     class="rounded border-zinc-300 dark:border-zinc-700 text-sm shadow-sm focus:border-hazard-500 focus:ring-hazard-500">
                 @foreach (\App\Livewire\Dashboard::PERIODOS as $valor => $texto)
@@ -32,7 +32,7 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Ventas del Periodo</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-100 uppercase">Ventas del Periodo</p>
                 <h3 class="text-lg font-bold text-zinc-900 dark:text-zinc-100">${{ number_format($totalVentas, 2, ',', '.') }}</h3>
             </div>
         </div>
@@ -45,7 +45,7 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Artículos Activos</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-100 uppercase">Artículos Activos</p>
                 <h3 class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ $articulosCount }} Productos</h3>
             </div>
         </div>
@@ -58,7 +58,7 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Proveedores</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-100 uppercase">Proveedores</p>
                 <h3 class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ $proveedoresCount }} Registrados</h3>
             </div>
         </div>
@@ -71,7 +71,7 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Alertas de Stock</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-100 uppercase">Alertas de Stock</p>
                 <h3 class="text-lg font-bold text-red-600">{{ $alertasStock }} Reposiciones</h3>
             </div>
         </div>
@@ -131,7 +131,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead>
-                    <tr class="text-left text-xs uppercase text-zinc-500 border-b border-gray-200 dark:border-zinc-800">
+                    <tr class="text-left text-xs uppercase text-zinc-500 dark:text-zinc-100 border-b border-gray-200 dark:border-zinc-800">
                         <th class="py-2 pr-4">Materia prima</th>
                         <th class="py-2 pr-4 text-right">Stock actual</th>
                         <th class="py-2 pr-4 text-right">Stock mínimo</th>
@@ -144,7 +144,7 @@
                         <tr class="border-b border-gray-100 dark:border-zinc-800">
                             <td class="py-2 pr-4 text-zinc-700 dark:text-zinc-200">{{ $materia }}</td>
                             <td class="py-2 pr-4 text-right font-semibold text-zinc-900 dark:text-zinc-100">{{ $actual }}</td>
-                            <td class="py-2 pr-4 text-right text-zinc-500">{{ $minimo }}</td>
+                            <td class="py-2 pr-4 text-right text-zinc-500 dark:text-zinc-300">{{ $minimo }}</td>
                             <td class="py-2 text-right">
                                 @if ($actual <= $minimo)
                                     <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Reponer</span>
@@ -155,7 +155,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="py-4 text-center text-zinc-500">
+                            <td colspan="4" class="py-4 text-center text-zinc-500 dark:text-zinc-300">
                                 No hay materias primas con stock registrado.
                             </td>
                         </tr>

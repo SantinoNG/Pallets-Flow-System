@@ -113,6 +113,8 @@ tecnica.
 | Esquinas | Radios achicados (`rounded-lg` = 0.25rem): la industria es precisa, no redondeada. | `tailwind.config.js` -> `theme.extend.borderRadius` |
 | Boton principal | `x-primary-button` paso de `bg-gray-800` a `bg-hazard-600`: la accion primaria es del color de marca. | `resources/views/components/primary-button.blade.php` |
 | Paginacion | Se publicaron las vistas de Laravel (`resources/views/vendor/pagination/`) y se reestilaron: usaban el azul de Laravel. | `resources/views/vendor/pagination/` |
+| Boton de PDF | **Siempre en rojo** (`bg-red-600`), en todos los modulos. Es la unica accion de la interfaz que conserva el rojo de Tailwind, y es a proposito: el rojo queda reservado para lo que genera un documento o saca datos del sistema, y lo separa del naranja de marca. | `articles/index`, `employees/index`, `suppliers/index`, `users/index`, `sales/index`, `sales/show` |
+| Rotulos principales | Los rotulos en mayusculas de las tarjetas del dashboard van en **blanco puro** en modo oscuro (`dark:text-zinc-100`): son el texto que define cada tarjeta. El texto de apoyo (subtitulos, contadores) se queda en gris claro (`dark:text-zinc-300`) para no competir con los datos. | `views/livewire/dashboard.blade.php` |
 
 **Scripts de mantenimiento** en `scripts/` (ver `scripts/README.md`):
 `agregar-modo-oscuro.php` (agrega las variantes `dark:` que falten),
@@ -152,6 +154,9 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 24. **PENDIENTE** — Los modulos con acciones en vivo (Livewire) reconicializan los graficos de Chart.js en cada morph, pero no hay prueba automatica que lo cubra: si Livewire cambia el comportamiento del morph, el grafico se queda congelado sin avisar.
 25. **RESUELTO** — Los graficos del dashboard tenian los colores **hardcodeados** (`#f3f4f6` para la grilla, `#d97706` y `#3b82f6` para las series). En modo oscuro la grilla clara quedaba sobre el fondo grafito y el azul no existia en la paleta nueva. Ahora el JS elige la paleta segun el tema activo (`paleta()` en `views/livewire/dashboard.blade.php`) y el interruptor emite el evento `tema:cambiado`, que redibuja los graficos. Verificado en el navegador: al alternar el modo, los ejes pasan de `#52525b` a `#a1a1aa` y la grilla de `#e4e4e7` a `#3f3f46`.
 26. **RESUELTO** — La entrada "Usuarios y Roles" del sidebar solo marcaba activo con `routeIs('users.*')`, pero las rutas del modulo de roles son `roles.*`: en `/roles` y `/roles/create` ningun item del menu aparecia seleccionado. Ahora acepta ambas familias.
+27. **RESUELTO** — El boton de PDF no era consistente: articulos, empleados y proveedores usaban `bg-red-600`, pero el link "PDF" del listado de ventas era gris y el "Descargar comprobante" del detalle era naranja de marca. Ahora **los seis son rojos**. Ademas, la ruta `users.pdf` existia y funcionaba, pero **ninguna vista tenia un boton** que llegara a ella: se agrego el boton "Exportar PDF" en `users/index.blade.php`.
+28. **RESUELTO** — En modo oscuro quedaban textos apagados: los rotulos de las tarjetas del dashboard y los encabezados de la tabla de stock estaban en `zinc-400`/`zinc-500` sobre fondo grafito. Los rotulos principales pasaron a blanco puro y los textos de apoyo a `zinc-300`. Verificado en el navegador: 0 elementos con color `zinc-500` en el dashboard.
+29. **RESUELTO** — El sidebar es grafito **en los dos modos** (siempre `bg-zinc-900`), asi que sus textos no pueden depender de la clase `dark`: se fijaron en `zinc-400` para que se lean igual con el tema claro y el oscuro.
 
 ## 8. Convenciones para cambios futuros
 

@@ -17,7 +17,7 @@
                 <p class="text-zinc-400 text-sm max-w-md">Control de producción, inventario de materias primas y administración centralizada.</p>
             </div>
 
-            <p class="z-10 text-xs text-zinc-500">© 2026 PalletStore System. Todos los derechos reservados.</p>
+            <p class="z-10 text-xs text-zinc-500 dark:text-zinc-300">© 2026 PalletStore System. Todos los derechos reservados.</p>
             
             <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-hazard-600/10 rounded-full blur-3xl"></div>
         </div>
