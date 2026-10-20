@@ -16,6 +16,12 @@
             this.oscuro = !this.oscuro;
             document.documentElement.classList.toggle('dark', this.oscuro);
             localStorage.setItem('tema', this.oscuro ? 'dark' : 'light');
+
+            // Aviso a lo que se dibuja en un <canvas> (los graficos del
+            // dashboard), porque no se actualiza solo con la clase.
+            document.dispatchEvent(new CustomEvent('tema:cambiado', {
+                detail: { oscuro: this.oscuro }
+            }));
         }
     }"
     @click="alternar()"

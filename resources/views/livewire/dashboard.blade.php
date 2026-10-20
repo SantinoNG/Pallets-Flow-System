@@ -191,8 +191,27 @@
                 instancias[id] = new Chart(canvas.getContext('2d'), config);
             }
 
+            // Paleta de los graficos, segun el modo claro u oscuro.
+            // Los graficos no se estilan con Tailwind (se dibujan en
+            // un <canvas>), asi que los colores se eligen en JS.
+            function paleta() {
+                const oscuro = document.documentElement.classList.contains('dark');
+
+                return {
+                    oscuro: oscuro,
+                    texto: oscuro ? '#a1a1aa' : '#52525b',   // zinc-400 / zinc-600
+                    grid:  oscuro ? '#3f3f46' : '#e4e4e7',   // zinc-700 / zinc-200
+                    acento: '#ea580c',                        // hazard-600
+                    series: oscuro
+                        ? ['#ea580c', '#10b981', '#71717a', '#ef4444', '#a1a1aa']
+                        : ['#ea580c', '#10b981', '#a1a1aa', '#ef4444', '#71717a']
+                };
+            }
+
             function initCharts() {
                 if (typeof Chart === 'undefined') return;
+
+                const p = paleta();
 
                 // 1. Gráfico de Ventas
                 const cVentas = document.getElementById('salesChart');
@@ -204,8 +223,8 @@
                             datasets: [{
                                 label: 'Ventas Totales ($)',
                                 data: JSON.parse(cVentas.dataset.values || '[]'),
-                                backgroundColor: '#d97706',
-                                borderRadius: 6
+                                backgroundColor: p.acento,
+                                borderRadius: 4
                             }]
                         },
                         options: {
@@ -213,8 +232,8 @@
                             maintainAspectRatio: false,
                             plugins: { legend: { display: false } },
                             scales: {
-                                y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-                                x: { grid: { display: false } }
+                                y: { beginAtZero: true, grid: { color: p.grid }, ticks: { color: p.texto } },
+                                x: { grid: { display: false }, ticks: { color: p.texto } }
                             }
                         }
                     });
@@ -229,13 +248,20 @@
                             labels: JSON.parse(cStock.dataset.labels || '[]'),
                             datasets: [{
                                 data: JSON.parse(cStock.dataset.values || '[]'),
-                                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                                backgroundColor: p.series,
+                                borderColor: p.oscuro ? '#18181b' : '#ffffff',
+                                borderWidth: 2
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { legend: { position: 'bottom' } }
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { color: p.texto, boxWidth: 12, usePointStyle: true }
+                                }
+                            }
                         }
                     });
                 }
@@ -250,8 +276,8 @@
                             datasets: [{
                                 label: 'Unidades vendidas',
                                 data: JSON.parse(cTop.dataset.values || '[]'),
-                                backgroundColor: '#3b82f6',
-                                borderRadius: 6
+                                backgroundColor: p.acento,
+                                borderRadius: 4
                             }]
                         },
                         options: {
@@ -260,8 +286,8 @@
                             maintainAspectRatio: false,
                             plugins: { legend: { display: false } },
                             scales: {
-                                x: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-                                y: { grid: { display: false } }
+                                x: { beginAtZero: true, grid: { color: p.grid }, ticks: { color: p.texto } },
+                                y: { grid: { display: false }, ticks: { color: p.texto } }
                             }
                         }
                     });
@@ -276,13 +302,20 @@
                             labels: JSON.parse(cPago.dataset.labels || '[]'),
                             datasets: [{
                                 data: JSON.parse(cPago.dataset.values || '[]'),
-                                backgroundColor: ['#d97706', '#10b981', '#3b82f6', '#ef4444']
+                                backgroundColor: p.series,
+                                borderColor: p.oscuro ? '#18181b' : '#ffffff',
+                                borderWidth: 2
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { legend: { position: 'bottom' } }
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { color: p.texto, boxWidth: 12, usePointStyle: true }
+                                }
+                            }
                         }
                     });
                 }
@@ -300,6 +333,12 @@
                     // Se espera a que Livewire termine de morphar el DOM
                     setTimeout(initCharts, 50);
                 });
+            });
+
+            // Al cambiar de modo, los graficos hay que redibujarlos: el
+            // canvas no se actualiza solo con el cambio de clase en <html>.
+            document.addEventListener('tema:cambiado', () => {
+                setTimeout(initCharts, 50);
             });
         })();
     </script>
