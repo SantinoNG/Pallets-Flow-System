@@ -78,6 +78,8 @@ Notas:
 - `config/permission.php` mapea la tabla de roles de Spatie a `spatie_roles` para no chocar con la tabla propia `roles`. Además la clave `'permissions'` aparece duplicada dentro de `table_names` (la segunda sobreescribe a la primera → tabla `permissions`).
 - `cart_items` no tiene restricción única `(id_cart, id_article)`; `cart` no tiene índice `(id_customer, status)`.
 - Seeders: `RoleSeeder`, `UserSeeder`, `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder`, `SaleSeeder` (crea un carrito `completed`, sus ítems, una venta y un comprobante). Usuarios semilla: admin, vendedor, depósito, cliente.
+- `2026_10_15_000001_add_email_verified_at_and_remember_token_to_users_table.php`, `2026_10_15_000002_create_infrastructure_tables.php` (sessions, jobs, job_batches, failed_jobs, password_reset_tokens), `2026_10_15_000003_create_audits_table.php` (stub de owen-it).
+- `2026_10_20_000001_add_image_to_articles_table.php`: agrega `articles.image` (string nullable) para la foto del producto. Guarda la **ruta relativa** dentro del disco `public` (por ejemplo `articles/sillon.jpg`), no la URL completa: si el dominio cambia, la ruta sigue sirviendo.
 
 ## 6. Módulos actuales
 
@@ -87,7 +89,7 @@ Notas:
 | Usuarios y asignación de roles | Funcional. **Dos capas sincronizadas**: `users.id_role` (rol de negocio, FK simple) y `model_has_roles` (Spatie, capa de autorización). Se asignan siempre juntas con `User::asignarRol()`. `spatie_roles` es el espejo de `roles`. | `UserController`, `RoleController`, vistas `users/*`, `roles/*` |
 | Roles | CRUD completo. Al crear/editar/borrar un rol se mantiene el espejo en `spatie_roles` | `RoleController`, vistas `roles/*` |
 | Empleados | CRUD | `EmployeeController`, vistas `employees/*` |
-| Artículos (+ stock + materias primas) | CRUD | `ArticleController`, vistas `articles/*` |
+| Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
 | **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas) | `CartController`, vistas `cart/*` |
@@ -115,6 +117,9 @@ tecnica.
 | Paginacion | Se publicaron las vistas de Laravel (`resources/views/vendor/pagination/`) y se reestilaron: usaban el azul de Laravel. | `resources/views/vendor/pagination/` |
 | Boton de PDF | **Siempre en rojo** (`bg-red-600`), en todos los modulos. Es la unica accion de la interfaz que conserva el rojo de Tailwind, y es a proposito: el rojo queda reservado para lo que genera un documento o saca datos del sistema, y lo separa del naranja de marca. | `articles/index`, `employees/index`, `suppliers/index`, `users/index`, `sales/index`, `sales/show` |
 | Rotulos principales | Los rotulos en mayusculas de las tarjetas del dashboard van en **blanco puro** en modo oscuro (`dark:text-zinc-100`): son el texto que define cada tarjeta. El texto de apoyo (subtitulos, contadores) se queda en gris claro (`dark:text-zinc-300`) para no competir con los datos. | `views/livewire/dashboard.blade.php` |
+| Logo | Archivo `public/images/logo.svg` (pallet industrial: tablas en naranja de seguridad, tacos en grafito). Se muestra con el componente `<x-app-logo>` en el sidebar y en el login. Al ser un archivo y no un SVG inline, **se puede reemplazar por el logo propio sin tocar codigo**. | `public/images/logo.svg`, `components/app-logo.blade.php` |
+| Foto del articulo | Componente `<x-article-image>`: muestra la foto si hay, y si no dibuja un placeholder (trama diagonal de plano tecnico + glifo de pallet + inicial del producto). El placeholder es un SVG inline, sin archivos de por medio. | `components/article-image.blade.php` |
+| Subida de foto | Componente `<x-image-upload>`: input de archivo con **vista previa en vivo** (Alpine + FileReader) y la foto actual si ya habia una. | `components/image-upload.blade.php` |
 
 **Scripts de mantenimiento** en `scripts/` (ver `scripts/README.md`):
 `agregar-modo-oscuro.php` (agrega las variantes `dark:` que falten),
@@ -157,6 +162,10 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 27. **RESUELTO** — El boton de PDF no era consistente: articulos, empleados y proveedores usaban `bg-red-600`, pero el link "PDF" del listado de ventas era gris y el "Descargar comprobante" del detalle era naranja de marca. Ahora **los seis son rojos**. Ademas, la ruta `users.pdf` existia y funcionaba, pero **ninguna vista tenia un boton** que llegara a ella: se agrego el boton "Exportar PDF" en `users/index.blade.php`.
 28. **RESUELTO** — En modo oscuro quedaban textos apagados: los rotulos de las tarjetas del dashboard y los encabezados de la tabla de stock estaban en `zinc-400`/`zinc-500` sobre fondo grafito. Los rotulos principales pasaron a blanco puro y los textos de apoyo a `zinc-300`. Verificado en el navegador: 0 elementos con color `zinc-500` en el dashboard.
 29. **RESUELTO** — El sidebar es grafito **en los dos modos** (siempre `bg-zinc-900`), asi que sus textos no pueden depender de la clase `dark`: se fijaron en `zinc-400` para que se lean igual con el tema claro y el oscuro.
+30. **RESUELTO** — Los artículos no tenian forma de guardar una foto: la tabla `articles` no tenia ninguna columna de imagen. Ahora hay `articles.image` (nullable), subida desde el formulario, con reemplazo automatico de la imagen vieja y borrado del archivo al borrar el artículo.
+31. **RESUELTO** — El logo era un SVG inline duplicado en el sidebar y en el login. Ahora es un archivo (`public/images/logo.svg`) mostrado con `<x-app-logo>`: se reemplaza por el logo propio sin tocar codigo.
+32. **PENDIENTE** — El reporte PDF de artículos **no incluye la foto**. dompdf genera el PDF sin error pero no renderiza los SVG (0 objetos de imagen en el archivo resultante). Se decidio dejar el reporte como tabla: una columna de imágenes vacías se ve peor que ninguna. Si se quieren fotos en el PDF, hay que convertir las imagenes a PNG antes de pasarlas.
+33. **PENDIENTE** — El modulo de artículos sigue cerrado para el rol Cliente (`role:Jefe|Administrador|Encargado|Deposito`): un cliente no puede ver el catalogo, solo el carrito. Es decision del profesor, escrita en el comentario de las rutas, pero como usuario final es raro: el cliente no ve los productos que puede comprar. Mismo tema con `/cart`, que muestra el flujo de caja ("seleccionar cliente") en vez de un carrito de compra.
 
 ## 8. Convenciones para cambios futuros
 

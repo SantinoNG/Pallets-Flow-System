@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\ProductStock;
 use App\Models\RawMaterial;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ArticleController extends Controller
@@ -87,12 +88,14 @@ class ArticleController extends Controller
             'unit_price'         => 'required|numeric|min:0.01',
             'remaining_quantity' => 'required|integer|min:0',
             'minimum_stock'      => 'required|integer|min:0',
+            'image'              => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $article = new Article();
         $article->article_name = $request->article_name;
         $article->description  = $request->description;
         $article->unit_price   = $request->unit_price;
+        $article->image        = $this->guardarImagen($request);
         $article->save();
 
         $stock = new ProductStock();
@@ -132,11 +135,13 @@ class ArticleController extends Controller
             'unit_price'         => 'required|numeric|min:0.01',
             'remaining_quantity' => 'required|integer|min:0',
             'minimum_stock'      => 'required|integer|min:0',
+            'image'              => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $article->article_name = $request->article_name;
         $article->description  = $request->description;
         $article->unit_price   = $request->unit_price;
+        $article->image        = $this->guardarImagen($request, $article->image);
         $article->save();
 
         $stock                     = $article->stock;
@@ -161,11 +166,51 @@ class ArticleController extends Controller
     // DELETE
     public function destroy(Article $article)
     {
+        $this->borrarImagen($article->image);
+
         $article->rawMaterials()->detach();
         $article->stock()->delete();
         $article->delete();
 
         return redirect()->route('articles.index')
                          ->with('success', 'Artículo eliminado exitosamente.');
+    }
+
+    /**
+     * Guarda la foto subida y devuelve la ruta relativa, o null si no
+     * se subió ninguna.
+     *
+     * La imagen va al disco 'public' (storage/app/public/articles) para que
+     * sea accesible por el navegador a traves del enlace storage/ que crea
+     * `php artisan storage:link`.
+     *
+     * @param  string|null  $rutaAnterior  la imagen que se reemplaza, para
+     *                                       borrarla del disco
+     */
+    private function guardarImagen(Request $request, ?string $rutaAnterior = null): ?string
+    {
+        if (! $request->hasFile('image')) {
+            return $rutaAnterior;
+        }
+
+        $archivo = $request->file('image');
+
+        // La imagen nueva reemplaza a la vieja: la vieja no se puede
+        // quedar dando vueltas en el disco.
+        $this->borrarImagen($rutaAnterior);
+
+        return $archivo->store('articles', 'public');
+    }
+
+    /**
+     * Borra una imagen del disco, si esta guardada.
+     */
+    private function borrarImagen(?string $ruta): void
+    {
+        if (empty($ruta)) {
+            return;
+        }
+
+        Storage::disk('public')->delete($ruta);
     }
 }

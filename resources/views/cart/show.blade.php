@@ -63,6 +63,7 @@
                             <table class="w-full text-sm text-left text-gray-500 dark:text-zinc-400">
                                 <thead class="text-xs text-gray-700 dark:text-zinc-200 uppercase bg-gray-50 dark:bg-zinc-950">
                                     <tr>
+                                        <th class="px-4 py-3 w-20">Foto</th>
                                         <th class="px-6 py-3">Artículo</th>
                                         <th class="px-6 py-3">Precio unit.</th>
                                         <th class="px-6 py-3">Cantidad</th>
@@ -73,6 +74,9 @@
                                 <tbody>
                                     @forelse($cart->items as $item)
                                     <tr class="bg-white dark:bg-zinc-900 border-b hover:bg-gray-50 dark:hover:bg-zinc-800">
+                                        <td class="px-4 py-3">
+                                            <x-article-image :article="$item->article" size="sm" />
+                                        </td>
                                         <td class="px-6 py-4 font-medium text-gray-900 dark:text-zinc-100">
                                             {{ $item->article->article_name }}
                                         </td>

@@ -13,11 +13,16 @@
                     Editando: <span class="text-hazard-600">{{ $article->article_name }}</span>
                 </h3>
 
-                <form action="{{ route('articles.update', $article->id_article) }}" method="POST">
+                <form action="{{ route('articles.update', $article->id_article) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+                        {{-- Foto --}}
+                        <div class="sm:col-span-2">
+                            <x-image-upload :current="$article->imagen_url" />
+                        </div>
 
                         <div class="sm:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">

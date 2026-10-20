@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="PalletStore">
+  <!--
+    Marca de PalletStore: un pallet visto de frente.
+    - Tablas superiores en naranja de seguridad (hazard-600).
+    - Tacos y tabla base en grafito (zinc-700).
+    Es un SVG para que se vea nitido en cualquier tamaño y no pierda peso.
+  -->
+  <rect x="4" y="9" width="40" height="5.5" rx="1" fill="#EA580C"/>
+  <rect x="4" y="17.5" width="40" height="5.5" rx="1" fill="#EA580C"/>
+
+  <rect x="7" y="26" width="8" height="12" rx="1" fill="#3F3F46"/>
+  <rect x="20" y="26" width="8" height="12" rx="1" fill="#3F3F46"/>
+  <rect x="33" y="26" width="8" height="12" rx="1" fill="#3F3F46"/>
+
+  <rect x="3" y="38" width="42" height="4" rx="1" fill="#52525B"/>
+</svg>

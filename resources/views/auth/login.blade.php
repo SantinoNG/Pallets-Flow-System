@@ -4,11 +4,7 @@
         <!-- Lado Izquierdo: Branding (Visible en pantallas medianas y grandes) -->
         <div class="hidden lg:flex lg:w-1/2 bg-zinc-900 text-white flex-col justify-between p-12 relative overflow-hidden">
             <div class="z-10 flex items-center gap-3">
-                <div class="bg-hazard-600 text-white p-2.5 rounded-xl font-bold">
-                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z"/>
-                    </svg>
-                </div>
+                <x-app-logo class="h-11 w-11 shrink-0" />
                 <span class="font-bold text-2xl tracking-wide">Pallet<span class="text-hazard-500">Store</span></span>
             </div>
 
@@ -28,11 +24,7 @@
                 
                 <!-- Encabezado Móvil con Logo -->
                 <div class="flex items-center gap-2.5 lg:hidden mb-4">
-                    <div class="bg-hazard-600 text-white p-2 rounded-lg font-bold">
-                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z"/>
-                        </svg>
-                    </div>
+                    <x-app-logo class="h-9 w-9 shrink-0" />
                     <span class="font-bold text-xl text-zinc-900 dark:text-zinc-100">Pallet<span class="text-hazard-600">Store</span></span>
                 </div>
 

@@ -78,6 +78,7 @@
                     <table class="min-w-full text-sm text-left text-gray-600 dark:text-zinc-300">
                         <thead class="text-xs text-gray-700 dark:text-zinc-200 uppercase bg-gray-50 dark:bg-zinc-950">
                             <tr>
+                                <th class="px-4 py-3 w-20">Foto</th>
                                 <th class="px-4 py-3">Artículo</th>
                                 <th class="px-4 py-3 text-center">Cant.</th>
                                 <th class="px-4 py-3 text-right">Precio unit.</th>
@@ -87,6 +88,9 @@
                         <tbody>
                             @forelse($sale->cart?->items ?? [] as $item)
                                 <tr class="border-b border-gray-100 dark:border-zinc-800">
+                                    <td class="px-4 py-3">
+                                        <x-article-image :article="$item->article" size="sm" />
+                                    </td>
                                     <td class="px-4 py-3 font-medium text-gray-900 dark:text-zinc-100">
                                         {{ $item->article?->article_name ?? 'Artículo eliminado' }}
                                     </td>

@@ -29,7 +29,32 @@ class Article extends Model
         return 'id_article';
     }
 
-    protected $fillable = ['article_name', 'description', 'unit_price'];
+    protected $fillable = ['article_name', 'description', 'unit_price', 'image'];
+
+    /**
+     * URL publica de la foto del artículo, o null si no tiene.
+     *
+     * La columna guarda la ruta relativa dentro de storage/app/public
+     * (por ejemplo "articles/sillon.jpg"), así que se le antepone el
+     * prefijo de disco publico. Si la columna está vacía, devuelve null y
+     * la vista dibuja el placeholder.
+     */
+    public function getImagenUrlAttribute(): ?string
+    {
+        if (empty($this->image)) {
+            return null;
+        }
+
+        return asset('storage/' . $this->image);
+    }
+
+    /**
+     * True si el artículo tiene foto propia.
+     */
+    public function tieneImagen(): bool
+    {
+        return ! empty($this->image);
+    }
 
     public function stock() {
         return $this->hasOne(ProductStock::class, 'id_article');

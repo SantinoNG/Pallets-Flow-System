@@ -88,4 +88,26 @@
     .label-technical {
         @apply text-[10px] uppercase font-bold tracking-label;
     }
+
+    /* Trama diagonal: el fondo de los planos técnicos, usado como
+       placeholder cuando un artículo no tiene foto. */
+    .hatch-industrial {
+        background-image: repeating-linear-gradient(
+            45deg,
+            transparent 0,
+            transparent 7px,
+            rgb(0 0 0 / 0.05) 7px,
+            rgb(0 0 0 / 0.05) 8px
+        );
+    }
+
+    .dark .hatch-industrial {
+        background-image: repeating-linear-gradient(
+            45deg,
+            transparent 0,
+            transparent 7px,
+            rgb(255 255 255 / 0.04) 7px,
+            rgb(255 255 255 / 0.04) 8px
+        );
+    }
 }

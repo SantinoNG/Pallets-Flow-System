@@ -28,7 +28,7 @@ class InterfazTest extends TestCase
      * blanco puro, mientras que el texto de apoyo se deja en gris claro.
      */
     private const PARES = [
-        'bg-white'        => ['dark:bg-zinc-900'],
+        'bg-white'        => ['dark:bg-zinc-900', 'dark:bg-zinc-950'],
         'bg-gray-50'      => ['dark:bg-zinc-950'],
         'bg-gray-100'     => ['dark:bg-zinc-950'],
         'text-gray-900'   => ['dark:text-zinc-100'],
@@ -38,7 +38,8 @@ class InterfazTest extends TestCase
         'text-gray-500'   => ['dark:text-zinc-400', 'dark:text-zinc-300', 'dark:text-zinc-100'],
         'border-gray-200' => ['dark:border-zinc-800'],
         'border-gray-300' => ['dark:border-zinc-700'],
-    ];
+        'border-zinc-200' => ['dark:border-zinc-800'],
+        'border-zinc-300' => ['dark:border-zinc-700', 'dark:border-zinc-600'],    ];
 
     /**
      * Paginas que se revisan en modo oscuro.

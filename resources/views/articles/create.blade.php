@@ -11,10 +11,15 @@
 
                 <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100 mb-6">Datos del artículo</h3>
 
-                <form action="{{ route('articles.store') }}" method="POST">
+                <form action="{{ route('articles.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+                        {{-- Foto --}}
+                        <div class="sm:col-span-2">
+                            <x-image-upload />
+                        </div>
 
                         {{-- Nombre --}}
                         <div class="sm:col-span-2">

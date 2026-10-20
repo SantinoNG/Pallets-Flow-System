@@ -38,9 +38,7 @@
                 <div>
                     <!-- Logo / Identidad -->
                     <div class="h-16 flex items-center px-6 bg-zinc-950 border-b border-zinc-800 gap-3">
-                        <div class="bg-hazard-600 text-white p-2 rounded-md font-bold">
-                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z"/></svg>
-                        </div>
+                        <x-app-logo class="h-8 w-8 shrink-0" />
                         <span class="font-bold text-lg text-white tracking-wide">Pallet<span class="text-hazard-500">Store</span></span>
                     </div>
 
