@@ -84,7 +84,9 @@
 
                         <!-- Usuarios & Roles -->
                           @role('Jefe|Administrador')
-                        <a href="{{ route('users.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('users.*') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
+                        {{-- La entrada se mantiene activa tambien en las rutas de
+                             roles: son la misma seccion del menu. --}}
+                        <a href="{{ route('users.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('users.*', 'roles.*') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                             <span>Usuarios y Roles</span>
                         </a>
