@@ -1,12 +1,102 @@
-# Resumen de modificaciones �?? Pallets Flow System
+# Resumen de modificaciones — Pallets Flow System
 
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
-Fecha: 15 de octubre de 2026
+Fecha: 20 de octubre de 2026
 
-**19 archivos modificados · 3 migraciones nuevas · 541 líneas agregadas, 103 eliminadas**
+**8 tandas de trabajo · 68 archivos tocados en esta última (interfaz)**
 
-Nada fue commiteado. Los cambios están en el working tree para poder revisarlos
-antes de hacer `git commit`.
+Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
+
+> El resumen de abajo arranca con la primera tanda (corrección de roles,
+> seguridad y tests). La **sección 0** documenta la última tanda: el
+> rediseño de la interfaz con paleta industrial y modo oscuro.
+
+---
+
+## 0. Interfaz: paleta industrial + modo oscuro
+
+La interfaz tenía **tres acentos conviviendo** y ningún modo oscuro:
+
+| Pantalla | Acento |
+|---|---|
+| `/dashboard`, `/cart`, `/sales` | `amber` (naranja) |
+| `/articles`, `/roles`, `/profile` | `indigo` |
+| `/suppliers`, `/employees`, `/usuarios/1/roles` | `blue` |
+| Sidebar y login (split-screen) | `amber` |
+| Componentes de Breeze (los que se usan en **todas** las páginas) | `indigo` |
+
+El resultado era visible: el login mostraba el logo naranja junto a un botón
+indigo.
+
+### Qué se hizo
+
+**Paleta.** Se unificó todo a un único color de acento, `hazard` (naranja de
+seguridad `#F97316`), sobre superficies `zinc` (grafito neutro, sin el tinte
+azul de `slate`). `zinc` y `hazard` se definen en `tailwind.config.js`: para
+cambiar el color de marca de la aplicación hay que tocar **un solo archivo**.
+
+En el CSS compilado quedaron **0 ocurrencias** de `indigo`, `blue`, `amber` y
+`slate` (antes: 194 clases renombradas en 32 archivos).
+
+**Modo oscuro.** Se agregó el interruptor, la preferencia persistida en
+`localStorage` y las variantes `dark:` en todas las vistas:
+
+- `darkMode: 'class'` en `tailwind.config.js`: la clase `dark` en `<html>` la
+  decide el interruptor, no el sistema operativo.
+- El script del `<head>` aplica la clase **antes de pintar**: al recargar en
+  modo oscuro no hay destello blanco.
+- Componente `x-theme-toggle` (botón sol/luna), en el login y en el panel.
+- La auditoría de las **15 páginas** (13 autenticadas + login y registro) da
+  **0 clases claras sin equivalente oscuro**. Las vistas `*/pdf.blade.php` se
+  excluyen a propósito: se imprimen en blanco.
+
+**Tipografía.** `Figtree` figuraba en la configuración pero **nunca se cargaba**
+(no había `@font-face` ni link a Google Fonts), así que el navegador usaba la
+fuente del sistema. Ahora se cargan **Barlow** (grotesca técnica) para la
+interfaz e **IBM Plex Mono** para los datos, y las celdas de dato de las
+tablas (ID, precios, cantidades, stock) usan `font-mono tabular-nums` para que
+las columnas de decimales alineen.
+
+**Detalles.** El botón principal pasó de `bg-gray-800` a `bg-hazard-600` (la
+acción primaria es del color de marca); los radios de esquina se achicaron
+(`rounded-lg` = 0.25rem); la paginación de Laravel, que usaba su azul, se
+publicó al proyecto y se reestiló.
+
+### Archivos
+
+| Archivo | Cambio |
+|---|---|
+| `tailwind.config.js` | `darkMode: 'class'`, paleta `hazard`, fuentes Barlow + IBM Plex Mono, radios achicados, sombras duras |
+| `resources/css/app.css` | Variables de superficie para el modo oscuro, scrollbars oscuros, campos de formulario |
+| `resources/views/components/theme-toggle.blade.php` | **Nuevo** — el interruptor sol/luna |
+| `resources/views/layouts/app.blade.php` | Script anti-destello, fuentes reales, interruptor, superficies `zinc` |
+| `resources/views/layouts/guest.blade.php` | Ídem para el login |
+| `resources/views/components/*.blade.php` | Variantes `dark:` y acento `hazard` en los 11 componentes de Breeze |
+| `resources/views/**` (52 vistas) | Renombre de paleta y variantes `dark:` |
+| `resources/views/vendor/pagination/` | **Nuevo** — paginación de Laravel reestilada |
+| `tests/Feature/InterfazTest.php` | **Nuevo** — 5 casos, 354 aserciones |
+| `scripts/` | **Nuevo** — 3 scripts de mantenimiento + README |
+
+### Cómo se verificó
+
+```cmd
+php scripts/auditar-modo-oscuro.php   REM 0 huecos en 15 páginas
+php scripts/auditar-paleta.php         REM un solo acento en toda la app
+php artisan test --filter=InterfazTest REM 5 passed (354 assertions)
+```
+
+`InterfazTest` deja fijo el comportamiento: el script del tema va antes del
+`<body>`, el interruptor está en el login y en el panel, ninguna página deja
+superficies sin variante oscura, la paleta vieja no sobrevive y el acento
+sigue siendo `hazard`.
+
+### Una decisión que conviene que revise el profesor
+
+El **naranja de seguridad** es una lectura de "industrial" (señalización de
+bodega, ITV, construcción). Si el profesor prefiere otra lectura —acero
+azulado, gris con un único acento, o monochrome— el cambio es de **una línea**
+en `tailwind.config.js` más el renombre correspondiente. Todo el modo oscuro
+queda igual.
 
 ---
 
@@ -14,7 +104,7 @@ antes de hacer `git commit`.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **25 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **42 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |
@@ -22,6 +112,9 @@ antes de hacer `git commit`.
 | Registro de usuario nuevo | HTTP 500 | **Funciona** |
 | Editar el propio perfil | Error "email ya registrado" | **Funciona** |
 | Usuario no-admin cambia roles | **Se lo podía** | **403 Forbidden** |
+| Colores de acento en la interfaz | 3 (`amber`, `indigo`, `blue`) | **1 (`hazard`)** |
+| Páginas con modo oscuro completo | 0 | **15 de 15** |
+| Archivos con encoding roto | 1 | **0** |
 
 ---
 
@@ -48,7 +141,7 @@ Como `UserController` usaba la primera, `Role::all()` devolvía cero filas y la
 página de asignación de roles se renderizaba **sin una sola opción**. La
 funcionalidad directamente no existía.
 
-`RoleController`, en cambio, sí usaba `App\Models\Role` �?? por eso el CRUD de
+`RoleController`, en cambio, sí usaba `App\Models\Role` — por eso el CRUD de
 roles sí andaba y el resto del proyecto no daba señales.
 
 **Solución**
@@ -230,9 +323,9 @@ exist`.
 
 La migración nueva crea, si no existen:
 
-- `sessions` �?? para `SESSION_DRIVER=database`
-- `jobs`, `job_batches`, `failed_jobs` �?? para `QUEUE_CONNECTION=database`
-- `password_reset_tokens` �?? la usa el "olvidé mi contraseña" de Breeze
+- `sessions` — para `SESSION_DRIVER=database`
+- `jobs`, `job_batches`, `failed_jobs` — para `QUEUE_CONNECTION=database`
+- `password_reset_tokens` — la usa el "olvidé mi contraseña" de Breeze
 
 Todas tienen guarda `if (!Schema::hasTable(...))` para que no choquen si ya
 existieran.
@@ -245,7 +338,7 @@ existieran.
 
 ## `getRouteKeyName()` en 11 modelos
 
-Diez modelos ya tienen `$primaryKey = 'id_x'` (porque el profesor�?�?为 las
+Diez modelos ya tienen `$primaryKey = 'id_x'` (porque el profesorcreó las
 tablas a mano), pero no definían `getRouteKeyName()`.
 
 Laravel usa ese método para el *route model binding*. Sin él, una ruta del tipo
@@ -278,7 +371,7 @@ public function getIdAttribute(): int
 
 Laravel da por hecho que el atributo de la clave primaria se llama `id`.
 En este proyecto la PK real es `id_user`, así que sin este alias fallaba con
-`Missing parameter: [id]` �?? por ejemplo en las URLs firmadas de verificación de
+`Missing parameter: [id]` — por ejemplo en las URLs firmadas de verificación de
 email que genera Breeze:
 
 ```php
@@ -375,7 +468,7 @@ Spatie está instalado y `User` tiene el trait `HasRoles`, pero la tabla
 La corrección alineó el módulo con el sistema que realmente está en uso. La
 alternativa sería hacer que Spatie funcione sobre la tabla `roles` existente, lo
 que exige que `App\Models\Role` extienda el modelo de Spatie y mapear
-`role_name` �?? `name`. Es un cambio de mayor alcance y probablemente deserve una
+`role_name` — `name`. Es un cambio de mayor alcance y probablemente deserve una
 conversación con el profesor.
 
 **2. Se agregaron dos roles al catálogo.**
@@ -406,7 +499,7 @@ php -l app\Models\User.php
 ```
 
 Para ver el módulo de roles funcionando, entrar como administrador en
-`http://localhost/Pallets-Flow-System/public/` y abrir *Usuarios* �?? asignar rol.
+`http://localhost/Pallets-Flow-System/public/` y abrir *Usuarios* — asignar rol.
 
 Con `vendedor@ecommerce.com / vendedor1234` se puede comprobar que
 `/usuarios` devuelve **403**.

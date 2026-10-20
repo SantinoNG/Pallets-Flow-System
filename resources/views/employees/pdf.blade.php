@@ -40,7 +40,7 @@
         <tbody>
             @forelse($employees as $employee)
                 <tr>
-                    <td class="text-center">#{{ $employee->id_employee }}</td>
+                    <td class="text-center font-mono tabular-nums">#{{ $employee->id_employee }}</td>
                     <td>{{ $employee->first_name }} {{ $employee->last_name }}</td>
                     <td>{{ $employee->phone }}</td>
                     <td>{{ $employee->user ? $employee->user->email : 'Sin usuario' }}</td>

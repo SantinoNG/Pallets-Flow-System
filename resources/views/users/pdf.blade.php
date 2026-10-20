@@ -41,7 +41,7 @@
         <tbody>
             @forelse($users as $user)
                 <tr>
-                    <td class="text-center">{{ $user->id_user }}</td>
+                    <td class="text-center font-mono tabular-nums">{{ $user->id_user }}</td>
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
                     <td>{{ $user->role?->role_name ?? '—' }}</td>

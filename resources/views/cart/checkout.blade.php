@@ -1,20 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
             Confirmar Venta
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200">
+            <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
 
-                <h3 class="text-lg font-medium text-gray-900 mb-6">Resumen de la venta</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100 mb-6">Resumen de la venta</h3>
 
                 {{-- Detalle de items --}}
-                <div class="border border-gray-200 rounded-md overflow-hidden mb-6">
-                    <table class="w-full text-sm text-left text-gray-500">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <div class="border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden mb-6">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-zinc-400">
+                        <thead class="text-xs text-gray-700 dark:text-zinc-200 uppercase bg-gray-50 dark:bg-zinc-950">
                             <tr>
                                 <th class="px-4 py-3">Artículo</th>
                                 <th class="px-4 py-3">Cant.</th>
@@ -23,12 +23,12 @@
                         </thead>
                         <tbody>
                             @foreach($cart->items as $item)
-                            <tr class="border-t border-gray-100">
-                                <td class="px-4 py-3 font-medium text-gray-900">
+                            <tr class="border-t border-gray-100 dark:border-zinc-800">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-zinc-100">
                                     {{ $item->article->article_name }}
                                 </td>
-                                <td class="px-4 py-3">{{ $item->quantity }}</td>
-                                <td class="px-4 py-3 text-right font-semibold text-gray-900">
+                                <td class="px-4 py-3 font-mono tabular-nums">{{ $item->quantity }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
                                     ${{ number_format($item->unit_price * $item->quantity, 2) }}
                                 </td>
                             </tr>
@@ -38,7 +38,7 @@
                 </div>
 
                 {{-- Total --}}
-                <div class="flex justify-between text-lg font-bold text-gray-900 mb-6 px-1">
+                <div class="flex justify-between text-lg font-bold text-gray-900 dark:text-zinc-100 mb-6 px-1">
                     <span>Total</span>
                     <span>${{ number_format($subtotal, 2) }}</span>
                 </div>
@@ -48,11 +48,11 @@
                     @csrf
 
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
                             Método de pago <span class="text-red-500">*</span>
                         </label>
                         <select name="payment_method"
-                                class="w-full border-gray-300 rounded-md shadow-sm text-sm"
+                                class="w-full border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm"
                                 required>
                             <option value="">Seleccioná...</option>
                             <option value="Efectivo">Efectivo</option>
@@ -71,7 +71,7 @@
                             Finalizar venta y emitir comprobante
                         </button>
                         <a href="{{ route('cart.show', $cart->id_cart) }}"
-                           class="text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md transition">
+                           class="text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 hover:bg-gray-200 dark:hover:bg-zinc-700 px-4 py-2 rounded-md transition">
                             Volver al carrito
                         </a>
                     </div>

@@ -24,6 +24,7 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 | Lenguaje | PHP `^8.2` |
 | Framework | Laravel `^12.0` |
 | Frontend | Blade + Tailwind CSS + Alpine.js (Laravel Breeze), Vite (`vite.config.js`, `tailwind.config.js`, `postcss.config.js`) |
+| Sistema visual | **Paleta industrial + modo oscuro.** Acento unico `hazard` (naranja de seguridad) sobre superficies `zinc` (grafito). `darkMode: 'class'` con interruptor manual. Ver seccion 6.1. |
 | Auth | Laravel Breeze (rutas en `routes/auth.php`, controladores en `app/Http/Controllers/Auth`) |
 | Roles/permisos | `spatie/laravel-permission ^8.0` (alias de middleware `role`, `permission`, `role_or_permission` en `bootstrap/app.php`) |
 | Auditoría | `owen-it/laravel-auditing ^14.0` (`config/audit.php`); hoy solo `User` implementa `Auditable` |
@@ -93,6 +94,36 @@ Notas:
 | **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. | `SaleController`, vistas `sales/*`, `Sale` |
 | Dashboard | **Funcional con datos reales.** Componente Livewire con 5 consultas agregadas a la base y selector de periodo (30 días / 90 días / 6 meses / año / todo). Charts de Chart.js se re-inicializan en cada morph de Livewire. | `app/Livewire/Dashboard.php`, `views/livewire/dashboard.blade.php` |
 
+### 6.1 Sistema visual (interfaz)
+
+Se unifico la paleta y se agrego modo oscuro. La interfaz quedo con una
+identidad **industrial**: grafito metalico, un solo color de acento y tipografia
+tecnica.
+
+| Elemento | Decision | Donde se define |
+|---|---|---|
+| Acento de marca | `hazard` (naranja de seguridad `#F97316`). Reemplaza a `indigo`, `blue` y `amber`, que convivian. | `tailwind.config.js` -> `theme.extend.colors.hazard` |
+| Superficies | `zinc` (gris neutro, sin el tinte azul de `slate`). | `tailwind.config.js`, clases `bg-zinc-*` |
+| Modo oscuro | `darkMode: 'class'`: la clase `dark` en `<html>` lo decide el interruptor, no el sistema operativo. | `tailwind.config.js` |
+| Preferencia | `localStorage` con la clave `tema` (`dark` / `light`). Si no hay, se respeta `prefers-color-scheme`. | `resources/views/layouts/*.blade.php` (script del `<head>`) |
+| Sin destello | El script del `<head>` aplica la clase **antes** de pintar. | `layouts/app.blade.php`, `layouts/guest.blade.php` |
+| Interruptor | Componente reutilizable, boton sol/luna. | `resources/views/components/theme-toggle.blade.php` |
+| Tipografia | `Barlow` (grotesca tecnica) para la interfaz, `IBM Plex Mono` para los datos. Antes estaba `Figtree`, que **nunca se cargaba** (no habia `@font-face` ni link a Google Fonts): el navegador usaba la del sistema. | `tailwind.config.js` -> `theme.extend.fontFamily` |
+| Numeros en tablas | `font-mono tabular-nums` en las celdas de dato (ID, precios, cantidades, stock) para que las columnas de decimales alineen. | vistas de `articles`, `sales`, `employees`, `roles`, `suppliers`, `users`, `cart` |
+| Esquinas | Radios achicados (`rounded-lg` = 0.25rem): la industria es precisa, no redondeada. | `tailwind.config.js` -> `theme.extend.borderRadius` |
+| Boton principal | `x-primary-button` paso de `bg-gray-800` a `bg-hazard-600`: la accion primaria es del color de marca. | `resources/views/components/primary-button.blade.php` |
+| Paginacion | Se publicaron las vistas de Laravel (`resources/views/vendor/pagination/`) y se reestilaron: usaban el azul de Laravel. | `resources/views/vendor/pagination/` |
+
+**Scripts de mantenimiento** en `scripts/` (ver `scripts/README.md`):
+`agregar-modo-oscuro.php` (agrega las variantes `dark:` que falten),
+`auditar-modo-oscuro.php` (detecta huecos) y `auditar-paleta.php` (detecta
+paletas viejas).
+
+**Pruebas:** `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
+el comportamiento: el script del tema va antes del `<body>`, el interruptor
+esta en el login y en el panel, ninguna pagina deja superficies sin variante
+oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
+
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
 1. **RESUELTO** — `Cart` ya declara `protected $table = 'cart'`.
@@ -112,6 +143,13 @@ Notas:
 15. **RESUELTO** — N+1 en `/sales`: la vista llama `$venta->total()` y `$venta->unidades()`, que usan la relación `items()` (`hasManyThrough`), que no estaba en el eager load. Eloquent la resolvía con una consulta por fila: **25 consultas, 12 idénticas**. Con `items` en el eager load bajó a **13**. `NoNPlusOneTest` falla si vuelve.
 16. **RESUELTO** — Control por rol en las rutas que solo tenían `auth`: `/usuarios` y `/roles` ahora piden `role:Jefe|Administrador` y `/employees` pide `role:Jefe|Administrador|Encargado`. Antes **cualquier usuario logueado podía crear, editar y borrar roles**, y el Cliente entraba al listado de empleados.
 17. **RESUELTO** — Carrera en el descuento de stock: en `CartController::confirmSale` la validación estaba **fuera** de la transacción y el descuento era un read-modify-write sin lock. Dos checkouts simultáneos podían pasar los dos la validación y sobre-vender. Ahora la validación va dentro de la transacción y las filas se bloquean con `lockForUpdate()`.
+18. **RESUELTO** — La interfaz tenia **tres acentos conviviendo**: `amber` (sidebar y login), `indigo` (modulos de articulos, roles y perfil, y los componentes de Breeze) y `blue` (proveedores, empleados y gestion de roles). El login mostraba el logo naranja junto a un boton indigo. Se unifico todo a `hazard` (naranja de seguridad) sobre superficies `zinc`. En el CSS compilado quedaron **0 ocurrencias** de `indigo`, `blue`, `amber` y `slate`.
+19. **RESUELTO** — El build usa **Tailwind v3.4.19**, no v4: `postcss.config.js` carga el plugin `tailwindcss` (v3). El paquete `@tailwindcss/vite` v4 esta instalado pero **no se usa** (`vite.config.js` solo registra el plugin de Laravel). Se dejo como esta, sin tocar las dependencias del profesor.
+20. **RESUELTO** — `tailwind.config.js` escaneaba `vendor/laravel/framework/.../Pagination/` para generar el CSS, y esas vistas usan el **azul de Laravel**. Se publico la paginacion al proyecto (`resources/views/vendor/pagination/`) y se reestilo, y se quito esa ruta del `content` de Tailwind.
+21. **RESUELTO** — `Figtree` figuraba en `fontFamily.sans` pero **no se cargaba nunca**: no habia `@font-face` ni link a Google Fonts, asi que el navegador caia en la fuente del sistema. Se cambio por `Barlow` + `IBM Plex Mono`, ahora sí cargadas desde los dos layouts.
+22. **RESUELTO** — Modo oscuro: se agrego el interruptor, la preferencia persistida en `localStorage` y las variantes `dark:` en las vistas. La auditoria de las 15 paginas (13 autenticadas + login y registro) da **0 clases claras sin equivalente oscuro**. Las vistas `*/pdf.blade.php` se excluyen a proposito: se imprimen en blanco.
+23. **PENDIENTE** — `tailwind.config.js` todavia no declara la paleta nueva en `safelist`, y `theme('colors.zinc.*')` en `app.css` se evalua en tiempo de build: si se cambia la escala de `zinc`, hay que recompilar. Es el comportamiento normal de Tailwind v3, no un bug.
+24. **PENDIENTE** — Los modulos con acciones en vivo (Livewire) reconicializan los graficos de Chart.js en cada morph, pero no hay prueba automatica que lo cubra: si Livewire cambia el comportamiento del morph, el grafico se queda congelado sin avisar.
 
 ## 8. Convenciones para cambios futuros
 
@@ -119,6 +157,8 @@ Notas:
 - Comentarios en español; seguir el estilo de los controladores existentes.
 - **Roles**: el catálogo es la tabla `roles` (columna `role_name`). Cualquier rol nuevo se crea ahí y se refleja en `spatie_roles`; a los usuarios se les asigna con `User::asignarRol($nombre)`, que escribe en los dos sistemas a la vez. No usar `syncRoles()` ni `assignRole()` por separado.
 - **Autorización de usuarios/roles**: `User::isAdmin()` (Jefe o Administrador). Para proteger rutas con el middleware de Spatie usar `->middleware('role:Jefe|Administrador')`.
+- **Interfaz**: el color de acento es `hazard` y las superficies son `zinc`. No volver a `indigo`, `blue`, `amber` ni `slate`. Toda superficie clara (`bg-white`, `text-gray-*`, `border-gray-*`) necesita su variante `dark:`; al agregar vistas, correr `php scripts/agregar-modo-oscuro.php` y despues `php scripts/auditar-modo-oscuro.php`.
+- **Modo oscuro**: la clase `dark` en `<html>` la pone el script del `<head>` segun `localStorage['tema']`. No usar `prefers-color-scheme` en las vistas ni poner la clase a mano: el interruptor es el unico que decide.
 - Registrar cada cambio nuevo en este archivo (sección 4, 5, 6) y crear el plan siguiente en `ai_workspace/NNN_plan_<tema>.md` siguiendo `PLANtemplate.md`.
 
 ## 9. Planes de `ai_workspace`

@@ -1,15 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
             {{ __('Nueva Venta') }}
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200">
+            <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
 
-                <h3 class="text-lg font-medium text-gray-900 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100 mb-6">
                     Seleccioná el cliente para iniciar la venta
                 </h3>
 
@@ -23,12 +23,11 @@
                     @csrf
 
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
                             Cliente <span class="text-red-500">*</span>
                         </label>
                         <select name="id_customer"
-                                class="w-full border-gray-300 rounded-md shadow-sm text-sm
-                                       {{ $errors->has('id_customer') ? 'border-red-500' : '' }}"
+                                class="w-full border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm {{ $errors->has('id_customer') ? 'border-red-500' : '' }}"
                                 required>
                             <option value="">Seleccioná un cliente...</option>
                             @foreach($customers as $customer)
@@ -45,11 +44,11 @@
 
                     <div class="flex items-center gap-4">
                         <button type="submit"
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
+                                class="bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
                             Iniciar venta
                         </button>
                         <a href="{{ route('dashboard') }}"
-                           class="text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md transition">
+                           class="text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 hover:bg-gray-200 dark:hover:bg-zinc-700 px-4 py-2 rounded-md transition">
                             Cancelar
                         </a>
                     </div>

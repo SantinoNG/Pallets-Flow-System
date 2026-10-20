@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-bold text-lg text-slate-800">
+        <h2 class="font-bold text-lg text-zinc-800 dark:text-zinc-100">
             {{ __('Resumen General - PalletStore') }}
         </h2>
     </x-slot>

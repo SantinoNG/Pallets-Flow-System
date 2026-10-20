@@ -1,3 +1,91 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Modo oscuro
+ * -----------
+ * El interruptor de la interfaz pone la clase `dark` en <html>. Tailwind
+ * v3 con `darkMode: 'class'` genera las utilidades `dark:*` a partir de ahi.
+ *
+ * Este bloque define las variables de superficie que usan los layouts, para
+ * no tener que repetir `dark:bg-zinc-900 dark:text-zinc-100` en cada vista.
+ */
+@layer base {
+    :root {
+        /* Superficies */
+        --surface: theme('colors.zinc.100');
+        --surface-raised: theme('colors.white');
+        --surface-sunken: theme('colors.zinc.50');
+
+        /* Texto */
+        --text-base: theme('colors.zinc.800');
+        --text-muted: theme('colors.zinc.500');
+        --text-inverted: theme('colors.white');
+
+        /* Bordes */
+        --border-subtle: theme('colors.zinc.200');
+        --border-strong: theme('colors.zinc.300');
+    }
+
+    .dark {
+        /* Superficies */
+        --surface: theme('colors.zinc.950');
+        --surface-raised: theme('colors.zinc.900');
+        --surface-sunken: theme('colors.zinc.950');
+
+        /* Texto */
+        --text-base: theme('colors.zinc.100');
+        --text-muted: theme('colors.zinc.400');
+        --text-inverted: theme('colors.zinc.900');
+
+        /* Bordes */
+        --border-subtle: theme('colors.zinc.800');
+        --border-strong: theme('colors.zinc.700');
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background-color: var(--surface);
+        color: var(--text-base);
+    }
+
+    /* En modo oscuro los scrollbars oscuros, para que no destaquen. */
+    .dark ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    .dark ::-webkit-scrollbar-track {
+        background: theme('colors.zinc.900');
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+        background: theme('colors.zinc.700');
+        border-radius: 9999px;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+        background: theme('colors.zinc.600');
+    }
+
+    /* Los campos de formulario del plugin forms traen fondo blanco fijo:
+       hay que dejarlos heredar el fondo de la superficie. */
+    .dark input,
+    .dark select,
+    .dark textarea {
+        background-color: var(--surface-raised);
+        color: var(--text-base);
+        border-color: var(--border-strong);
+    }
+}
+
+@layer components {
+    /* Etiqueta técnica: versalitas espaciadas, como en la señalética. */
+    .label-technical {
+        @apply text-[10px] uppercase font-bold tracking-label;
+    }
+}

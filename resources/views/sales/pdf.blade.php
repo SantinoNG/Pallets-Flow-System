@@ -32,7 +32,7 @@
                     <h1>PalletStore</h1>
                     <div class="muted">Muebles artesanales de pallets</div>
                 </td>
-                <td class="right">
+                <td class="right font-mono tabular-nums">
                     <div class="label">Comprobante</div>
                     <div><strong>#{{ $sale->id_sale }}</strong></div>
                     <div class="muted">Emitido: {{ $sale->created_at?->format('d/m/Y H:i') ?? '—' }}</div>
@@ -88,9 +88,9 @@
             @forelse($sale->cart?->items ?? [] as $item)
                 <tr>
                     <td>{{ $item->article?->article_name ?? 'Artículo eliminado' }}</td>
-                    <td class="center">{{ $item->quantity }}</td>
-                    <td class="right">$ {{ number_format((float) $item->unit_price, 2, ',', '.') }}</td>
-                    <td class="right">$ {{ number_format((float) $item->unit_price * $item->quantity, 2, ',', '.') }}</td>
+                    <td class="center font-mono tabular-nums">{{ $item->quantity }}</td>
+                    <td class="right font-mono tabular-nums">$ {{ number_format((float) $item->unit_price, 2, ',', '.') }}</td>
+                    <td class="right font-mono tabular-nums">$ {{ number_format((float) $item->unit_price * $item->quantity, 2, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
@@ -103,11 +103,11 @@
     <table class="totals">
         <tr>
             <td class="muted">Artículos</td>
-            <td class="right">{{ $sale->unidades() }}</td>
+            <td class="right font-mono tabular-nums">{{ $sale->unidades() }}</td>
         </tr>
         <tr>
             <td class="final">Total</td>
-            <td class="right final">$ {{ number_format($sale->total(), 2, ',', '.') }}</td>
+            <td class="right final font-mono tabular-nums">$ {{ number_format($sale->total(), 2, ',', '.') }}</td>
         </tr>
     </table>
 

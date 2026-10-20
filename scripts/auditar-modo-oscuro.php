@@ -1,0 +1,106 @@
+<?php
+
+// Auditoria del modo oscuro: busca clases de superficie claras que NO
+// tienen su equivalente `dark:`.
+//
+// Sin esto, en modo oscuro quedan tarjetas blancas, texto gris claro sobre
+// fondo oscuro, y bordes invisibles.
+//
+// Uso: php auditar-modo-oscuro.php [url-base]
+
+$base = rtrim($argv[1] ?? 'http://127.0.0.1/Pallets-Flow-System/public', '/');
+
+$jar = tempnam(sys_get_temp_dir(), 'ck');
+curl_setopt_array($ch = curl_init("$base/login"), [
+    CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar,
+]);
+$html = curl_exec($ch); curl_close($ch);
+preg_match('/name="_token"\s+value="([^"]+)"/', $html, $m);
+
+curl_setopt_array($ch = curl_init("$base/login"), [
+    CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+    CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar,
+    CURLOPT_POSTFIELDS => http_build_query([
+        '_token' => $m[1] ?? '', 'email' => 'admin@ecommerce.com', 'password' => 'admin1234',
+    ]),
+]);
+curl_exec($ch); curl_close($ch);
+
+$paginas = [
+    '/dashboard', '/articles', '/articles/create', '/suppliers', '/employees',
+    '/roles', '/roles/create', '/usuarios', '/usuarios/1/roles', '/cart', '/sales',
+    '/profile', '/tutorial',
+];
+
+// Paginas de invitado: se piden SIN sesion (siEstasConectado seria
+// verdadero, /login redirige al dashboard).
+$paginasInvitado = ['/login', '/register'];
+
+// clase clara => contraparte oscura que DEBERIA existir
+$deberia = [
+    'bg-white'        => 'dark:bg-zinc-900',
+    'bg-gray-50'      => 'dark:bg-zinc-950',
+    'bg-gray-100'     => 'dark:bg-zinc-950',
+    'text-gray-900'   => 'dark:text-zinc-100',
+    'text-gray-800'   => 'dark:text-zinc-100',
+    'text-gray-700'   => 'dark:text-zinc-200',
+    'text-gray-600'   => 'dark:text-zinc-300',
+    'text-gray-500'   => 'dark:text-zinc-400',
+    'border-gray-100' => 'dark:border-zinc-800',
+    'border-gray-200' => 'dark:border-zinc-800',
+    'border-gray-300' => 'dark:border-zinc-700',
+];
+
+$totalHuecos = 0;
+
+/**
+ * Revisa una pagina ya descargada.
+ */
+function revisar(string $p, string $html, array $deberia, int &$totalHuecos): void
+{
+    preg_match_all('/class="([^"]*)"/', $html, $cm);
+
+    $huecos = [];
+    foreach ($cm[1] as $bloque) {
+        $tokens = preg_split('/\s+/', trim($bloque));
+        foreach ($tokens as $t) {
+            if (! isset($deberia[$t])) continue;
+            if (in_array($deberia[$t], $tokens, true)) continue;
+            $huecos[$t] = ($huecos[$t] ?? 0) + 1;
+        }
+    }
+
+    if ($huecos) {
+        $totalHuecos += array_sum($huecos);
+        echo "  " . str_pad($p, 26) . " " . count($huecos) . " clases sin variante dark:\n";
+        foreach ($huecos as $clase => $n) {
+            echo "      " . str_pad($clase, 22) . "x$n   (falta {$deberia[$clase]})\n";
+        }
+    } else {
+        echo "  " . str_pad($p, 26) . " OK\n";
+    }
+}
+
+foreach ($paginas as $p) {
+    curl_setopt_array($ch = curl_init("$base$p"), [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar,
+    ]);
+    $html = curl_exec($ch); curl_close($ch);
+    if (! $html) { continue; }
+
+    revisar($p, $html, $deberia, $totalHuecos);
+}
+
+foreach ($paginasInvitado as $p) {
+    $tmp = tempnam(sys_get_temp_dir(), 'inv');
+    curl_setopt_array($ch = curl_init("$base$p"), [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $tmp, CURLOPT_COOKIEFILE => $tmp,
+    ]);
+    $html = curl_exec($ch); curl_close($ch);
+    @unlink($tmp);
+    if (! $html) { continue; }
+
+    revisar($p, $html, $deberia, $totalHuecos);
+}
+
+echo "\n  $totalHuecos clases claras sin equivalente oscuro\n";
