@@ -24,7 +24,7 @@
                     </x-nav-link>
                     @endrole
                     <x-nav-link :href="route('tutorial')" :active="request()->routeIs('tutorial')">
-                        {{ __('GuÃ­a TÃ©cnica') }}
+                        {{ __('Guía Técnica') }}
                     </x-nav-link>
 
                         

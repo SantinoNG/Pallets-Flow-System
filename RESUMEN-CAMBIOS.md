@@ -1,33 +1,33 @@
-# Resumen de modificaciones â€” Pallets Flow System
+# Resumen de modificaciones �?? Pallets Flow System
 
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 15 de octubre de 2026
 
-**19 archivos modificados Â· 3 migraciones nuevas Â· 541 lÃ­neas agregadas, 103 eliminadas**
+**19 archivos modificados · 3 migraciones nuevas · 541 líneas agregadas, 103 eliminadas**
 
-Nada fue commiteado. Los cambios estÃ¡n en el working tree para poder revisarlos
+Nada fue commiteado. Los cambios están en el working tree para poder revisarlos
 antes de hacer `git commit`.
 
 ---
 
 ## Resultado
 
-| Indicador | Antes | DespuÃ©s |
+| Indicador | Antes | Después |
 |---|---|---|
 | Tests | 5 pasan / 20 fallan | **25 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
-| Tablas en la base | 21 (3 a mano) | **28 (todas por migraciÃ³n)** |
-| `php artisan migrate:fresh` | RompÃ­a la base | **Deja la base completa y funcional** |
+| Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
+| `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |
 | Asignar roles a un usuario | Renderizaba 0 opciones | **6 opciones, funciona** |
 | Registro de usuario nuevo | HTTP 500 | **Funciona** |
 | Editar el propio perfil | Error "email ya registrado" | **Funciona** |
-| Usuario no-admin cambia roles | **Se lo podÃ­a** | **403 Forbidden** |
+| Usuario no-admin cambia roles | **Se lo podía** | **403 Forbidden** |
 
 ---
 
-## Los 3 errores crÃ­ticos
+## Los 3 errores críticos
 
-### 1. El mÃ³dulo de roles no funcionaba
+### 1. El módulo de roles no funcionaba
 
 **Problema**
 
@@ -41,23 +41,23 @@ El proyecto tiene **dos clases `Role` sobre tablas distintas**:
 
 | Clase | Tabla | Contenido |
 |---|---|---|
-| `Spatie\Permission\Models\Role` | `spatie_roles` | **vacÃ­a** |
+| `Spatie\Permission\Models\Role` | `spatie_roles` | **vacía** |
 | `App\Models\Role` | `roles` | Jefe, Administrador, Encargado, Cliente |
 
-Como `UserController` usaba la primera, `Role::all()` devolvÃ­a cero filas y la
-pÃ¡gina de asignaciÃ³n de roles se renderizaba **sin una sola opciÃ³n**. La
-funcionalidad directamente no existÃ­a.
+Como `UserController` usaba la primera, `Role::all()` devolvía cero filas y la
+página de asignación de roles se renderizaba **sin una sola opción**. La
+funcionalidad directamente no existía.
 
-`RoleController`, en cambio, sÃ­ usaba `App\Models\Role` â€” por eso el CRUD de
-roles sÃ­ andaba y el resto del proyecto no daba seÃ±ales.
+`RoleController`, en cambio, sí usaba `App\Models\Role` �?? por eso el CRUD de
+roles sí andaba y el resto del proyecto no daba señales.
 
-**SoluciÃ³n**
+**Solución**
 
 - `UserController` usa `App\Models\Role` (tabla `roles`), el sistema real del proyecto.
-- `syncRoles()` de Spatie reemplazado por actualizaciÃ³n de `users.id_role`.
-- La vista pasÃ³ de checkboxes a un `<select>`, porque `id_role` es una Foreign
+- `syncRoles()` de Spatie reemplazado por actualización de `users.id_role`.
+- La vista pasó de checkboxes a un `<select>`, porque `id_role` es una Foreign
   Key simple: **un** rol por usuario, no varios.
-- Se documentÃ³ en `User` que conviven dos sistemas de roles distintos y cuÃ¡l es el real.
+- Se documentó en `User` que conviven dos sistemas de roles distintos y cuál es el real.
 
 ### 2. Los roles de los usuarios estaban mal asignados
 
@@ -66,12 +66,12 @@ roles sÃ­ andaba y el resto del proyecto no daba seÃ±ales.
 `UserSeeder` asignaba el rol escribiendo el ID a mano:
 
 ```php
-'id_role' => 1,   // el comentario decÃ­a "1=Admin"
+'id_role' => 1,   // el comentario decía "1=Admin"
 ```
 
-Pero los IDs los genera `auto_increment`, asÃ­ que el `1` no era "Admin": era el
-primer rol que creÃ³ `RoleSeeder`, que es **Jefe**. Y como el orden de inserciÃ³n
-no estÃ¡ garantizado, el resultado real era:
+Pero los IDs los genera `auto_increment`, así que el `1` no era "Admin": era el
+primer rol que creó `RoleSeeder`, que es **Jefe**. Y como el orden de inserción
+no está garantizado, el resultado real era:
 
 ```
 admin@ecommerce.com     -> Jefe
@@ -80,14 +80,14 @@ deposito@ecommerce.com  -> Encargado
 cliente@gmail.com       -> Cliente
 ```
 
-Es decir: **el usuario vendedor tenÃ­a permisos de administrador.**
+Es decir: **el usuario vendedor tenía permisos de administrador.**
 
-**SoluciÃ³n**
+**Solución**
 
 - `RoleSeeder` conserva los 4 roles originales y agrega `Vendedor` y `Deposito`,
   que el `UserSeeder` daba por supuestos pero nunca existieron.
 - `UserSeeder` ahora busca el rol **por nombre** con un helper `roleId()` que
-  corta con un mensaje explÃ­cito si el rol no existe, en vez de adivinar un ID.
+  corta con un mensaje explícito si el rol no existe, en vez de adivinar un ID.
 - `UserSeeder` busca los usuarios **por email** para armar `employees` y
   `customers`, en vez de asumir `id_user` 1, 2, 3.
 - `updateOrInsert` en lugar de `insert`, para que se pueda re-sembrar.
@@ -107,8 +107,8 @@ cliente@gmail.com       -> Cliente
 
 Dos causas acumuladas:
 
-a) La tabla `users` no tenÃ­a `email_verified_at` ni `remember_token`. Las
-asumÃ­a tanto `User::casts()` como `UserFactory`.
+a) La tabla `users` no tenía `email_verified_at` ni `remember_token`. Las
+asumía tanto `User::casts()` como `UserFactory`.
 
 ```
 table users has no column named email_verified_at
@@ -120,15 +120,15 @@ b) `UserFactory` no daba valor a `id_role`, que es `NOT NULL` con Foreign Key.
 NOT NULL constraint failed: users.id_role
 ```
 
-Como fallaba la fÃ¡brica, **todos** los tests de autenticaciÃ³n de Breeze
-(registro, login, verificaciÃ³n de email, reset de contraseÃ±a, perfil) morÃ­an al
-crear su primer usuario. Es decir: el mÃ³dulo de autenticaciÃ³n estaba
+Como fallaba la fábrica, **todos** los tests de autenticación de Breeze
+(registro, login, verificación de email, reset de contraseña, perfil) morían al
+crear su primer usuario. Es decir: el módulo de autenticación estaba
 completamente sin probar.
 
-**SoluciÃ³n**
+**Solución**
 
-- MigraciÃ³n `2026_10_15_000001` que agrega las dos columnas faltantes.
-- `UserFactory` resuelve el rol "Cliente" (lo crea si la tabla estÃ¡ vacÃ­a), y
+- Migración `2026_10_15_000001` que agrega las dos columnas faltantes.
+- `UserFactory` resuelve el rol "Cliente" (lo crea si la tabla está vacía), y
   suma un helper `withRol()` para tests que necesiten permisos.
 
 ---
@@ -137,23 +137,23 @@ completamente sin probar.
 
 **Problema**
 
-Las rutas de gestiÃ³n de roles solo tenÃ­an `middleware(['auth'])`:
+Las rutas de gestión de roles solo tenían `middleware(['auth'])`:
 
 ```php
 $user->syncRoles($request->roles);   // sin validate(), sin policy
 ```
 
-Cualquier usuario logueado podÃ­a llamar `/usuarios/{cualquiera}/roles` y
-**asignarse a sÃ­ mismo el rol Administrador**. Tampoco se validaba la entrada.
+Cualquier usuario logueado podía llamar `/usuarios/{cualquiera}/roles` y
+**asignarse a sí mismo el rol Administrador**. Tampoco se validaba la entrada.
 
-**SoluciÃ³n**
+**Solución**
 
-- ValidaciÃ³n: `'id_role' => ['required', 'integer', 'exists:roles,id_role']`
-- AutorizaciÃ³n: un `authorizeAdmin()` privado que corta con 403 si el rol del
+- Validación: `'id_role' => ['required', 'integer', 'exists:roles,id_role']`
+- Autorización: un `authorizeAdmin()` privado que corta con 403 si el rol del
   usuario no es "Administrador", aplicado a `index()`, `editRoles()` y
   `updateRoles()`.
-- Se agregÃ³ `User::role()` y `User::isAdmin()`.
-- `id_role` sigue **fuera** del `$fillable` del modelo, a propÃ³sito, para que
+- Se agregó `User::role()` y `User::isAdmin()`.
+- `id_role` sigue **fuera** del `$fillable` del modelo, a propósito, para que
   nadie pueda cambiar su rol con un mass assignment.
 
 **Verificado**
@@ -168,36 +168,36 @@ admin    -> GET /usuarios/1/roles   200
 
 ## Otros 3 errores encontrados al verificar
 
-Estos no estaban en el anÃ¡lisis inicial; aparecieron al probar las correcciones.
+Estos no estaban en el análisis inicial; aparecieron al probar las correcciones.
 
-### La tabla `audits` no existÃ­a
+### La tabla `audits` no existía
 
 `App\Models\User` implementa `OwenIt\Auditing\Contracts\Auditable` y
 `config/audit.php` tiene `'enabled' => true`. Eso significa que **cada**
-create/update/delete de un usuario escribe una fila de auditorÃ­a.
+create/update/delete de un usuario escribe una fila de auditoría.
 
-Como la tabla no existÃ­a, **toda escritura en `users` devolvÃ­a HTTP 500**.
+Como la tabla no existía, **toda escritura en `users` devolvía HTTP 500**.
 El login funcionaba (solo lee), por eso no se notaba.
 
-Se agregÃ³ `2026_10_15_000003` con el stub oficial del paquete.
+Se agregó `2026_10_15_000003` con el stub oficial del paquete.
 
 ### El registro de usuarios estaba roto
 
-`RegisteredUserController` no seteaba `id_role`. Como el campo estÃ¡ fuera del
-`$fillable` (a propÃ³sito), `User::create()` lo descartaba **en silencio** y el
-INSERT salÃ­a sin la columna:
+`RegisteredUserController` no seteaba `id_role`. Como el campo está fuera del
+`$fillable` (a propósito), `User::create()` lo descartaba **en silencio** y el
+INSERT salía sin la columna:
 
 ```
 SQLSTATE[HY000]: Field 'id_role' doesn't have a default value
 ```
 
-Un usuario se creaba y al instante reventaba la pÃ¡gina con un 500.
+Un usuario se creaba y al instante reventaba la página con un 500.
 
-Ahora usa `forceFill()`, que setea el campo explÃ­citamente sin abrir el modelo a
+Ahora usa `forceFill()`, que setea el campo explícitamente sin abrir el modelo a
 mass-assignment. El rol es "Cliente" hardcodeado en el controlador, **no** viene
-del formulario: si viniera, cualquiera podrÃ­a registrarse eligiendo Administrador.
+del formulario: si viniera, cualquiera podría registrarse eligiendo Administrador.
 
-### No se podÃ­a editar el propio perfil
+### No se podía editar el propio perfil
 
 `ProfileUpdateRequest` usaba:
 
@@ -206,7 +206,7 @@ Rule::unique(User::class)->ignore($this->user()->id)
 ```
 
 Como la clave primaria es `id_user` y no `id`, la regla comparaba contra la
-columna equivocada y el usuario recibÃ­a "El campo correo electrÃ³nico ya ha sido
+columna equivocada y el usuario recibía "El campo correo electrónico ya ha sido
 registrado" al guardar su propio email sin cambios.
 
 Ahora pasa el **modelo entero** (`->ignore($this->user())`), que es la forma en
@@ -214,9 +214,9 @@ que Laravel resuelve bien la PK cuando no se llama `id`.
 
 ---
 
-## Tablas de infraestructura (migraciÃ³n `2026_10_15_000002`)
+## Tablas de infraestructura (migración `2026_10_15_000002`)
 
-El `.env.example` pedÃ­a guardar sesiÃ³n, cachÃ© y cola en base de datos:
+El `.env.example` pedía guardar sesión, caché y cola en base de datos:
 
 ```
 SESSION_DRIVER=database
@@ -228,27 +228,27 @@ pero al repo le faltaban las migraciones de esas tablas. Solo estaba la de
 `cache`. Por eso la app fallaba con `Table 'pallets_flow_system.sessions' doesn't
 exist`.
 
-La migraciÃ³n nueva crea, si no existen:
+La migración nueva crea, si no existen:
 
-- `sessions` â€” para `SESSION_DRIVER=database`
-- `jobs`, `job_batches`, `failed_jobs` â€” para `QUEUE_CONNECTION=database`
-- `password_reset_tokens` â€” la usa el "olvidÃ© mi contraseÃ±a" de Breeze
+- `sessions` �?? para `SESSION_DRIVER=database`
+- `jobs`, `job_batches`, `failed_jobs` �?? para `QUEUE_CONNECTION=database`
+- `password_reset_tokens` �?? la usa el "olvidé mi contraseña" de Breeze
 
 Todas tienen guarda `if (!Schema::hasTable(...))` para que no choquen si ya
 existieran.
 
-> **Nota**: antes de esta migraciÃ³n esas tablas se habÃ­an creado a mano con SQL
-> sobre MySQL. Eso era frÃ¡gil: un `migrate:fresh` las borraba y rompÃ­a la app.
+> **Nota**: antes de esta migración esas tablas se habían creado a mano con SQL
+> sobre MySQL. Eso era frágil: un `migrate:fresh` las borraba y rompía la app.
 > Ahora forman parte del esquema versionado.
 
 ---
 
 ## `getRouteKeyName()` en 11 modelos
 
-Diez modelos ya tienen `$primaryKey = 'id_x'` (porque el profesorå®šä¹‰ä¸º las
-tablas a mano), pero no definÃ­an `getRouteKeyName()`.
+Diez modelos ya tienen `$primaryKey = 'id_x'` (porque el profesor�?�?为 las
+tablas a mano), pero no definían `getRouteKeyName()`.
 
-Laravel usa ese mÃ©todo para el *route model binding*. Sin Ã©l, una ruta del tipo
+Laravel usa ese método para el *route model binding*. Sin él, una ruta del tipo
 `/articles/{article}` busca por la columna `id`, que en esas tablas no existe, y
 falla.
 
@@ -264,10 +264,10 @@ falla.
 | `Supplier` | `id_supplier` |
 | `User` | `id_user` |
 
-No rompÃ­a nada hoy porque no hay rutas con binding para esos modelos, pero era
+No rompía nada hoy porque no hay rutas con binding para esos modelos, pero era
 una bomba de tiempo.
 
-### `User` ademÃ¡s lleva un accessor `id`
+### `User` además lleva un accessor `id`
 
 ```php
 public function getIdAttribute(): int
@@ -277,15 +277,15 @@ public function getIdAttribute(): int
 ```
 
 Laravel da por hecho que el atributo de la clave primaria se llama `id`.
-En este proyecto la PK real es `id_user`, asÃ­ que sin este alias fallaba con
-`Missing parameter: [id]` â€” por ejemplo en las URLs firmadas de verificaciÃ³n de
+En este proyecto la PK real es `id_user`, así que sin este alias fallaba con
+`Missing parameter: [id]` �?? por ejemplo en las URLs firmadas de verificación de
 email que genera Breeze:
 
 ```php
 URL::temporarySignedRoute('verification.verify', ..., ['id' => $user->id])
 ```
 
-El accessor no se agrega a `$appends`, asÃ­ que no cambia la serializaciÃ³n del
+El accessor no se agrega a `$appends`, así que no cambia la serialización del
 modelo.
 
 ---
@@ -296,7 +296,7 @@ modelo.
 
 | Archivo | Cambio |
 |---|---|
-| `app/Http/Controllers/UserController.php` | Import correcto de `Role`, autorizaciÃ³n, validaciÃ³n, `id_role` en vez de `syncRoles` |
+| `app/Http/Controllers/UserController.php` | Import correcto de `Role`, autorización, validación, `id_role` en vez de `syncRoles` |
 | `app/Http/Controllers/Auth/RegisteredUserController.php` | Asigna `id_role` con `forceFill`, valida que exista el rol |
 | `app/Http/Requests/ProfileUpdateRequest.php` | `ignore($this->user())` en vez de `ignore($this->user()->id)` |
 
@@ -304,7 +304,7 @@ modelo.
 
 | Archivo | Cambio |
 |---|---|
-| `app/Models/User.php` | `getRouteKeyName()`, accessor `id`, relaciÃ³n `role()`, `isAdmin()` |
+| `app/Models/User.php` | `getRouteKeyName()`, accessor `id`, relación `role()`, `isAdmin()` |
 | `app/Models/Article.php` | `getRouteKeyName()` |
 | `app/Models/Cart.php` | `getRouteKeyName()` |
 | `app/Models/CartItem.php` | `getRouteKeyName()` |
@@ -326,7 +326,7 @@ modelo.
 
 ### Migraciones nuevas
 
-| Archivo | QuÃ© crea |
+| Archivo | Qué crea |
 |---|---|
 | `2026_10_15_000001_add_email_verified_at_and_remember_token_to_users_table.php` | Las 2 columnas que faltaban en `users` |
 | `2026_10_15_000002_create_infrastructure_tables.php` | `sessions`, `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens` |
@@ -341,56 +341,56 @@ modelo.
 
 ---
 
-## Lo que NO se tocÃ³, y por quÃ©
+## Lo que NO se tocó, y por qué
 
-**`ProductController` sigue completamente vacÃ­o** (8 mÃ©todos con `//`), igual que
-6 mÃ©todos de `UserController`. Es andamiaje del profesor, sin rutas ni vistas
-asociadas. Borrarlo serÃ­a destructivo sin saber la intenciÃ³n.
+**`ProductController` sigue completamente vacío** (8 métodos con `//`), igual que
+6 métodos de `UserController`. Es andamiaje del profesor, sin rutas ni vistas
+asociadas. Borrarlo sería destructivo sin saber la intención.
 
 **Los seeders `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder` y
 `SaleSeeder` siguen usando `insert()` plano**, que no es idempotente: si se corre
 `php artisan db:seed` dos veces sobre la misma base, falla con `Duplicate entry`.
 
-Se dejÃ³ asÃ­ a propÃ³sito porque la forma correcta de reiniciar la base es:
+Se dejó así a propósito porque la forma correcta de reiniciar la base es:
 
 ```cmd
 php artisan migrate:fresh --seed
 ```
 
-que dropea todo y vuelve a crearlo, y **sÃ­ funciona** (verificado).
+que dropea todo y vuelve a crearlo, y **sí funciona** (verificado).
 
 La alternativa era cambiar esos cuatro por `insertOrIgnore`, pero eso silencia
-tambiÃ©n errores de Foreign Key reales, que es peor.
+también errores de Foreign Key reales, que es peor.
 
 ---
 
-## Decisiones de diseÃ±o que conviene revisar
+## Decisiones de diseño que conviene revisar
 
-**1. El mÃ³dulo de roles usa el rol propio, no Spatie.**
+**1. El módulo de roles usa el rol propio, no Spatie.**
 
-Spatie estÃ¡ instalado y `User` tiene el trait `HasRoles`, pero la tabla
-`spatie_roles` estÃ¡ vacÃ­a y el sistema real del proyecto es `users.id_role`
+Spatie está instalado y `User` tiene el trait `HasRoles`, pero la tabla
+`spatie_roles` está vacía y el sistema real del proyecto es `users.id_role`
 (usado por `RoleSeeder`, `RoleController` y `employees.id_role`).
 
-La correcciÃ³n alineÃ³ el mÃ³dulo con el sistema que realmente estÃ¡ en uso. La
-alternativa serÃ­a hacer que Spatie funcione sobre la tabla `roles` existente, lo
+La corrección alineó el módulo con el sistema que realmente está en uso. La
+alternativa sería hacer que Spatie funcione sobre la tabla `roles` existente, lo
 que exige que `App\Models\Role` extienda el modelo de Spatie y mapear
-`role_name` â†’ `name`. Es un cambio de mayor alcance y probablemente deserve una
-conversaciÃ³n con el profesor.
+`role_name` �?? `name`. Es un cambio de mayor alcance y probablemente deserve una
+conversación con el profesor.
 
-**2. Se agregaron dos roles al catÃ¡logo.**
+**2. Se agregaron dos roles al catálogo.**
 
-`RoleSeeder` definÃ­a Jefe/Administrador/Encargado/Cliente, pero `UserSeeder`
-necesitaba un rol para el usuario vendedor y otro para el de depÃ³sito. Se
+`RoleSeeder` definía Jefe/Administrador/Encargado/Cliente, pero `UserSeeder`
+necesitaba un rol para el usuario vendedor y otro para el de depósito. Se
 agregaron conservando los 4 originales.
 
-Si el profesor prefiere otro catÃ¡logo (por ejemplo, cambiar "Jefe" por
+Si el profesor prefiere otro catálogo (por ejemplo, cambiar "Jefe" por
 "Administrador" y "Encargado" por "Vendedor"), se ajusta en un solo lugar:
 `database/seeders/RoleSeeder.php`.
 
 ---
 
-## CÃ³mo verificar las correcciones
+## Cómo verificar las correcciones
 
 ```cmd
 cd /d C:\laragon\www\Pallets-Flow-System
@@ -405,8 +405,8 @@ REM 3. Sintaxis de todo
 php -l app\Models\User.php
 ```
 
-Para ver el mÃ³dulo de roles funcionando, entrar como administrador en
-`http://localhost/Pallets-Flow-System/public/` y abrir *Usuarios* â†’ asignar rol.
+Para ver el módulo de roles funcionando, entrar como administrador en
+`http://localhost/Pallets-Flow-System/public/` y abrir *Usuarios* �?? asignar rol.
 
 Con `vendedor@ecommerce.com / vendedor1234` se puede comprobar que
 `/usuarios` devuelve **403**.
