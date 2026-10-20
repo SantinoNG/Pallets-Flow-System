@@ -141,43 +141,73 @@ class CartController extends Controller
             return back()->with('error', 'El carrito está vacío.');
         }
 
-        // Verificar stock de todos los items antes de confirmar
-        foreach ($cart->items as $item) {
-            $stock = ProductStock::where('id_article', $item->id_article)->first();
-            if (!$stock || $stock->remaining_quantity < $item->quantity) {
-                return back()->with('error', 'Stock insuficiente para «' . $item->article->article_name . '».');
-            }
+        /*
+         * Todo el proceso va DENTRO de la transacción, incluida la
+         * validación de stock.
+         *
+         * Antes la validación estaba fuera y el descuento adentro, con
+         * un read-modify-write sin lock. Dos checkouts simultáneos podían
+         * pasar los dos la validación y sobre-vender: el stock ya estaba
+         * en 1, los dos leían 1, los dos lo dejaban en 0.
+         *
+         * Con lockForUpdate() la fila de stock queda bloqueada hasta que
+         * termina la transacción, así que el segundo checkout la espera y
+         * ve el valor ya descontado.
+         */
+        try {
+            DB::transaction(function () use ($cart, $request) {
+
+                // Bloquear las filas de stock que van a tocarse
+                $idsArticulo = $cart->items->pluck('id_article')->unique();
+
+                $stocks = ProductStock::whereIn('id_article', $idsArticulo)
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id_article');
+
+                // Verificar stock con los valores ya bloqueados
+                foreach ($cart->items as $item) {
+                    $stock = $stocks->get($item->id_article);
+
+                    if (!$stock || $stock->remaining_quantity < $item->quantity) {
+                        // Lanza la excepción: se revierte toda la transacción
+                        throw new \RuntimeException(
+                            'Stock insuficiente para «' . $item->article->article_name . '».'
+                        );
+                    }
+                }
+
+                // Marcar carrito como completado
+                $cart->status = 'completed';
+                $cart->save();
+
+                // Crear la venta (Sale)
+                $sale = Sale::create([
+                    'id_cart'        => $cart->id_cart,
+                    'id_customer'    => $cart->id_customer,
+                    'id_employee'    => auth()->user()->employee?->id_employee ?? null,
+                    'payment_method' => $request->payment_method,
+                ]);
+
+                // Descontar stock (las filas ya están bloqueadas)
+                foreach ($cart->items as $item) {
+                    $stock = $stocks->get($item->id_article);
+
+                    $stock->remaining_quantity -= $item->quantity;
+                    $stock->save();
+                }
+
+                // Crear el comprobante (Receipt)
+                Receipt::create([
+                    'id_sale'    => $sale->id_sale,
+                    'issue_date' => now()->toDateString(),
+                    'due_date'   => now()->addDays(30)->toDateString(),
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            // La transacción ya se revirtió sola
+            return back()->with('error', $e->getMessage());
         }
-
-        // Usar transacción para que todo se guarde o nada (seguridad)
-        DB::transaction(function () use ($cart, $request) {
-
-            // Marcar carrito como completado
-            $cart->status = 'completed';
-            $cart->save();
-
-            // Crear la venta (Sale)
-            $sale = Sale::create([
-                'id_cart'        => $cart->id_cart,
-                'id_customer'    => $cart->id_customer,
-               'id_employee' => auth()->user()->employee?->id_employee ?? null,
-                'payment_method' => $request->payment_method,
-            ]);
-
-            // Descontar stock y crear comprobante
-            foreach ($cart->items as $item) {
-                $stock = ProductStock::where('id_article', $item->id_article)->first();
-                $stock->remaining_quantity -= $item->quantity;
-                $stock->save();
-            }
-
-            // Crear el comprobante (Receipt)
-            Receipt::create([
-                'id_sale'    => $sale->id_sale,
-                'issue_date' => now()->toDateString(),
-                'due_date'   => now()->addDays(30)->toDateString(),
-            ]);
-        });
 
         // Obtener la venta recién creada para redirigir al comprobante
         $sale = Sale::where('id_cart', $cart->id_cart)->first();
@@ -187,8 +217,23 @@ class CartController extends Controller
     }
 
     // PASO 8 — Muestra el comprobante de la venta
-    public function showReceipt(Sale $sale)
+    public function showReceipt(Request $request, Sale $sale)
     {
+        /*
+         * El comprobante es la MISMA informacion que /sales/{sale}, asi que
+         * lleva el mismo control: el Cliente solo puede ver los comprobantes
+         * de sus propias compras.
+         */
+        $user = $request->user();
+
+        if ($user->hasRole('Cliente')) {
+            abort_if(
+                $sale->id_customer !== $user->customer?->id_customer,
+                404,
+                'La venta no existe.'
+            );
+        }
+
         $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
         $subtotal = $sale->cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
 

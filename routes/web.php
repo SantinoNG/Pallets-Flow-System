@@ -38,15 +38,15 @@ Route::middleware('auth')->group(function () {
  * Separamos el "index" para que en el futuro más roles (ej: Supervisor, Director) 
  * puedan entrar a ver la tabla. Aquí es donde brilla el @can en la vista.
  */
-Route::middleware(['auth'])->group(function () {
-    Route::get('/usuarios', [UserController::class, 'index'])->name('users.index'); 
+Route::middleware(['auth', 'role:Jefe|Administrador'])->group(function () {
+    Route::get('/usuarios', [UserController::class, 'index'])->name('users.index');
 });
 
-/* * NIVEL 2: Escritura/Edición. 
- * Estas rutas son críticas. Las dejamos en un grupo exclusivo donde SOLO 
+/* * NIVEL 2: Escritura/Edición.
+ * Estas rutas son críticas. Las dejamos en un grupo exclusivo donde SOLO
  * el Administrador puede entrar a ver el formulario y guardar cambios.
  */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:Jefe|Administrador'])->group(function () {
     Route::get('/usuarios/pdf', [UserController::class, 'exportPdf'])->name('users.pdf');
     Route::get('/usuarios/{user}/roles', [UserController::class, 'editRoles'])->name('users.roles.edit');
     Route::put('/usuarios/{user}/roles', [UserController::class, 'updateRoles'])->name('users.roles.update');
@@ -61,7 +61,9 @@ Route::get('/tutorial', function () {
 // -----------------------------------------------------------------------------
 // MÓDULO DE ROLES (Solo Administrador)
 // -----------------------------------------------------------------------------
-Route::middleware(['auth'])->group(function () {
+// Control por rol: sin esto, cualquier usuario logueado (incluso el Cliente)
+// podia crear, editar y BORRAR roles del sistema.
+Route::middleware(['auth', 'role:Jefe|Administrador'])->group(function () {
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
     Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
     Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
@@ -73,7 +75,9 @@ Route::middleware(['auth'])->group(function () {
 // -----------------------------------------------------------------------------
 // MÓDULO DE EMPLEADOS
 // -----------------------------------------------------------------------------
-Route::middleware(['auth'])->group(function () {
+// El Depósito gestiona stock, los empleados los ve el Encargado y el
+// Administrador. El Cliente y el Vendedor no entran.
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function () {
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
     Route::get('/employees/pdf', [EmployeeController::class, 'exportPdf'])->name('employees.pdf');

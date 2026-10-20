@@ -101,13 +101,17 @@ Notas:
 4. **RESUELTO** — `RegisteredUserController` asigna el rol con `User::asignarRol()`, que escribe `users.id_role` y el espejo en Spatie. `id_role` sigue fuera del `$fillable` a propósito.
 5. **RESUELTO** — `User` ahora tiene `hasOne Customer` (`customer()`).
 6. **RESUELTO** — Livewire se usa en el dashboard (`app/Livewire/Dashboard.php` + `views/livewire/dashboard.blade.php`).
-7. **PARCIAL** — Tests: los de Breeze más `CartTest` y `SalesTest` (dominio). Faltan tests de artículos, proveedores, empleados y roles.
+7. **PARCIAL** — Tests: los de Breeze más `CartTest`, `SalesTest` y `NoNPlusOneTest` (dominio y regresión). Faltan tests de artículos, proveedores, empleados y roles.
 8. **RESUELTO** — El dashboard ya lee los datos de la base. `SaleSeeder` genera 6 ventas repartidas en los últimos 6 meses con fechas, distintos medios de pago y empleados, para que los agregaciones tengan con qué trabajar. `totalVentas` sale de `SUM(quantity * unit_price)` sobre `cart_items` unido a `sales`.
 9. **PENDIENTE** — `layouts/navigation.blade.php` (navbar viejo de Breeze) no lo incluye ninguna vista: es código muerto. `layouts/app.blade.php` es el sidebar real.
 10. **RESUELTO** — Módulo de Ventas implementado: `SaleController` (index/show/pdf), vistas `sales/*`, rutas `sales.index`, `sales.show` y `sales.pdf`, y `SalesTest` con 9 casos.
 11. **PENDIENTE** — `PLANtemplate.md` se referencia en la sección 8 pero **no existe** en `ai_workspace/`.
-12. **PENDIENTE** — `/sales` solo tiene middleware `auth`: el Cliente ve las ventas de todos. Debería filtrar por su propio `id_customer` (o restringirse a Jefe/Administrador/Vendedor).
+12. **RESUELTO** — `/sales` filtra por cliente: el Cliente solo ve sus propias ventas (`scopeVisibles()` en `SaleController`), y `show`, `pdf` y `cart.receipt` devuelven 404 si la venta es de otro cliente. Antes el Cliente veía las ventas de todos.
 13. **PENDIENTE** — `SaleSeeder` resuelve cliente, empleados y artículos **por nombre** en vez de por id, porque los ids son `auto_increment` y no se puede asumir que coincidan con los de los otros seeders. Vale la pena extender ese criterio a los seeders que quedan.
+14. **RESUELTO** — La ruta `GET /usuarios/pdf` estaba registrada pero `UserController` no tenía el método `exportPdf`: devolvía HTTP 500. Se implementó, con la vista `users/pdf.blade.php` siguiendo el estilo de los otros módulos.
+15. **RESUELTO** — N+1 en `/sales`: la vista llama `$venta->total()` y `$venta->unidades()`, que usan la relación `items()` (`hasManyThrough`), que no estaba en el eager load. Eloquent la resolvía con una consulta por fila: **25 consultas, 12 idénticas**. Con `items` en el eager load bajó a **13**. `NoNPlusOneTest` falla si vuelve.
+16. **RESUELTO** — Control por rol en las rutas que solo tenían `auth`: `/usuarios` y `/roles` ahora piden `role:Jefe|Administrador` y `/employees` pide `role:Jefe|Administrador|Encargado`. Antes **cualquier usuario logueado podía crear, editar y borrar roles**, y el Cliente entraba al listado de empleados.
+17. **RESUELTO** — Carrera en el descuento de stock: en `CartController::confirmSale` la validación estaba **fuera** de la transacción y el descuento era un read-modify-write sin lock. Dos checkouts simultáneos podían pasar los dos la validación y sobre-vender. Ahora la validación va dentro de la transacción y las filas se bloquean con `lockForUpdate()`.
 
 ## 8. Convenciones para cambios futuros
 

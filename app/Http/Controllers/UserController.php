@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Role;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class UserController extends Controller
 {
@@ -86,6 +87,39 @@ class UserController extends Controller
         return redirect()
             ->route('users.roles.edit', $user->id_user)
             ->with('success', 'Roles actualizados correctamente.');
+    }
+
+    /**
+     * Reporte de usuarios en PDF.
+     *
+     * La ruta GET /usuarios/pdf estaba registrada pero este método no
+     * existía, así que la ruta devolvía HTTP 500. Los otros tres módulos
+     * (artículos, empleados, proveedores) sí lo tienen.
+     */
+    public function exportPdf(Request $request)
+    {
+        $this->authorizeAdmin($request);
+
+        $query = User::with(['role', 'employee']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('id_role')) {
+            $query->where('id_role', $request->id_role);
+        }
+
+        $users = $query->latest('id_user')->get();
+
+        $pdf = Pdf::loadView('users.pdf', compact('users'));
+
+        return $pdf->download('reporte_usuarios.pdf');
     }
 
     /*
