@@ -1,9 +1,9 @@
 {{--
     Logo de la aplicación.
 
-    Es un <img> a un SVG en public/images/logo.svg, no un SVG inline: así el
-    archivo se puede reemplazar por el logo propio (o por un PNG) sin tocar
-    el código, y queda cacheado por el navegador.
+    Es un <img> a un SVG en public/images/logo-marca.svg, no un SVG inline:
+    así el archivo se puede reemplazar por el logo propio (o por un PNG) sin
+    tocar el código, y queda cacheado por el navegador.
 
     La versión (?v=...) es la fecha de modificación del archivo: si se
     cambia el logo, el navegador lo vuelve a pedir en vez de mostrar el
@@ -15,12 +15,12 @@
 @props(['class' => 'h-8 w-8'])
 
 @php
-    $archivo = public_path('images/logo.svg');
+    $archivo = public_path('images/logo-marca.svg');
     $version = is_file($archivo) ? filemtime($archivo) : '1';
 @endphp
 
 <img
-    src="{{ asset('images/logo.svg') }}?v={{ $version }}"
-    alt="PalletStore"
-    {{ $attributes->merge(['class' => $class]) }}
+    src="{{ asset('images/logo-marca.svg') }}?v={{ $version }}"
+    alt="Pallets Flow - Diseño Natural"
+    {{ $attributes->merge(['class' => "rounded-md {$class}"]) }}
 >

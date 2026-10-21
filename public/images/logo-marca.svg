@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Pallets Flow - Diseño Natural">
+  <defs>
+    <!-- Textura de papel: ruido fino -->
+    <filter id="papel" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="7" result="ruido"/>
+      <feColorMatrix in="ruido" type="saturate" values="0" result="gris"/>
+      <feComponentTransfer in="gris" result="tenue">
+        <feFuncA type="linear" slope="0.13"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" in2="tenue" mode="multiply"/>
+    </filter>
+
+    <linearGradient id="madera" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#A97F55"/>
+      <stop offset="45%"  stop-color="#C09566"/>
+      <stop offset="100%" stop-color="#9E7449"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo de pergamino -->
+  <rect width="1024" height="1024" fill="#E9D8B4" filter="url(#papel)"/>
+
+  <!--
+    Monograma "PF" con el pallet y la hoja en el medio.
+
+    El pallet y la hoja van ENCIMA de las letras: por eso la madera
+    cruza el palo del F, igual que en el logo original.
+
+    OJO: sin filtros de displacement sobre el texto, rompen las letras
+    (el "PF" se convierte en un bloque). El filtro de papel va solo en el
+    fondo.
+  -->
+  <g>
+    <!-- PF -->
+    <text x="500" y="580"
+          text-anchor="middle"
+          font-family="Impact, 'Arial Black', 'Haettenschweiler', sans-serif"
+          font-weight="900"
+          font-size="440"
+          letter-spacing="-18"
+          fill="#4A3626">PF</text>
+
+    <!--
+      Pallet: 3 tablas verticales angostas con 3 travesaños.
+
+      Va angosto y corrido a la derecha a proposito: si las travesanos son
+      anchas, tapan el hueco de la P y el monograma se lee como un bloque
+      macizo en vez de "PF".
+    -->
+    <g stroke="#4A3626" stroke-width="7" stroke-linejoin="round">
+      <path d="M 502 268 L 532 268 L 532 520 L 502 520 Z" fill="#8E6843"/>
+      <path d="M 540 236 L 570 236 L 570 552 L 540 552 Z" fill="url(#madera)"/>
+      <path d="M 578 262 L 606 262 L 606 526 L 578 526 Z" fill="#B98F5E"/>
+    </g>
+
+    <g fill="#A97F55" stroke="#4A3626" stroke-width="7" stroke-linejoin="round">
+      <rect x="496" y="292" width="116" height="28" rx="5"/>
+      <rect x="496" y="418" width="116" height="28" rx="5"/>
+      <rect x="496" y="510" width="116" height="28" rx="5"/>
+    </g>
+
+    <!-- Hoja: encima de la F, con el contorno claro del logo original -->
+    <path d="M 636 442
+             C 692 412 724 362 726 308
+             C 672 304 618 330 594 384
+             C 580 416 594 436 636 442 Z"
+          fill="#6E9152" stroke="#F0E2C2" stroke-width="13" stroke-linejoin="round"/>
+    <path d="M 632 440 C 652 404 682 358 718 314"
+          fill="none" stroke="#4E6B38" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <!-- Nombre -->
+  <text x="512" y="678"
+        text-anchor="middle"
+        font-family="Impact, 'Arial Narrow', 'Haettenschweiler', sans-serif"
+        font-weight="700"
+        font-size="104"
+        letter-spacing="6"
+        fill="#4A3626">PALLETS FLOW</text>
+
+  <!-- Eslogan -->
+  <text x="512" y="768"
+        text-anchor="middle"
+        font-family="Impact, 'Arial Narrow', 'Haettenschweiler', sans-serif"
+        font-weight="400"
+        font-size="54"
+        letter-spacing="12"
+        fill="#4A3626">DISEÑO NATURAL</text>
+</svg>

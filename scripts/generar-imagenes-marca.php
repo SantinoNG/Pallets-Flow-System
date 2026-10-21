@@ -45,9 +45,6 @@ foreach (Article::all() as $articulo) {
 echo "\n  {$asignadas} artículos con imagen\n";
 
 // ---------------------------------------------------------------- logo
-file_put_contents(
-    __DIR__ . '/../public/images/logo.svg',
-    IlustracionArticulo::logo()
-);
-
-echo "  Logo de la marca -> public/images/logo.svg\n";
+// El logo de la marca (public/images/logo-marca.svg) NO se genera: es un
+// archivo propio, con la marca real. Este script solo genera las
+// ilustraciones de los artículos.

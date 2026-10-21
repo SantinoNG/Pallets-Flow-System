@@ -21,13 +21,31 @@
         .totals td { border: none; padding: 4px 8px; }
         .totals .final { font-size: 15px; font-weight: bold; border-top: 2px solid #d97706; }
         .footer { border-top: 1px solid #e5e7eb; margin-top: 24px; padding-top: 10px; font-size: 10px; color: #6b7280; }
+
+        /* Marca de agua: la marca de la empresa, difuminada y por detras
+           del contenido. dompdf entiende position:absolute y opacity. */
+        .marca-agua {
+            position: absolute;
+            top: 300px;
+            left: 50%;
+            width: 420px;
+            margin-left: -210px;
+            opacity: 0.07;
+            z-index: -1;
+        }
     </style>
 </head>
 <body>
 
+    {{-- Marca de agua de la marca --}}
+    <img src="{{ public_path('images/marca.png') }}" class="marca-agua" alt="">
+
     <div class="header">
         <table>
             <tr>
+                <td style="width: 62px; vertical-align: top;">
+                    <img src="{{ public_path('images/logo-marca-256.png') }}" style="width: 54px; border-radius: 4px;" alt="Pallets Flow">
+                </td>
                 <td>
                     <h1>PalletStore</h1>
                     <div class="muted">Muebles artesanales de pallets</div>

@@ -7,7 +7,19 @@
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-8 border-b border-gray-200 dark:border-zinc-800">
+            {{--
+                Marca de agua de la marca: la misma que el comprobante en
+                PDF, difuminada y por detras del contenido. Se posiciona
+                en absoluto y el contenido va con position:relative para
+                quedar arriba.
+            --}}
+            <div class="relative">
+                <img src="{{ asset('images/marca.png') }}"
+                     alt=""
+                     aria-hidden="true"
+                     class="pointer-events-none absolute left-1/2 top-1/2 -z-0 w-[85%] -translate-x-1/2 -translate-y-1/2 opacity-[0.06] select-none">
+
+                <div class="relative z-10 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-8 border-b border-gray-200 dark:border-zinc-800">
 
                 {{-- Alerta de éxito --}}
                 @if(session('success'))
@@ -18,9 +30,14 @@
 
                 {{-- Encabezado del comprobante --}}
                 <div class="flex flex-wrap justify-between items-start gap-3 mb-8">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-zinc-100">PalletStore</h3>
-                        <p class="text-sm text-gray-500 dark:text-zinc-400">Muebles artesanales de pallets</p>
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('images/logo-marca.svg') }}"
+                             alt="Pallets Flow"
+                             class="h-12 w-12 rounded-md shrink-0">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-zinc-100">PalletStore</h3>
+                            <p class="text-sm text-gray-500 dark:text-zinc-400">Muebles artesanales de pallets</p>
+                        </div>
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-semibold text-gray-900 dark:text-zinc-100">Comprobante #{{ $sale->id_sale }}</p>
@@ -104,6 +121,7 @@
                     </a>
                 </div>
 
+                </div>
             </div>
         </div>
     </div>
