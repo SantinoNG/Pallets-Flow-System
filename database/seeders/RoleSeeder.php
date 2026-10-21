@@ -14,14 +14,14 @@ class RoleSeeder extends Seeder
          * Catalogo de roles del proyecto.
 
          * Los 4 originales (Jefe, Administrador, Encargado, Cliente) se
-         * respetan tal cual. Se AGREGAN "Vendedor" y "Depósito" porque
+         * respetan tal cual. Se AGREGAN "Vendedor" y "Deposito" porque
          * UserSeeder necesita un rol para el usuario vendedor@ y otro para
          * deposito@, y antes no existian: el seeder les ponia id_role=2 y
          * id_role=3 "a ojo", lo que hacia que:
          *
          *   admin@ecommerce.com     -> Jefe            (no Administrador)
          *   vendedor@ecommerce.com  -> Administrador   <-- escalada de privilegios
-         *   deposito@ecommerce.com  -> Encargado       (no Depósito)
+         *   deposito@ecommerce.com  -> Encargado       (no Deposito)
          *
          * Los ids se generan por auto_increment, por lo que el orden de
          * insercion ya no importa: UserSeeder busca los roles por nombre.
@@ -32,7 +32,7 @@ class RoleSeeder extends Seeder
             ['role_name' => 'Encargado',     'description' => 'Registros de clientes y ventas'],
             ['role_name' => 'Cliente',       'description' => 'Acceso a compras y seguimiento de pedidos'],
             ['role_name' => 'Vendedor',      'description' => 'Registro y gestión de ventas'],
-            ['role_name' => 'Depósito',      'description' => 'Ingreso y control de mercadería'],
+            ['role_name' => 'Deposito',      'description' => 'Ingreso y control de mercadería'],
         ];
 
         foreach ($roles as $rol) {

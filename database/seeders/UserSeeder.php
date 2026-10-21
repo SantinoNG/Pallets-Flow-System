@@ -55,9 +55,9 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'    => 'deposito@ecommerce.com',
-                'name'     => 'Depósito',
+                'name'     => 'Deposito',
                 'password' => Hash::make('deposito1234'),
-                'rol'      => 'Depósito',
+                'rol'      => 'Deposito',
             ],
             [
                 'email'    => 'cliente@gmail.com',
@@ -126,7 +126,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email'      => 'deposito@ecommerce.com',
-                'id_role'    => 'Depósito',
+                'id_role'    => 'Deposito',
                 'first_name' => 'Martín',
                 'last_name'  => 'López',
                 'phone'      => '3764-300400',

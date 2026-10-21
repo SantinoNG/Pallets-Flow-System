@@ -80,6 +80,7 @@ Notas:
 - Seeders: `RoleSeeder`, `UserSeeder`, `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder`, `SaleSeeder` (crea un carrito `completed`, sus ítems, una venta y un comprobante). Usuarios semilla: admin, vendedor, depósito, cliente.
 - `2026_10_15_000001_add_email_verified_at_and_remember_token_to_users_table.php`, `2026_10_15_000002_create_infrastructure_tables.php` (sessions, jobs, job_batches, failed_jobs, password_reset_tokens), `2026_10_15_000003_create_audits_table.php` (stub de owen-it).
 - `2026_10_20_000001_add_image_to_articles_table.php`: agrega `articles.image` (string nullable) para la foto del producto. Guarda la **ruta relativa** dentro del disco `public` (por ejemplo `articles/sillon.jpg`), no la URL completa: si el dominio cambia, la ruta sigue sirviendo.
+- `2026_10_20_000002_rename_deposito_role.php`: renombra el rol "Depósito" a "Deposito" (ver deuda técnica 34).
 
 ## 6. Módulos actuales
 
@@ -166,6 +167,8 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 31. **RESUELTO** — El logo era un SVG inline duplicado en el sidebar y en el login. Ahora es un archivo (`public/images/logo.svg`) mostrado con `<x-app-logo>`: se reemplaza por el logo propio sin tocar codigo.
 32. **PENDIENTE** — El reporte PDF de artículos **no incluye la foto**. dompdf genera el PDF sin error pero no renderiza los SVG (0 objetos de imagen en el archivo resultante). Se decidio dejar el reporte como tabla: una columna de imágenes vacías se ve peor que ninguna. Si se quieren fotos en el PDF, hay que convertir las imagenes a PNG antes de pasarlas.
 33. **PENDIENTE** — El modulo de artículos sigue cerrado para el rol Cliente (`role:Jefe|Administrador|Encargado|Deposito`): un cliente no puede ver el catalogo, solo el carrito. Es decision del profesor, escrita en el comentario de las rutas, pero como usuario final es raro: el cliente no ve los productos que puede comprar. Mismo tema con `/cart`, que muestra el flujo de caja ("seleccionar cliente") en vez de un carrito de compra.
+34. **RESUELTO** — El rol de deposito se llamaba **"Depósito" (con tilde)** en `RoleSeeder` y `UserSeeder`, pero el codigo del profesor lo escribe **"Deposito" (sin tilde)**: `routes/web.php` (`role:Jefe|Administrador|Encargado|Deposito`) y `layouts/app.blade.php` (`@role('Jefe|Administrador|Encargado|Deposito')`). MySQL no distingue tildes al comparar (collation `*_ci`), asi que la base de datos SI encontraba el rol y no habia error visible; pero Spatie compara los nombres como cadenas de PHP, donde `'Depósito' === 'Deposito'` es **false**. Resultado: el usuario de deposito caia en **HTTP 403** en todo el modulo de articulos (su trabajo) y el link del sidebar tampoco le aparecia. Se unifico la grafia en "Deposito" (la que usa el codigo del profesor) y se agrego `tests/Feature/RolesTest.php` para que no vuelva: el test lee los roles de las rutas, de las directivas de Blade y de los seeders, y exige que existan **exactamente** en el catalogo.
+35. **RESUELTO** — El usuario de deposito no podia ver el modulo de articulos por el bug 34. Verificado con barrido HTTP: antes 403, ahora **200**, y el link "Articulos" le aparece en el sidebar.
 
 ## 8. Convenciones para cambios futuros
 

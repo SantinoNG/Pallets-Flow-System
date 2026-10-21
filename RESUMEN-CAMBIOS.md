@@ -142,6 +142,55 @@ queda igual.
 | Colores de acento en la interfaz | 3 (`amber`, `indigo`, `blue`) | **1 (`hazard`)** |
 | Páginas con modo oscuro completo | 0 | **15 de 15** |
 | Archivos con encoding roto | 1 | **0** |
+| Rol "depósito" entrando a Artículos | **HTTP 403** | **HTTP 200** |
+| Rutas que devuelven 404 o 500 | ? | **0** (34 rutas × 4 roles) |
+
+---
+
+## Testeo de la aplicación
+
+Barrido de las 34 rutas GET con la sesión de cada uno de los 4 roles, sobre
+HTTP real:
+
+| Rol | Rutas | Bloqueadas por control de acceso | Con problema |
+|---|---|---|---|
+| Administrador | 34 | 0 | **0** |
+| Deposito | 34 | 14 | **0** |
+| Vendedor | 34 | 18 | **0** |
+| Cliente | 34 | 18 | **0** |
+
+Además, el flujo de venta completo (crear carrito → agregar ítem → checkout →
+confirmar → comprobante en PDF) pasa **11 de 11 pasos**.
+
+### Bug que encontró el testeo: el rol de depósito no podía entrar a Artículos
+
+El `RoleSeeder` creaba el rol como **"Depósito"** (con tilde), pero el código
+del profesor lo escribe **"Deposito"** (sin tilde):
+
+```php
+// routes/web.php
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Deposito'])->group(...)
+
+// layouts/app.blade.php
+@role('Jefe|Administrador|Encargado|Deposito')
+```
+
+MySQL no distingue tildes al comparar (collation `*_ci`), así que la base de
+datos **sí** encontraba el rol y no había error visible. Pero Spatie compara
+los nombres de rol como cadenas de PHP, y ahí la comparación es exacta:
+
+```php
+'Depósito' === 'Deposito'   //   false
+```
+
+Resultado: el usuario de depósito caía en **HTTP 403** en todo el módulo de
+artículos —justo donde su rol debería poder entrar— y el link del sidebar
+tampoco le aparecía.
+
+Se unificó la grafía en "Deposito" (la que usa el código del profesor) y se
+agregó `tests/Feature/RolesTest.php`, que lee los roles de las rutas, de las
+directivas de Blade y de los seeders, y exige que existan **exactamente** en
+el catálogo. También se agregó la migración que renombra la fila existente.
 
 ---
 
