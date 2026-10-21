@@ -37,22 +37,26 @@ class Sale extends Model
      *
      * Atajo a cart.items, que es donde estan los articulos vendidos.
      *
-     * Es un hasManyThrough con: related = cart_items, through = cart.
-     *   - firstKey        = id_cart   (FK de cart hacia sales)
-     *   - secondKey       = id_cart   (FK de cart_items hacia cart)
-     *   - localKey        = id_sale   (PK de sales)
-     *   - secondLocalKey  = id_cart   (PK de cart)
+     * ANTES era un hasManyThrough con:
+     *
+     *     hasManyThrough(CartItem::class, Cart::class, 'id_cart', 'id_cart', 'id_sale', 'id_cart')
+     *
+     * y eso generaba `where cart.id_cart = ?` con el id_sale en el binding, en
+     * vez del id_cart. Es decir: buscaba el carrito cuyo id_cart fuera igual
+     * al id_sale de la venta.
+     *
+     * Parecia funcionar porque en los datos sembrados id_sale e id_cart
+     * coinciden (el seeder crea las ventas y sus carritos en el mismo
+     * orden). Pero en una venta real no coinciden: la venta 39 tiene el
+     * carrito 40, y la relacion devolvia los items del carrito 39. Los
+     * totales del listado de ventas salian mal.
+     *
+     * La relacion correcta es un hasMany directo: la venta tiene la
+     * columna id_cart, y de ahi sale el id_cart de los items.
      */
     public function items()
     {
-        return $this->hasManyThrough(
-            CartItem::class,
-            Cart::class,
-            'id_cart',
-            'id_cart',
-            'id_sale',
-            'id_cart'
-        );
+        return $this->hasMany(CartItem::class, 'id_cart', 'id_cart');
     }
 
     /**

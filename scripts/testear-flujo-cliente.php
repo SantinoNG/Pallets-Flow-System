@@ -42,9 +42,11 @@ $t->paso('el dashboard responde', $r['codigo'] == 200, "HTTP {$r['codigo']}");
 // 3. El catálogo se puede ver
 $r = $c->pedir("$base/articles");
 $t->paso('el cliente ve el catálogo', $r['codigo'] == 200, "HTTP {$r['codigo']}");
-$t->paso('el catálogo lista los 8 artículos',
-    $r['codigo'] == 200 && substr_count($r['html'], 'id_article" value=') >= 8,
-    substr_count($r['html'], 'id_article" value=') . ' artículos');
+
+// Se cuentan las FILAS de la tabla, no los botones de "Agregar": un
+// producto sin stock no muestra el boton, pero igual esta en el catalogo.
+$filasCatalogo = substr_count($r['html'], '<tr class="bg-white dark:bg-zinc-900 border-b');
+$t->paso('el catálogo lista los 8 artículos', $filasCatalogo === 8, "{$filasCatalogo} filas");
 $t->paso('el cliente NO ve el botón "Nuevo Artículo"',
     ! str_contains($r['html'], 'Nuevo Artículo'));
 $t->paso('el cliente NO ve los botones Editar/Eliminar',
