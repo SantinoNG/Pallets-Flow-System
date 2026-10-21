@@ -80,24 +80,37 @@
     <!-- Sección de Gráficos con Chart.js -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- Gráfico 1: Rendimiento de Ventas (Bar Chart) -->
-        <div class="lg:col-span-2 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm" wire:ignore>
+        {{--
+            Gráfico 1: Rendimiento de Ventas (Bar Chart)
+
+            OJO con el wire:ignore. Va SOLO sobre el <canvas>, nunca sobre el
+            div que lo envuelve: si el wire:ignore cubre el div, Livewire no
+            actualiza los atributos data-* y el grafico se queda con los
+            datos del primer render (el filtro de periodo cambiaba el KPI
+            pero no el grafico).
+
+            Los datos viven en un <span> aparte, FUERA del wire:ignore, que
+            es lo que Livewire si actualiza.
+        --}}
+        <div class="lg:col-span-2 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
             <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-4 uppercase tracking-wider">Rendimiento de Ventas ($)</h3>
-            <div class="relative h-72">
-                <canvas id="salesChart"
-                        data-labels='@json($ventasMes["labels"])'
-                        data-values='@json($ventasMes["data"])'></canvas>
+            <div class="relative h-72" wire:ignore>
+                <canvas id="salesChart"></canvas>
             </div>
+            <span id="datos-salesChart" hidden
+                  data-labels='@json($ventasMes["labels"])'
+                  data-values='@json($ventasMes["data"])'></span>
         </div>
 
         <!-- Gráfico 2: Distribución de Stock (Doughnut Chart) -->
-        <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm" wire:ignore>
+        <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
             <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-4 uppercase tracking-wider">Estado de Inventario</h3>
-            <div class="relative h-72 flex items-center justify-center">
-                <canvas id="stockChart"
-                        data-labels='@json($stockPorCategoria["labels"])'
-                        data-values='@json($stockPorCategoria["data"])'></canvas>
+            <div class="relative h-72 flex items-center justify-center" wire:ignore>
+                <canvas id="stockChart"></canvas>
             </div>
+            <span id="datos-stockChart" hidden
+                  data-labels='@json($stockPorCategoria["labels"])'
+                  data-values='@json($stockPorCategoria["data"])'></span>
         </div>
     </div>
 
@@ -105,23 +118,25 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- Gráfico 3: Top productos vendidos (Bar Chart horizontal) -->
-        <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm" wire:ignore>
+        <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
             <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-4 uppercase tracking-wider">Top Productos Vendidos (unidades)</h3>
-            <div class="relative h-72">
-                <canvas id="topProductsChart"
-                        data-labels='@json($topProductos["labels"])'
-                        data-values='@json($topProductos["data"])'></canvas>
+            <div class="relative h-72" wire:ignore>
+                <canvas id="topProductsChart"></canvas>
             </div>
+            <span id="datos-topProductsChart" hidden
+                  data-labels='@json($topProductos["labels"])'
+                  data-values='@json($topProductos["data"])'></span>
         </div>
 
         <!-- Gráfico 4: Medios de pago (Pie Chart) -->
-        <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm" wire:ignore>
+        <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
             <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-4 uppercase tracking-wider">Facturación por Medio de Pago</h3>
-            <div class="relative h-72 flex items-center justify-center">
-                <canvas id="paymentChart"
-                        data-labels='@json($mediosPago["labels"])'
-                        data-values='@json($mediosPago["data"])'></canvas>
+            <div class="relative h-72 flex items-center justify-center" wire:ignore>
+                <canvas id="paymentChart"></canvas>
             </div>
+            <span id="datos-paymentChart" hidden
+                  data-labels='@json($mediosPago["labels"])'
+                  data-values='@json($mediosPago["data"])'></span>
         </div>
     </div>
 
@@ -213,16 +228,33 @@
 
                 const p = paleta();
 
+                /*
+                 * Los datos se leen del <span id="datos-XXX">, no del canvas.
+                 *
+                 * El canvas esta dentro de un wire:ignore (si no, Livewire
+                 * lo reemplaza y quedan dos graficos superpuestos), asi que
+                 * sus atributos no se actualizan al cambiar el periodo. El
+                 * span esta FUERA del wire:ignore, ahi si se actualiza.
+                 */
+                const datos = (id) => {
+                    const el = document.getElementById('datos-' + id);
+                    return {
+                        labels: JSON.parse(el?.dataset.labels || '[]'),
+                        values: JSON.parse(el?.dataset.values || '[]'),
+                    };
+                };
+
                 // 1. Gráfico de Ventas
                 const cVentas = document.getElementById('salesChart');
                 if (cVentas) {
+                    const d = datos('salesChart');
                     crear('salesChart', {
                         type: 'bar',
                         data: {
-                            labels: JSON.parse(cVentas.dataset.labels || '[]'),
+                            labels: d.labels,
                             datasets: [{
                                 label: 'Ventas Totales ($)',
-                                data: JSON.parse(cVentas.dataset.values || '[]'),
+                                data: d.values,
                                 backgroundColor: p.acento,
                                 borderRadius: 4
                             }]
@@ -242,12 +274,13 @@
                 // 2. Gráfico de Stock
                 const cStock = document.getElementById('stockChart');
                 if (cStock) {
+                    const d = datos('stockChart');
                     crear('stockChart', {
                         type: 'doughnut',
                         data: {
-                            labels: JSON.parse(cStock.dataset.labels || '[]'),
+                            labels: d.labels,
                             datasets: [{
-                                data: JSON.parse(cStock.dataset.values || '[]'),
+                                data: d.values,
                                 backgroundColor: p.series,
                                 borderColor: p.oscuro ? '#18181b' : '#ffffff',
                                 borderWidth: 2
@@ -269,13 +302,14 @@
                 // 3. Gráfico de Top productos
                 const cTop = document.getElementById('topProductsChart');
                 if (cTop) {
+                    const d = datos('topProductsChart');
                     crear('topProductsChart', {
                         type: 'bar',
                         data: {
-                            labels: JSON.parse(cTop.dataset.labels || '[]'),
+                            labels: d.labels,
                             datasets: [{
                                 label: 'Unidades vendidas',
-                                data: JSON.parse(cTop.dataset.values || '[]'),
+                                data: d.values,
                                 backgroundColor: p.acento,
                                 borderRadius: 4
                             }]
@@ -296,12 +330,13 @@
                 // 4. Gráfico de Medios de pago
                 const cPago = document.getElementById('paymentChart');
                 if (cPago) {
+                    const d = datos('paymentChart');
                     crear('paymentChart', {
                         type: 'pie',
                         data: {
-                            labels: JSON.parse(cPago.dataset.labels || '[]'),
+                            labels: d.labels,
                             datasets: [{
-                                data: JSON.parse(cPago.dataset.values || '[]'),
+                                data: d.values,
                                 backgroundColor: p.series,
                                 borderColor: p.oscuro ? '#18181b' : '#ffffff',
                                 borderWidth: 2
