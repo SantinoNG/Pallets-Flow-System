@@ -26,7 +26,7 @@
 
             {{-- Datos generales --}}
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ $esCliente ? 3 : 4 }} gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ $sale->employee ? 4 : 3 }} gap-6">
                     <div>
                         <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Fecha</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">
@@ -37,14 +37,17 @@
                         <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Medio de pago</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $sale->payment_method }}</p>
                     </div>
-                    @unless ($esCliente)
+                    {{-- El campo aparece solo si hay un vendedor. En una
+                         compra que el Cliente hizo por su cuenta no hay, y
+                         una etiqueta vacia confunde. --}}
+                    @if ($sale->employee)
                         <div>
                             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Empleado</p>
                             <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">
-                                {{ $sale->employee?->first_name }} {{ $sale->employee?->last_name }}
+                                {{ $sale->employee->first_name }} {{ $sale->employee->last_name }}
                             </p>
                         </div>
-                    @endunless
+                    @endif
                     <div>
                         <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Total</p>
                         <p class="text-lg font-bold text-gray-900 dark:text-zinc-100">

@@ -206,11 +206,48 @@ class ClienteTest extends TestCase
         $this->assertStringContainsString('Compra #' . $venta->id_sale, $html);
         $this->assertStringNotContainsString('Venta #' . $venta->id_sale, $html);
 
-        // Y no le muestra el vendedor: en una compra propia no hay.
+        $this->assertStringContainsString('Artículos comprados', $html);
+
+        // El campo "Empleado" aparece solo si la compra tiene vendedor: en
+        // una compra que el Cliente hizo por su cuenta no hay, y una
+        // etiqueta vacia confunde.
         // OJO: se busca la etiqueta del campo exacta, no la palabra suelta:
         // el sidebar tiene un link "Empleados" que no tiene nada que ver.
-        $this->assertStringNotContainsString('>Empleado<', $html);
-        $this->assertStringContainsString('Artículos comprados', $html);
+        $visible = preg_replace('/<!--.*?-->/s', '', $html);
+
+        if ($venta->employee) {
+            $this->assertStringContainsString('>Empleado<', $visible);
+        } else {
+            $this->assertStringNotContainsString('>Empleado<', $visible);
+        }
+    }
+
+    #[Test]
+    public function una_compra_sin_vendedor_no_muestra_el_campo_empleado(): void
+    {
+        $cliente = $this->cliente();
+
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+
+        // Una compra del Cliente por su cuenta: no la atendio nadie.
+        $cart = Cart::create(['id_customer' => $customer->id_customer, 'status' => 'completed']);
+
+        $venta = Sale::create([
+            'id_cart'        => $cart->id_cart,
+            'id_customer'    => $customer->id_customer,
+            'id_employee'    => null,
+            'payment_method' => 'Efectivo',
+        ]);
+
+        $html = $this->actingAs($cliente)
+            ->get('/sales/' . $venta->id_sale)
+            ->assertOk()
+            ->getContent();
+
+        $visible = preg_replace('/<!--.*?-->/s', '', $html);
+
+        $this->assertStringNotContainsString('>Empleado<', $visible);
+        $this->assertStringContainsString('Compra #' . $venta->id_sale, $html);
     }
 
     #[Test]
