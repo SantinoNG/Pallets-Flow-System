@@ -21,7 +21,7 @@
 </head>
 <body>
 
-    <h1>PalletStore — Reporte de Artículos</h1>
+    <h1>Pallets Flow — Reporte de Artículos</h1>
     <p class="subtitle">Generado el {{ now()->format('d/m/Y H:i') }}</p>
 
     {{-- Filtros aplicados --}}
@@ -75,7 +75,7 @@
     </table>
 
     <p class="footer">
-        Total: {{ $articles->count() }} artículo(s) &nbsp;|&nbsp; PalletStore © {{ now()->year }}
+        Total: {{ $articles->count() }} artículo(s) &nbsp;|&nbsp; Pallets Flow © {{ now()->year }}
     </p>
 
 </body>

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-bold text-lg text-zinc-800 dark:text-zinc-100">
-            {{ __('Panel de control - PalletStore') }}
+            {{ __('Panel de control - Pallets Flow') }}
         </h2>
     </x-slot>
 

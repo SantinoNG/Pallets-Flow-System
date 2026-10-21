@@ -5,7 +5,7 @@
         <div class="hidden lg:flex lg:w-1/2 bg-zinc-900 text-white flex-col justify-between p-12 relative overflow-hidden">
             <div class="z-10 flex items-center gap-3">
                 <x-app-logo class="h-11 w-11 shrink-0" />
-                <span class="font-bold text-2xl tracking-wide">Pallet<span class="text-hazard-500">Store</span></span>
+                <span class="font-bold text-2xl tracking-wide">Pallets<span class="text-hazard-500">Flow</span></span>
             </div>
 
             <div class="z-10 space-y-4 my-auto">
@@ -13,7 +13,7 @@
                 <p class="text-zinc-400 text-sm max-w-md">Control de producción, inventario de materias primas y administración centralizada.</p>
             </div>
 
-            <p class="z-10 text-xs text-zinc-500 dark:text-zinc-300">© 2026 PalletStore System. Todos los derechos reservados.</p>
+            <p class="z-10 text-xs text-zinc-500 dark:text-zinc-300">© 2026 Pallets Flow System. Todos los derechos reservados.</p>
             
             <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-hazard-600/10 rounded-full blur-3xl"></div>
         </div>
@@ -25,7 +25,7 @@
                 <!-- Encabezado Móvil con Logo -->
                 <div class="flex items-center gap-2.5 lg:hidden mb-4">
                     <x-app-logo class="h-9 w-9 shrink-0" />
-                    <span class="font-bold text-xl text-zinc-900 dark:text-zinc-100">Pallet<span class="text-hazard-600">Store</span></span>
+                    <span class="font-bold text-xl text-zinc-900 dark:text-zinc-100">Pallets<span class="text-hazard-600">Flow</span></span>
                 </div>
 
                 <div>

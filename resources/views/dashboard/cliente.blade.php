@@ -6,7 +6,7 @@
 
     <x-slot name="header">
         <h2 class="font-bold text-lg text-zinc-800 dark:text-zinc-100">
-            {{ __('Mi panel - PalletStore') }}
+            {{ __('Mi panel - Pallets Flow') }}
         </h2>
     </x-slot>
 
@@ -17,7 +17,7 @@
             <div class="bg-hazard-50 dark:bg-hazard-950 border border-hazard-200 dark:border-hazard-900 rounded-lg px-4 py-3">
                 <p class="text-sm text-hazard-900 dark:text-hazard-200">
                     Acá ves <strong>tus compras</strong>. Los datos de la empresa (ventas
-                    totales, stock, proveedores) son del personal de PalletStore.
+                    totales, stock, proveedores) son del personal de Pallets Flow.
                 </p>
             </div>
 

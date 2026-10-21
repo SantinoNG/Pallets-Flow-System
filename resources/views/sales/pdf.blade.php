@@ -47,8 +47,8 @@
                     <img src="{{ public_path('images/logo-pdf.jpg') }}" style="width: 54px; border-radius: 4px;" alt="Pallets Flow">
                 </td>
                 <td>
-                    <h1>PalletStore</h1>
-                    <div class="muted">Muebles artesanales de pallets</div>
+                    <h1>Pallets Flow</h1>
+                    <div class="muted">Muebles de pallet · Diseño natural</div>
                 </td>
                 <td class="right font-mono tabular-nums">
                     <div class="label">Comprobante</div>

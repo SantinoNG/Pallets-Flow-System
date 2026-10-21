@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-            Confirmar Venta
+            {{ $esCliente ? 'Confirmar Compra' : 'Confirmar Venta' }}
         </h2>
     </x-slot>
 
@@ -9,7 +9,7 @@
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
 
-                <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100 mb-6">Resumen de la venta</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100 mb-6">{{ $esCliente ? 'Resumen de la compra' : 'Resumen de la venta' }}</h3>
 
                 {{-- Detalle de items --}}
                 <div class="border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden mb-6">
@@ -68,7 +68,7 @@
                     <div class="flex items-center gap-4">
                         <button type="submit"
                                 class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-6 py-2 rounded-md transition">
-                            Finalizar venta y emitir comprobante
+                            {{ $esCliente ? 'Finalizar compra y emitir comprobante' : 'Finalizar venta y emitir comprobante' }}
                         </button>
                         <a href="{{ route('cart.show', $cart->id_cart) }}"
                            class="text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 hover:bg-gray-200 dark:hover:bg-zinc-700 px-4 py-2 rounded-md transition">

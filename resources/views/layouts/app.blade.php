@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'PalletStore') }}</title>
+        <title>{{ config('app.name', 'Pallets Flow') }}</title>
 
         {{-- Tema: se aplica antes de pintar para que no haya destello --}}
         <script>
@@ -39,7 +39,7 @@
                     <!-- Logo / Identidad -->
                     <div class="h-16 flex items-center px-6 bg-zinc-950 border-b border-zinc-800 gap-3">
                         <x-app-logo class="h-8 w-8 shrink-0" />
-                        <span class="font-bold text-lg text-white tracking-wide">Pallet<span class="text-hazard-500">Store</span></span>
+                        <span class="font-bold text-lg text-white tracking-wide">Pallets<span class="text-hazard-500">Flow</span></span>
                     </div>
 
                     <!-- Navegación -->

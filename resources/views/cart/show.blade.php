@@ -151,13 +151,17 @@
                         @if($cart->items->count() > 0)
                         <a href="{{ route('cart.checkout', $cart->id_cart) }}"
                            class="block w-full text-center bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-3 rounded-md transition mb-3">
-                            Confirmar venta →
+                            {{ $esCliente ? 'Confirmar compra' : 'Confirmar venta' }} →
                         </a>
                         @endif
 
-                        <a href="{{ route('cart.index') }}"
+                        {{-- Para el Cliente, el boton de volver no tiene
+                             sentido (ya esta en SU carrito): lo que le sirve
+                             es seguir comprando. Para el personal, en
+                             cambio, es empezar otra venta. --}}
+                        <a href="{{ $esCliente ? route('articles.index') : route('cart.index') }}"
                            class="block w-full text-center text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 hover:bg-gray-200 dark:hover:bg-zinc-700 px-4 py-2 rounded-md transition">
-                            Nueva venta
+                            {{ $esCliente ? 'Seguir comprando' : 'Nueva venta' }}
                         </a>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-            Comprobante de Venta #{{ $sale->id_sale }}
+            Comprobante de {{ $esCliente ? 'Compra' : 'Venta' }} #{{ $sale->id_sale }}
         </h2>
     </x-slot>
 
@@ -35,8 +35,8 @@
                              alt="Pallets Flow"
                              class="h-12 w-12 rounded-md shrink-0">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-zinc-100">PalletStore</h3>
-                            <p class="text-sm text-gray-500 dark:text-zinc-400">Muebles artesanales de pallets</p>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-zinc-100">Pallets Flow</h3>
+                            <p class="text-sm text-gray-500 dark:text-zinc-400">Muebles de pallet · Diseño natural</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -111,13 +111,13 @@
 
                 {{-- Acciones --}}
                 <div class="flex items-center gap-4">
-                    <a href="{{ route('cart.index') }}"
+                    <a href="{{ $esCliente ? route('articles.index') : route('cart.index') }}"
                        class="bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
-                        Nueva venta
+                        {{ $esCliente ? 'Seguir comprando' : 'Nueva venta' }}
                     </a>
                     <a href="{{ route('dashboard') }}"
                        class="text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 hover:bg-gray-200 dark:hover:bg-zinc-700 px-4 py-2 rounded-md transition">
-                        Ir al dashboard
+                        {{ $esCliente ? 'Ir a mi panel' : 'Ir al dashboard' }}
                     </a>
                 </div>
 

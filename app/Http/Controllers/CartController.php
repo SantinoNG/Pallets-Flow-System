@@ -216,7 +216,11 @@ class CartController extends Controller
         $cart->load('items.article', 'customer.user');
         $subtotal = $cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
 
-        return view('cart.checkout', compact('cart', 'subtotal'));
+        // Para el Cliente, una venta es su COMPRA: cambian el titulo y los
+        // textos del checkout.
+        $esCliente = request()->user()?->hasRole('Cliente') ?? false;
+
+        return view('cart.checkout', compact('cart', 'subtotal', 'esCliente'));
     }
 
     // PASO 7 — Confirma la venta, descuenta stock, genera Sale y Receipt
@@ -327,6 +331,10 @@ class CartController extends Controller
         $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
         $subtotal = $sale->cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
 
-        return view('cart.receipt', compact('sale', 'subtotal'));
+        // Para el Cliente, una venta es su COMPRA: el comprobante se titula
+        // distinto.
+        $esCliente = $user->hasRole('Cliente');
+
+        return view('cart.receipt', compact('sale', 'subtotal', 'esCliente'));
     }
 }

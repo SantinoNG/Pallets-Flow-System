@@ -18,7 +18,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>Reporte de Usuarios - PalletStore</h1>
+        <h1>Reporte de Usuarios - Pallets Flow</h1>
         <p>Generado el: {{ now()->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i') }} hs</p>
     </div>
 

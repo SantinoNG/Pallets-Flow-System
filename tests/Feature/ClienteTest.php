@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\User;
@@ -275,6 +276,68 @@ class ClienteTest extends TestCase
 
         // Y el de ventas es "Mis compras".
         $this->assertStringContainsString('Mis compras', $html);
+    }
+
+    #[Test]
+    public function el_cliente_ve_compra_y_el_personal_ve_venta(): void
+    {
+        $cliente = $this->cliente();
+
+        // --- El Cliente ---
+        // /mi-carrito redirige a /cart/{id}: se pide el carrito directamente.
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+        $cart = Cart::where('id_customer', $customer->id_customer)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $cart) {
+            $cart = Cart::create([
+                'id_customer' => $customer->id_customer,
+                'status'      => 'active',
+            ]);
+        }
+
+        $html = $this->actingAs($cliente)
+            ->get('/cart/' . $cart->id_cart)
+            ->assertOk()
+            ->getContent();
+
+        // El boton de confirmar solo aparece si el carrito tiene items.
+        $this->assertStringContainsString('Seguir comprando', $html);
+        $this->assertStringNotContainsString('Nueva venta', $html);
+
+        $articulo = \App\Models\Article::firstOrFail();
+        CartItem::create([
+            'id_cart'    => $cart->id_cart,
+            'id_article' => $articulo->id_article,
+            'quantity'   => 1,
+            'unit_price' => $articulo->unit_price,
+        ]);
+
+        $html = $this->actingAs($cliente)
+            ->get('/cart/' . $cart->id_cart)
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Confirmar compra', $html);
+        $this->assertStringNotContainsString('Confirmar venta', $html);
+
+        // --- El personal ---
+        $vendedor = User::where('email', 'vendedor@ecommerce.com')->firstOrFail();
+        $vendedor->asignarRol('Vendedor');
+
+        // El mostrador: el personal elige a que cliente le vende.
+        $html = $this->actingAs($vendedor)->get('/cart')->assertOk()->getContent();
+        $this->assertStringContainsString('Iniciar venta', $html);
+    }
+
+    #[Test]
+    public function el_cliente_no_ve_el_mostrador(): void
+    {
+        // /cart es el mostrador: el Cliente es redirigido a SU carrito.
+        $this->actingAs($this->cliente())
+            ->get('/cart')
+            ->assertRedirect(route('cart.mine'));
     }
 
     #[Test]

@@ -116,7 +116,7 @@
                             @empty
                                 <tr>
                                     <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-zinc-400">
-                                        Esta venta no tiene items en el carrito.
+                                        {{ $esCliente ? 'Esta compra no tiene items en el carrito.' : 'Esta venta no tiene items en el carrito.' }}
                                     </td>
                                 </tr>
                             @endforelse
