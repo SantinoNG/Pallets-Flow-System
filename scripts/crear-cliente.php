@@ -48,14 +48,23 @@ DB::table('users')->updateOrInsert(
 $idUser = (int) DB::table('users')->where('email', $email)->value('id_user');
 
 // La ficha de cliente
+$ficha = [
+    'first_name' => $nombre,
+    'last_name'  => $apellido,
+    'address'    => 'Av. de los Palletistas 123, Posadas',
+    'phone'      => '3764-55' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT),
+];
+
+// Marcas de tiempo solo al crear: si la ficha ya existia, se respeta la
+// original (igual que en el UserSeeder y el CustomerSeeder).
+if (! DB::table('customers')->where('id_user', $idUser)->exists()) {
+    $ficha['created_at'] = now();
+    $ficha['updated_at'] = now();
+}
+
 DB::table('customers')->updateOrInsert(
     ['id_user' => $idUser],
-    [
-        'first_name' => $nombre,
-        'last_name'  => $apellido,
-        'address'    => 'Av. de los Palletistas 123, Posadas',
-        'phone'      => '3764-55' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT),
-    ]
+    $ficha
 );
 
 // El espejo en Spatie: DB::table()->insert() no dispara los eventos de

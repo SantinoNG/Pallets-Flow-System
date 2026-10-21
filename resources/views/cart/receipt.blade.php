@@ -56,7 +56,12 @@
                     <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">
                         {{ $sale->customer->first_name }} {{ $sale->customer->last_name }}
                     </p>
-                    <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->user->email ?? '' }}</p>
+                    {{-- El email del cliente solo lo ve quien gestiona las
+                         fichas. Para el Cliente es su propio comprobante y
+                         ya sabe cual es su email. --}}
+                    @unless ($esCliente)
+                        <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->user->email ?? '' }}</p>
+                    @endunless
                     <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->phone ?? '' }}</p>
                 </div>
 
@@ -102,8 +107,9 @@
                     </div>
                 </div>
 
-                {{-- Atendido por --}}
-                @if($sale->employee)
+                {{-- Atendido por. El Cliente no lo necesita: el comprobante
+                     es de su compra, no del personal que lo atendio. --}}
+                @if($sale->employee && ! $esCliente)
                 <p class="text-xs text-gray-400 dark:text-zinc-500 mb-6">
                     Atendido por: {{ $sale->employee->first_name }} {{ $sale->employee->last_name }}
                 </p>

@@ -36,9 +36,41 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        $users = User::whereDoesntHave('employee')->get();
+        $users = $this->usuariosParaEmpleado();
         $roles = Role::all();
         return view('employees.create', compact('users', 'roles'));
+    }
+
+    /**
+     * Usuarios que pueden llegar a ser empleados.
+     *
+     * Un usuario es O empleado O cliente, no las dos cosas: el personal
+     * atiende el mostrador y el cliente compra. Por eso el catalogo de
+     * personal excluye a quien tiene el rol 'Cliente'.
+     *
+     * El criterio es el ROL y no "tiene ficha de cliente": son dos cosas
+     * distintas. Alguien que compro en la tienda y despues entro a
+     * trabajar puede tener las dos, y queda igual de asignado al personal.
+     *
+     * Antes salia todo usuario sin ficha de `employee`, o sea TODOS los
+     * clientes: el formulario de alta de empleados ofrecia a los
+     * compradores, con su email. Y en la edicion el `orWhere` iba sin
+     * agrupar, asi que el AND/OR se mezclaba.
+     */
+    private function usuariosParaEmpleado(?Employee $employee = null)
+    {
+        return User::query()
+            ->whereDoesntHave('employee')
+            ->esPersonal()
+            ->when($employee, function ($q) use ($employee) {
+                // Agrupado: sin el parentesis, el OR se aplicaria a todo
+                // el WHERE y volverian a entrar los clientes.
+                $q->orWhere(function ($q) use ($employee) {
+                    $q->where('id_user', $employee->id_user);
+                });
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     // Reemplazamos $request->validate() por StoreEmployeeRequest
@@ -52,9 +84,7 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        $users = User::whereDoesntHave('employee')
-                     ->orWhere('id_user', $employee->id_user)
-                     ->get();
+        $users = $this->usuariosParaEmpleado($employee);
         $roles = Role::all();
         return view('employees.edit', compact('employee', 'users', 'roles'));
     }

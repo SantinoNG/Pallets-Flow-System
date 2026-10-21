@@ -52,6 +52,8 @@ Route::middleware(['auth', 'role:Jefe|Administrador'])->group(function () {
  */
 Route::middleware(['auth', 'role:Jefe|Administrador'])->group(function () {
     Route::get('/usuarios/pdf', [UserController::class, 'exportPdf'])->name('users.pdf');
+    Route::get('/usuarios/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/usuarios', [UserController::class, 'store'])->name('users.store');
     Route::get('/usuarios/{user}/roles', [UserController::class, 'editRoles'])->name('users.roles.edit');
     Route::put('/usuarios/{user}/roles', [UserController::class, 'updateRoles'])->name('users.roles.update');
 });

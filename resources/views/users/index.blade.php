@@ -12,16 +12,79 @@
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100">Listado de Usuarios</h3>
 
-                    {{-- Exportar a PDF. La ruta users.pdf ya existia, pero no
-                         habia ningun boton que llegara a ella. --}}
-                    <a href="{{ route('users.pdf') }}"
+                    <div class="flex items-center gap-2">
+                        {{-- Exportar a PDF. La ruta users.pdf ya existia, pero no
+                             habia ningun boton que llegara a ella. --}}
+                        <a href="{{ route('users.pdf') }}"
 class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
-                            <path d="M4 18h12v-2H4v2zM12 2H8v6H5l5 5 5-5h-3V2z"/>
-                        </svg>
-                        Exportar PDF
-                    </a>
+                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                                <path d="M4 18h12v-2H4v2zM12 2H8v6H5l5 5 5-5h-3V2z"/>
+                            </svg>
+                            Exportar PDF
+                        </a>
+
+                        {{-- Alta de usuario. Sin esto el alta de personal
+                             quedaba en banda muerta: el formulario de
+                             empleados solo ofrece usuarios que no sean
+                             ni empleados ni clientes. --}}
+                        <a href="{{ route('users.create') }}"
+                           class="bg-hazard-600 hover:bg-hazard-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                                <path d="M9 4h2v4h4v2h-4v4H9v-4H5V8h4V4z"/>
+                            </svg>
+                            Nuevo usuario
+                        </a>
+                    </div>
                 </div>
+
+                {{--
+                    Filtros. El listado mezcla personal y clientes, asi que
+                    se puede separar por tipo y por rol.
+                --}}
+                <form method="GET" action="{{ route('users.index') }}"
+                      class="bg-gray-50 dark:bg-zinc-950 rounded-lg p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+
+                    <div>
+                        <label for="tipo" class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Tipo de usuario</label>
+                        <select id="tipo" name="tipo"
+                                class="w-full border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                            <option value="">Todos</option>
+                            <option value="personal"  @selected(request('tipo') === 'personal')>Solo personal</option>
+                            <option value="clientes"  @selected(request('tipo') === 'clientes')>Solo clientes</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="id_role" class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Rol</label>
+                        <select id="id_role" name="id_role"
+                                class="w-full border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                            <option value="">Todos los roles</option>
+                            @foreach($roles as $rol)
+                                <option value="{{ $rol->id_role }}" @selected((string) request('id_role') === (string) $rol->id_role)>
+                                    {{ $rol->role_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="search" class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Buscar</label>
+                        <input type="text" id="search" name="search" value="{{ request('search') }}"
+                               placeholder="Nombre o email..."
+                               class="w-full border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit"
+                                class="flex-1 bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-3 py-2 rounded-md transition">
+                            Filtrar
+                        </button>
+                        <a href="{{ route('users.index') }}"
+                           class="flex-1 text-center bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 text-gray-700 dark:text-zinc-200 text-sm font-medium px-3 py-2 rounded-md transition">
+                            Limpiar
+                        </a>
+                    </div>
+                </form>
 
                 <div class="overflow-x-auto shadow-md sm:rounded-lg">
                     <table class="w-full text-sm text-left text-gray-500 dark:text-zinc-400">

@@ -31,9 +31,13 @@
                                 required>
                             <option value="">Seleccioná un cliente...</option>
                             @foreach($customers as $customer)
+                                {{-- Con el nombre y el telefono alcanza para
+                                     identificar al cliente. El email se
+                                     queda solo para el personal que
+                                     gestiona las fichas. --}}
                                 <option value="{{ $customer->id_customer }}">
                                     {{ $customer->first_name }} {{ $customer->last_name }}
-                                    — {{ $customer->user->email ?? '' }}
+                                    @if($customer->phone) — {{ $customer->phone }} @endif
                                 </option>
                             @endforeach
                         </select>

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Customer;
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Requests\StoreUserRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class UserController extends Controller
@@ -27,14 +29,113 @@ class UserController extends Controller
 
     /**
      * Listado de usuarios.
+     *
+     * El listado mezcla personal y clientes, asi que se puede filtrar por
+     * rol (y por tipo: personal, clientes o todos). El filtro se hace con
+     * el id_role de `users`, que es el rol real del usuario.
      */
     public function index(Request $request)
     {
         $this->authorizeAdmin($request);
 
-        $users = User::latest()->paginate(10);
+        $query = User::with('roles')->latest();
 
-        return view('users.index', compact('users'));
+        // Filtro por un rol puntual (el select de la vista).
+        if ($request->filled('id_role')) {
+            $query->where('id_role', $request->id_role);
+        }
+
+        // Filtro por tipo: solo personal, solo clientes o todos.
+        // El criterio es el ROL del usuario, que es la fuente de verdad de
+        // quien es personal y quien compra.
+        if ($request->filled('tipo')) {
+            if ($request->tipo === 'personal') {
+                $query->esPersonal();
+            } elseif ($request->tipo === 'clientes') {
+                $query->esCliente();
+            }
+        }
+
+        // Busqueda por nombre o email.
+        if ($request->filled('search')) {
+            $busqueda = $request->search;
+            $query->where(function ($q) use ($busqueda) {
+                $q->where('name', 'like', "%{$busqueda}%")
+                  ->orWhere('email', 'like', "%{$busqueda}%");
+            });
+        }
+
+        $users = $query->paginate(10)->withQueryString();
+
+        $roles = Role::orderBy('role_name')->get();
+
+        return view('users.index', compact('users', 'roles'));
+    }
+
+    /**
+     * Alta de usuario.
+     *
+     * Sin esta pantalla el alta de personal quedaba en banda muerta: el
+     * formulario de empleados solo ofrece usuarios que NO sean empleados ni
+     * clientes, y no habia ninguna forma de crear un usuario nuevo. Con
+     * todos los usuarios ya ocupados, el desplegable quedaba vacio.
+     */
+    public function create(Request $request)
+    {
+        $this->authorizeAdmin($request);
+
+        $roles = Role::orderBy('role_name')->get();
+
+        return view('users.create', compact('roles'));
+    }
+
+    /**
+     * Guarda el usuario nuevo.
+     *
+     * Si el rol es Cliente, ademas se crea la fila en `customers`: sin ella
+     * el cliente no tendria carrito ni historial de compras, porque toda la
+     * logica de compras se apoya en `customers.id_user`.
+     */
+    public function store(StoreUserRequest $request)
+    {
+        $validated = $request->validated();
+
+        $rol = Role::where('id_role', $validated['id_role'])->firstOrFail();
+
+        /*
+         * `users.id_role` es NOT NULL, asi que el rol tiene que estar en el
+         * INSERT, no se puede crear el usuario y asignarle el rol despues.
+         *
+         * id_role no esta en $fillable a proposito (para que nadie se lo
+         * asigne por mass assignment), asi que va con forceFill.
+         */
+        $user = new User();
+        $user->forceFill([
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
+            'password' => $validated['password'],
+            'id_role'  => $rol->id_role,
+        ])->save();
+
+        // asignarRol() deja el espejo en Spatie (model_has_roles), que es
+        // lo que leen @hasrole y el middleware role:.
+        $user->asignarRol($rol->role_name);
+
+        // Ficha de cliente, solo si el rol es Cliente.
+        if ($rol->role_name === 'Cliente') {
+            Customer::updateOrCreate(
+                ['id_user' => $user->id_user],
+                [
+                    'first_name' => $validated['first_name'],
+                    'last_name'  => $validated['last_name'],
+                    'phone'      => $validated['phone'] ?? null,
+                    'address'    => $validated['address'] ?? null,
+                ]
+            );
+        }
+
+        return redirect()->route('users.index')
+            ->with('success', "Usuario '{$user->name}' creado con el rol {$rol->role_name}.");
     }
 
     /**
@@ -84,6 +185,25 @@ class UserController extends Controller
 
         $user->asignarRol($rol->role_name);
 
+        /*
+         * Si el usuario pasa a ser Cliente y no tiene ficha, se le crea una
+         * minima con su nombre. Sin la fila en `customers` el cliente
+         * entra al sistema pero no puede comprar: no tiene carrito ni
+         * historial, porque toda la logica de compras se apoya en
+         * `customers.id_user`.
+         */
+        if ($rol->role_name === 'Cliente' && ! $user->customer()->exists()) {
+            $partes = preg_split('/\s+/', trim($user->name), 2) ?: [];
+
+            Customer::create([
+                'id_user'    => $user->id_user,
+                'first_name' => $partes[0] ?? $user->name,
+                'last_name'  => $partes[1] ?? '',
+                'phone'      => null,
+                'address'    => null,
+            ]);
+        }
+
         return redirect()
             ->route('users.roles.edit', $user->id_user)
             ->with('success', 'Roles actualizados correctamente.');
@@ -126,17 +246,10 @@ class UserController extends Controller
      * Los métodos siguientes quedan vacíos a propósito: no tienen rutas ni
      * vistas asociadas. Si se implementan, hay que agregarle validación
      * y autorización como en los de arriba.
+     *
+     * OJO: `create` y `store` ya no están vacíos: están implementados más
+     * arriba, para el alta de usuario.
      */
-
-    public function create()
-    {
-        //
-    }
-
-    public function store(Request $request)
-    {
-        //
-    }
 
     public function show(string $id)
     {

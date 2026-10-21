@@ -209,18 +209,14 @@ class ClienteTest extends TestCase
 
         $this->assertStringContainsString('Artículos comprados', $html);
 
-        // El campo "Empleado" aparece solo si la compra tiene vendedor: en
-        // una compra que el Cliente hizo por su cuenta no hay, y una
-        // etiqueta vacia confunde.
+        // El campo "Empleado" no le aparece al Cliente, aunque la compra
+        // tenga vendedor: a el le alcanza con su compra, y el nombre del
+        // personal no es informacion suya.
         // OJO: se busca la etiqueta del campo exacta, no la palabra suelta:
         // el sidebar tiene un link "Empleados" que no tiene nada que ver.
         $visible = preg_replace('/<!--.*?-->/s', '', $html);
 
-        if ($venta->employee) {
-            $this->assertStringContainsString('>Empleado<', $visible);
-        } else {
-            $this->assertStringNotContainsString('>Empleado<', $visible);
-        }
+        $this->assertStringNotContainsString('>Empleado<', $visible);
     }
 
     #[Test]

@@ -32,6 +32,18 @@
                         @error('id_user')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+
+                        {{-- Si no queda ninguna cuenta libre, se explica por
+                             que y a donde ir. Antes el desplegable salia
+                             vacio sin ninguna pista y parecia un error. --}}
+                        @if ($users->isEmpty())
+                            <p class="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-md p-3">
+                                No hay cuentas de usuario libres: todas las existentes ya
+                                son empleados o clientes. Creá una cuenta nueva en
+                                <a href="{{ route('users.create') }}" class="underline font-semibold">Usuarios y Roles</a>
+                                y volvé a intentar.
+                            </p>
+                        @endif
                     </div>
 
                     {{-- Rol --}}

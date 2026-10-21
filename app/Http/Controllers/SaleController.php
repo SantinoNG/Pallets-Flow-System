@@ -86,6 +86,14 @@ class SaleController extends Controller
          * una consulta por fila (N+1): el listado llegaba a 25 consultas,
          * 12 de ellas idénticas.
          */
+        /*
+         * El email del cliente es un dato personal. Solo lo ve quien
+         * gestiona las fichas (Jefe y Administrador); el resto del personal
+         * (vendedor, encargado, deposito) ve nombre y telefono, que alcanza
+         * para saber a quien hay que atender.
+         */
+        $veEmails = $user->isAdmin();
+
         $ventas = $this->scopeVisibles(
             Sale::with(['customer.user', 'employee', 'cart.items', 'items']),
             $user
@@ -132,7 +140,8 @@ class SaleController extends Controller
             'mediosPago',
             'empleados',
             'totalFiltrado',
-            'esCliente'
+            'esCliente',
+            'veEmails'
         ));
     }
 
@@ -148,7 +157,10 @@ class SaleController extends Controller
         // Para el Cliente, una venta es su COMPRA.
         $esCliente = $request->user()?->hasRole('Cliente') ?? false;
 
-        return view('sales.show', compact('sale', 'esCliente'));
+        // El email del cliente solo lo ve quien gestiona las fichas.
+        $veEmails = $request->user()?->isAdmin() ?? false;
+
+        return view('sales.show', compact('sale', 'esCliente', 'veEmails'));
     }
 
     /**
@@ -162,11 +174,18 @@ class SaleController extends Controller
 
         $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
 
-        $pdf = Pdf::loadView('sales.pdf', compact('sale'))
+        // Para el Cliente, una venta es su COMPRA.
+        $esCliente = $request->user()?->hasRole('Cliente') ?? false;
+
+        // El email del cliente solo lo ve quien gestiona las fichas.
+        $veEmails = $request->user()?->isAdmin() ?? false;
+
+        $pdf = Pdf::loadView('sales.pdf', compact('sale', 'esCliente', 'veEmails'))
             ->setPaper('a4')
             ->setOption('isRemoteEnabled', true);
 
-        $nombre = "comprobante-venta-{$sale->id_sale}.pdf";
+        // Para el Cliente el comprobante es de su COMPRA.
+        $nombre = 'comprobante-' . ($esCliente ? 'compra' : 'venta') . "-{$sale->id_sale}.pdf";
 
         return $pdf->download($nombre);
     }

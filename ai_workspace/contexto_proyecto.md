@@ -137,12 +137,18 @@ tecnica.
 **Scripts de mantenimiento** en `scripts/` (ver `scripts/README.md`):
 `agregar-modo-oscuro.php` (agrega las variantes `dark:` que falten),
 `auditar-modo-oscuro.php` (detecta huecos) y `auditar-paleta.php` (detecta
-paletas viejas).
+paletas viejas). Para el tema de datos: `buscar-fugas.php` (entra con cada rol
+y busca el email de cualquier otro usuario en todas las paginas que ese rol
+puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
+comparten los scripts de testeo).
 
-**Pruebas:** `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
+**Pruebas:** 122 tests, 1020 aserciones, todas en verde.
+`tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
 oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
+`tests/Feature/FugasTest.php` (6 casos) y `tests/Feature/UsuariosTest.php`
+(17 casos) fijan la separacion entre clientes y personal.
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
@@ -203,6 +209,16 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
     - **El del Cliente** (`dashboard/cliente.blade.php`): sus propias compras (compras realizadas, total gastado, articulos distintos, ultima compra y sus ultimas 5 compras). El menu dice "Mi panel" y el del personal "Panel de control".
     - El componente `App\Livewire\Dashboard` aborta con 403 si quien lo pide es un Cliente, para que no se lo pueda pedir por su endpoint.
 45. **RESUELTO** — La imagen de la marca (el mosaico de 6 fichas) no llego como archivo, asi que se REHIZO el sistema de diseno en SVG: las ilustraciones de los 8 articulos y el logo. Todo queda en `App\Support\IlustracionArticulo`, que es el unico lugar del que salen las imagenes (lo usan el seeder `ImagenesArticuloSeeder` y el script `scripts/generar-imagenes-marca.php`). El logo quedo como `public/images/logo.svg` con el texto arcedado por `textPath`; el componente `<x-app-logo>` le pone un `?v=` con la fecha de modificacion del archivo, asi el navegador no se queda con el viejo.
+48. **RESUELTO** — **Un usuario es O empleado O cliente**, pero la aplicacion los mezclaba. En el formulario de alta de empleados se ofrecian **todos los clientes** como candidatos (el criterio era "todo usuario sin ficha de `employee`", o sea todos los compradores), y el `orWhere` de la edicion iba **sin agrupar**: en SQL quedaba `WHERE NOT EXISTS(empleado) OR id_user = ?`, con el AND/OR mezclado. Ahora el criterio es el **ROL**: `User::scopeEsCliente()` (rol `Cliente`) y `User::scopeEsPersonal()` (rol distinto de `Cliente`), con `User::idRolCliente()` para buscar el id por nombre y nunca fijo. Son dos cosas distintas: alguien puede tener ficha de cliente y ser del personal.
+49. **RESUELTO** — **Fuga de informacion entre roles.** El email de un cliente se le escapaba a mas gente de la que le correspondia:
+    - `/cart` (el mostrador) mostraba el email de los 12 clientes en el selector: ahora muestra nombre y telefono.
+    - `/sales` mostraba nombre + email de cada comprador: ahora el email solo lo ve quien gestiona las fichas (Jefe y Administrador); el resto del personal ve nombre y telefono.
+    - `/sales/{id}` y el comprobante en PDF mostraban el email del cliente: mismo criterio.
+    - El Cliente veia al personal en su compra (columna "Empleado", campo "Empleado" y "Atendido por" en HTML y PDF): ahora no lo ve, y en el PDF una venta suya es una **compra** (`comprobante-compra-39.pdf`).
+    - Verificacion automatica: `scripts/buscar-fugas.php` entra con cada rol y busca el email de cualquier otro usuario en todas las paginas que ese rol puede ver. Cliente, Vendedor y Deposito: **0 fugas**. El administrador tiene 22, todas en `/usuarios` (gestionar cuentas) y `/sales` (los clientes que gestiona): es exactamente lo suyo. Cubierto por `tests/Feature/FugasTest.php`.
+50. **RESUELTO** — **Faltaba la pantalla de alta de usuario**, y eso dejaba el alta de personal en banda muerta: el formulario de empleados solo ofrece cuentas libres, todas las existentes ya eran empleados o clientes, el desplegable salia vacio y no habia forma de crear una cuenta. Se agrego `/usuarios/create` (`UserController@create`/`@store` + `StoreUserRequest`): nombre, email, contrasena y rol. Si el rol es **Cliente** pide tambien la ficha y crea la fila en `customers` (sin esa fila el usuario entra pero no puede comprar: no tiene carrito ni historial). Si el rol es de personal, la cuenta queda disponible en el formulario de empleados. Cuando no quedan cuentas libres, ese formulario lo avisa y lleva al alta, en vez de mostrar un desplegable vacio.
+51. **RESUELTO** — El `UserSeeder` insertaba los cuatro usuarios base **sin `created_at`**. Como el listado de usuarios ordena por `latest()` (`created_at DESC`), esos usuarios quedaban al final: el administrador no aparecia ni en la primera pagina. Los seeders ahora ponen las marcas de tiempo **solo al crear**, para que la siembra siga siendo idempotente (mismo criterio que `CustomerSeeder`).
+52. **RESUELTO** — El listado de usuarios (`/usuarios`) mezclaba personal y clientes sin forma de separarlos. Ahora se puede filtrar por **tipo** (`Todos` / `Solo personal` / `Solo clientes`), por **rol** (los 6 del catalogo) y por **texto** (nombre o email). Los filtros vacios no recortan nada.
 
 ## 8. Convenciones para cambios futuros
 
@@ -214,6 +230,10 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 - **Modo oscuro**: la clase `dark` en `<html>` la pone el script del `<head>` segun `localStorage['tema']`. No usar `prefers-color-scheme` en las vistas ni poner la clase a mano: el interruptor es el unico que decide.
 - **Dos tipos de compra, dos flujos**: el mostrador (`/cart`) es del personal y elige a quién le vende. El flujo del Cliente (`/mi-carrito`) es suyo y no lleva selector. Para agregar un flujo nuevo, decidir primero cual de los dos es.
 - **Catalogo**: el Cliente ve `/articles` en modo lectura. Los controles de gestion (alta, edicion, borrado, PDF) van detras de `role:Jefe|Administrador|Encargado|Deposito` en las RUTAS, y la vista los oculta con el flag `$esCliente` que pasa el controlador. Las dos capas: la ruta es la seguridad, la vista es la usanza.
+- **Cliente o personal, segun el ROL**: `User::scopeEsCliente()` y `User::scopeEsPersonal()` son el filtro oficial. No usar "tiene ficha de `customers`" como criterio de si alguien es cliente: son dos cosas distintas y se mezclan.
+- **Datos personales**: el email de un cliente solo se muestra a quien gestiona las fichas (`$user->isAdmin()`: Jefe o Administrador). Para el resto del personal, nombre y telefono alcanzan. Para el Cliente, ademas, no se muestra el personal en su compra: ni la columna "Empleado", ni el campo "Empleado", ni el "Atendido por" del comprobante. Al agregar una pantalla que muestre clientes o ventas, usar los flags `$esCliente` y `$veEmails` que pasan los controladores.
+- **Alta de cuentas**: el flujo es `Usuarios y Roles -> Nuevo usuario` (`/usuarios/create`). Si el rol es Cliente, se crea tambien la fila en `customers`; si es de personal, la cuenta queda disponible en el formulario de empleados. Al reasignar el rol a Cliente a un usuario sin ficha, `UserController@updateRoles` le crea una ficha minima.
+- **Verificar fugas**: despues de tocar algo que muestre datos de terceros, correr `php scripts/buscar-fugas.php`. Cliente, Vendedor y Deposito tienen que dar 0 fugas.
 - Registrar cada cambio nuevo en este archivo (sección 4, 5, 6) y crear el plan siguiente en `ai_workspace/NNN_plan_<tema>.md` siguiendo `PLANtemplate.md`.
 
 ## 9. Planes de `ai_workspace`

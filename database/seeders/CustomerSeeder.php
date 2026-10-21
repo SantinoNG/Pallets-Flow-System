@@ -139,14 +139,22 @@ class CustomerSeeder extends Seeder
                 ->value('id_user');
 
             // Ficha de cliente.
+            $ficha = [
+                'first_name' => $c['first_name'],
+                'last_name'  => $c['last_name'],
+                'address'    => $c['address'],
+                'phone'      => $c['phone'],
+            ];
+
+            // Marcas de tiempo solo al crear, como en el UserSeeder.
+            if (! DB::table('customers')->where('id_user', $idUser)->exists()) {
+                $ficha['created_at'] = now();
+                $ficha['updated_at'] = now();
+            }
+
             DB::table('customers')->updateOrInsert(
                 ['id_user' => $idUser],
-                [
-                    'first_name' => $c['first_name'],
-                    'last_name'  => $c['last_name'],
-                    'address'    => $c['address'],
-                    'phone'      => $c['phone'],
-                ]
+                $ficha
             );
 
             /*

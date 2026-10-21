@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Comprobante de Venta #{{ $sale->id_sale }}</title>
+    <title>Comprobante de {{ $esCliente ? 'Compra' : 'Venta' }} #{{ $sale->id_sale }}</title>
     <style>
         /* dompdf no entiende CSS moderno: nada de flex/grid, solo tablas */
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #1f2937; margin: 0; }
@@ -69,7 +69,11 @@
                     <div class="label">Cliente</div>
                     @if($sale->customer)
                         <strong>{{ $sale->customer->first_name }} {{ $sale->customer->last_name }}</strong><br>
-                        {{ $sale->customer->user?->email }}<br>
+                        {{-- El email del cliente solo lo ve quien gestiona las
+                             fichas (Jefe y Administrador). --}}
+                        @if($veEmails)
+                            {{ $sale->customer->user?->email }}<br>
+                        @endif
                         @if($sale->customer->phone) {{ $sale->customer->phone }}<br> @endif
                         @if($sale->customer->address) {{ $sale->customer->address }} @endif
                     @else
@@ -79,13 +83,17 @@
             </td>
             <td style="width: 50%; vertical-align: top;">
                 <div class="box">
-                    <div class="label">Atendido por</div>
-                    @if($sale->employee)
-                        <strong>{{ $sale->employee->first_name }} {{ $sale->employee->last_name }}</strong><br>
-                        {{ $sale->employee->phone ?? '' }}
-                    @else
-                        <span class="muted">Sin empleado</span>
-                    @endif
+                    {{-- El Cliente no ve al personal que lo atendio: a el
+                         le alcanza con su compra. --}}
+                    @unless($esCliente)
+                        <div class="label">Atendido por</div>
+                        @if($sale->employee)
+                            <strong>{{ $sale->employee->first_name }} {{ $sale->employee->last_name }}</strong><br>
+                            {{ $sale->employee->phone ?? '' }}
+                        @else
+                            <span class="muted">Sin empleado</span>
+                        @endif
+                    @endunless
                     <div class="label" style="margin-top:8px;">Medio de pago</div>
                     <strong>{{ $sale->payment_method }}</strong>
                 </div>
@@ -112,7 +120,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" class="center muted">Esta venta no tiene items en el carrito.</td>
+                    <td colspan="4" class="center muted">Esta {{ $esCliente ? 'compra' : 'venta' }} no tiene items en el carrito.</td>
                 </tr>
             @endforelse
         </tbody>

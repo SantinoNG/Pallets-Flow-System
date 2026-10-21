@@ -79,7 +79,9 @@
                                 <th class="px-4 py-3">#</th>
                                 <th class="px-4 py-3">Fecha</th>
                                 <th class="px-4 py-3">Cliente</th>
-                                <th class="px-4 py-3">Empleado</th>
+                                @unless ($esCliente)
+                                    <th class="px-4 py-3">Empleado</th>
+                                @endunless
                                 <th class="px-4 py-3 text-center">Artículos</th>
                                 <th class="px-4 py-3">Medio de pago</th>
                                 <th class="px-4 py-3 text-right">Total</th>
@@ -95,11 +97,21 @@
                                     </td>
                                     <td class="px-4 py-3">
                                         {{ $venta->customer?->first_name }} {{ $venta->customer?->last_name }}
-                                        <span class="block text-xs text-gray-400 dark:text-zinc-500">{{ $venta->customer?->user?->email }}</span>
+                                        {{-- El email del cliente solo lo ve quien
+                                             gestiona las fichas (Jefe y
+                                             Administrador). Para el resto del
+                                             personal alcanza con el teléfono. --}}
+                                        @if ($veEmails)
+                                            <span class="block text-xs text-gray-400 dark:text-zinc-500">{{ $venta->customer?->user?->email }}</span>
+                                        @elseif ($venta->customer?->phone)
+                                            <span class="block text-xs text-gray-400 dark:text-zinc-500">{{ $venta->customer?->phone }}</span>
+                                        @endif
                                     </td>
-                                    <td class="px-4 py-3">
-                                        {{ $venta->employee?->first_name }} {{ $venta->employee?->last_name }}
-                                    </td>
+                                    @unless ($esCliente)
+                                        <td class="px-4 py-3">
+                                            {{ $venta->employee?->first_name }} {{ $venta->employee?->last_name }}
+                                        </td>
+                                    @endunless
                                     <td class="px-4 py-3 text-center font-mono tabular-nums">{{ $venta->unidades() }}</td>
                                     <td class="px-4 py-3">{{ $venta->payment_method }}</td>
                                     <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
@@ -114,7 +126,10 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-zinc-400">
+                                    {{-- El Cliente no ve la columna Empleado,
+                                         asi que la fila vacia se estira
+                                         sobre una columna menos. --}}
+                                    <td colspan="{{ $esCliente ? 7 : 8 }}" class="px-4 py-8 text-center text-gray-500 dark:text-zinc-400">
                                         No hay ventas que coincidan con el filtro.
                                     </td>
                                 </tr>

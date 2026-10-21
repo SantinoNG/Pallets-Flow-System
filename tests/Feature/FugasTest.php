@@ -1,0 +1,187 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Article;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Customer;
+use App\Models\Employee;
+use App\Models\Sale;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+/**
+ * Fugas de informacion entre roles.
+ *
+ * En este sistema un usuario es O empleado O cliente. Los dos comparten la
+ * tabla `users`, asi que es facil que un formulario termine ofreciendo a los
+ * clientes para algo que es del personal, o que un listado muestre el email
+ * de todos.
+ *
+ * Lo que se verifica:
+ * - El Cliente no ve datos de otros usuarios.
+ * - El Cliente no ve al personal en su compra.
+ * - El formulario de empleados no ofrece a los clientes.
+ * - El email de un cliente solo lo ve quien gestiona las fichas (Jefe y
+ *   Administrador); al resto del personal le alcanza con el telefono.
+ */
+class FugasTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed();
+    }
+
+    private function como(string $email, ?string $rol = null): User
+    {
+        $user = User::where('email', $email)->firstOrFail();
+
+        if ($rol) {
+            $user->asignarRol($rol);
+        }
+
+        $this->actingAs($user);
+
+        return $user;
+    }
+
+    /**
+     * Los emails de todos los usuarios menos el propio.
+     *
+     * @return array<string, string>
+     */
+    private function emailsAjenos(User $propio): array
+    {
+        $emails = [];
+
+        foreach (User::where('id_user', '!=', $propio->id_user)->get() as $u) {
+            $emails[$u->email] = $u->email;
+        }
+
+        return $emails;
+    }
+
+    #[Test]
+    public function el_cliente_no_ve_el_email_de_otros_usuarios(): void
+    {
+        $cliente = $this->como('cliente@gmail.com', 'Cliente');
+
+        $paginas = [
+            '/dashboard', '/articles', '/cart', '/sales', '/profile', '/tutorial',
+            '/articles/pdf', '/employees/pdf', '/proveedores/pdf', '/usuarios/pdf',
+        ];
+
+        foreach ($paginas as $ruta) {
+            $html = $this->get($ruta)->getContent();
+
+            foreach ($this->emailsAjenos($cliente) as $email) {
+                $this->assertStringNotContainsString(
+                    $email,
+                    $html,
+                    "En {$ruta} al Cliente se le escapa el email {$email}."
+                );
+            }
+        }
+    }
+
+    #[Test]
+    public function el_cliente_no_ve_al_personal_en_su_compra(): void
+    {
+        $cliente = $this->como('carla.mendez@ecommerce.com', 'Cliente');
+
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+        $venta = Sale::where('id_customer', $customer->id_customer)->firstOrFail();
+
+        $html = $this->get('/sales/' . $venta->id_sale)->assertOk()->getContent();
+
+        // El nombre del vendedor no es informacion del Cliente.
+        $this->assertStringNotContainsString('>Empleado<', $html);
+        $this->assertStringNotContainsString('Atendido por', $html);
+    }
+
+    #[Test]
+    public function el_formulario_de_empleados_no_ofrece_a_los_clientes(): void
+    {
+        $this->como('admin@ecommerce.com', 'Administrador');
+
+        $html = $this->get('/employees/create')->assertOk()->getContent();
+
+        // Ningun cliente puede aparecer en la lista de candidatos a empleado.
+        $clientes = Customer::with('user')->get();
+
+        $this->assertGreaterThan(0, $clientes->count());
+
+        foreach ($clientes as $cliente) {
+            $email = $cliente->user?->email;
+
+            if (! $email) {
+                continue;
+            }
+
+            $this->assertStringNotContainsString(
+                $email,
+                $html,
+                "El formulario de empleados ofrece al cliente {$email}."
+            );
+        }
+    }
+
+    #[Test]
+    public function el_vendedor_no_ve_el_email_de_los_clientes(): void
+    {
+        $vendedor = $this->como('vendedor@ecommerce.com', 'Vendedor');
+
+        // El listado de ventas: nombre y telefono, no el email.
+        $html = $this->get('/sales')->assertOk()->getContent();
+
+        foreach ($this->emailsAjenos($vendedor) as $email) {
+            // Los del propio personal tampoco se filtran en el listado.
+            if (str_contains($email, '@ecommerce.com') && ! str_contains($email, 'cliente')) {
+                continue;
+            }
+
+            $this->assertStringNotContainsString(
+                $email,
+                $html,
+                'Al vendedor se le escapa el email ' . $email . '.'
+            );
+        }
+    }
+
+    #[Test]
+    public function el_administrador_si_ve_el_email_de_los_clientes(): void
+    {
+        $this->como('admin@ecommerce.com', 'Administrador');
+
+        $html = $this->get('/sales')->assertOk()->getContent();
+
+        // El que gestiona las fichas necesita el email para contactarlos.
+        $this->assertStringContainsString('carla.mendez@ecommerce.com', $html);
+    }
+
+    #[Test]
+    public function el_listado_de_usuarios_se_puede_filtrar_por_tipo_y_por_rol(): void
+    {
+        $this->como('admin@ecommerce.com', 'Administrador');
+
+        // Solo clientes: no tiene que aparecer ningun empleado.
+        $html = $this->get('/usuarios?tipo=clientes')->assertOk()->getContent();
+
+        $this->assertStringContainsString('carla.mendez@ecommerce.com', $html);
+        $this->assertStringNotContainsString('vendedor@ecommerce.com', $html);
+        $this->assertStringNotContainsString('deposito@ecommerce.com', $html);
+
+        // Solo personal: lo contrario.
+        $html = $this->get('/usuarios?tipo=personal')->assertOk()->getContent();
+
+        $this->assertStringContainsString('vendedor@ecommerce.com', $html);
+        $this->assertStringNotContainsString('carla.mendez@ecommerce.com', $html);
+    }
+}

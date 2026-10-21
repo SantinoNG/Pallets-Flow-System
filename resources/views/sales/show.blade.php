@@ -39,8 +39,9 @@
                     </div>
                     {{-- El campo aparece solo si hay un vendedor. En una
                          compra que el Cliente hizo por su cuenta no hay, y
-                         una etiqueta vacia confunde. --}}
-                    @if ($sale->employee)
+                         una etiqueta vacia confunde. Y el Cliente tampoco lo
+                         necesita: a el le alcanza con su compra. --}}
+                    @if ($sale->employee && ! $esCliente)
                         <div>
                             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Empleado</p>
                             <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">
@@ -65,7 +66,11 @@
                         <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">
                             {{ $sale->customer->first_name }} {{ $sale->customer->last_name }}
                         </p>
-                        <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->user?->email }}</p>
+                        {{-- El email del cliente solo lo ve quien gestiona
+                             las fichas (Jefe y Administrador). --}}
+                        @if ($veEmails)
+                            <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->user?->email }}</p>
+                        @endif
                         @if($sale->customer->phone)
                             <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->phone }}</p>
                         @endif

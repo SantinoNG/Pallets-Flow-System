@@ -78,6 +78,17 @@ class UserSeeder extends Seeder
                 'session'  => null,
             ];
 
+            /*
+             * Las marcas de tiempo solo se ponen al crear. Sin esto la
+             * columna `created_at` queda en NULL y el listado de usuarios,
+             * que ordena por `latest()`, manda esos usuarios al final: el
+             * admin no aparecia ni en la primera pagina.
+             */
+            if (! DB::table('users')->where('email', $u['email'])->exists()) {
+                $fila['created_at'] = now();
+                $fila['updated_at'] = now();
+            }
+
             DB::table('users')->updateOrInsert(['email' => $u['email']], $fila);
 
             // se recupera el id real por si el usuario ya existia
@@ -134,26 +145,41 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($empleados as $e) {
+            $ficha = [
+                'id_role'    => $this->roleId($e['id_role']),
+                'first_name' => $e['first_name'],
+                'last_name'  => $e['last_name'],
+                'phone'      => $e['phone'],
+            ];
+
+            // Igual que arriba: marcas de tiempo solo al crear.
+            if (! DB::table('employees')->where('id_user', $userIds[$e['email']])->exists()) {
+                $ficha['created_at'] = now();
+                $ficha['updated_at'] = now();
+            }
+
             DB::table('employees')->updateOrInsert(
                 ['id_user' => $userIds[$e['email']]],
-                [
-                    'id_role'    => $this->roleId($e['id_role']),
-                    'first_name' => $e['first_name'],
-                    'last_name'  => $e['last_name'],
-                    'phone'      => $e['phone'],
-                ]
+                $ficha
             );
         }
 
         // Cliente (el usuario 4)
+        $fichaCliente = [
+            'first_name' => 'Ana',
+            'last_name'  => 'Torres',
+            'address'    => 'San Martin 450, Posadas',
+            'phone'      => '3764-500600',
+        ];
+
+        if (! DB::table('customers')->where('id_user', $userIds['cliente@gmail.com'])->exists()) {
+            $fichaCliente['created_at'] = now();
+            $fichaCliente['updated_at'] = now();
+        }
+
         DB::table('customers')->updateOrInsert(
             ['id_user' => $userIds['cliente@gmail.com']],
-            [
-                'first_name' => 'Ana',
-                'last_name'  => 'Torres',
-                'address'    => 'San Martin 450, Posadas',
-                'phone'      => '3764-500600',
-            ]
+            $fichaCliente
         );
     }
 }

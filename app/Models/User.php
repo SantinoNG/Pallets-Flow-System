@@ -134,6 +134,51 @@ class User extends Authenticatable implements Auditable
     }
 
     /**
+     * Id del rol 'Cliente' en el catalogo de roles.
+     *
+     * Se consulta por nombre y no por id fijo, porque los ids se autogeneran
+     * y cambian al sembrar la base.
+     */
+    public static function idRolCliente(): ?int
+    {
+        $id = Role::where('role_name', 'Cliente')->value('id_role');
+
+        return $id === null ? null : (int) $id;
+    }
+
+    /**
+     * Usuarios que son CLIENTES: su rol es 'Cliente'.
+     *
+     * El criterio es el ROL y no "tiene ficha de cliente". Son dos cosas
+     * distintas: un usuario puede tener ficha y ser del personal (le
+     * compro a la empresa y despues trabajo en ella), y al reves, un
+     * cliente recien creado todavia no tiene ficha cargada.
+     */
+    public function scopeEsCliente($query)
+    {
+        return $query->where('id_role', self::idRolCliente());
+    }
+
+    /**
+     * Usuarios que son PERSONAL: su rol NO es 'Cliente'.
+     *
+     * Incluye a los que todavia no son empleados, porque el rol de
+     * personal es lo que los habilita a entrar al mostrador y al deposito.
+     */
+    public function scopeEsPersonal($query)
+    {
+        $idCliente = self::idRolCliente();
+
+        return $query->where(function ($q) use ($idCliente) {
+            $q->whereNull('id_role');
+
+            if ($idCliente !== null) {
+                $q->orWhere('id_role', '!=', $idCliente);
+            }
+        });
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>

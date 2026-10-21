@@ -1,19 +1,130 @@
 # Resumen de modificaciones — Pallets Flow System
 
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
-Fecha: 20 de octubre de 2026
+Fecha: 21 de octubre de 2026
 
-**8 tandas de trabajo · 68 archivos tocados en esta última (interfaz)**
+**9 tandas de trabajo · 68 archivos tocados en esta última (interfaz)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen de abajo arranca con la primera tanda (corrección de roles,
-> seguridad y tests). La **sección 0** documenta la última tanda: el
-> rediseño de la interfaz con paleta industrial y modo oscuro.
+> seguridad y tests). La **sección 0** documenta la última tanda: la
+> separación entre clientes y personal, y el cierre de las fugas de
+> información. La sección 1 documenta la anterior: el rediseño de la
+> interfaz con paleta industrial y modo oscuro.
 
 ---
 
-## 0. Interfaz: paleta industrial + modo oscuro
+## 0. Roles: clientes y personal bien separados, y sin fugas de información
+
+En el sistema **un usuario es O empleado O cliente**, pero la aplicación los
+trataba como si fueran la misma cosa. Eso producía dos problemas: en el
+apartado de usuarios aparecían mezclados los empleados y los clientes, y la
+información personal de unos se le escapaba a los demás.
+
+### Los tres focos de fuga que había
+
+| Dónde | Qué se escapaba |
+|---|---|
+| `/employees/create` y `/employees/{id}/edit` | El desplegable **ofrecía a los clientes** como candidatos a empleados, con su email |
+| `/cart` (el mostrador) | El selector de clientes mostraba **el email de los 12 clientes** |
+| `/sales` | La columna "Cliente" mostraba **nombre + email** de cada comprador, y la columna "Empleado" mostraba el personal al Cliente |
+
+El más grave era el primero: el `orWhere` del `EmployeeController` iba **sin
+agrupar**, así que en SQL quedaba `WHERE NOT EXISTS(empleado) OR id_user = ?`
+y el AND/OR se mezclaba. Y el criterio estaba mal: se ofrecía "todo usuario
+sin ficha de empleado", que es literalmente **todos los clientes**.
+
+### Qué se hizo
+
+**El criterio pasa a ser el ROL, no "tiene ficha".** Son dos cosas distintas:
+alguien puede tener ficha de cliente y ser del personal (le compro a la
+empresa y después entró a trabajar), y al revés, un cliente recién creado
+todavía no tiene la ficha cargada. Se agregó a `App\Models\User`:
+
+- `scopeEsCliente()` → usuarios cuyo rol es `Cliente`
+- `scopeEsPersonal()` → usuarios cuyo rol **no** es `Cliente`
+- `idRolCliente()` → busca el id del rol por nombre, nunca fijo
+
+**El formulario de empleados** ahora ofrece solo usuarios con rol de
+personal que todavía no son empleados, con el `orWhere` agrupado
+correctamente.
+
+**El listado de usuarios** (`/usuarios`) se puede filtrar por:
+
+- **Tipo**: `Todos` / `Solo personal` / `Solo clientes`
+- **Rol**: cualquiera de los 6 del catálogo
+- **Texto**: busca por nombre o por email
+
+Con los filtros vacíos no se recorta nada.
+
+**El email de un cliente solo lo ve quien gestiona las fichas** (Jefe y
+Administrador):
+
+| Quién | Listado de ventas | Detalle / comprobante |
+|---|---|---|
+| Jefe / Administrador | Nombre + email | Email + teléfono + dirección |
+| Vendedor / Encargado / Depósito | Nombre + **teléfono** | Sin email |
+| Cliente | Su nombre y su teléfono | Su nombre, su teléfono, su dirección |
+
+**El Cliente no ve al personal en su compra**: se quitó la columna "Empleado"
+del listado, el campo "Empleado" del detalle, el "Atendido por" del
+comprobante en HTML y el "Atendido por" del PDF. En la cabecera del PDF y en
+el nombre del archivo, una venta del Cliente es una **compra**
+(`comprobante-compra-39.pdf`).
+
+### Alta de usuario: faltaba, y dejaba el alta de personal en banda muerta
+
+El formulario de empleados solo ofrece cuentas libres. Como **todas** las
+cuentas existentes ya eran empleados o clientes, el desplegable salía
+**vacío** y no había ninguna forma de crear un usuario nuevo: el alta de
+personal era un callejón sin salida.
+
+Se agregó la pantalla **Usuarios y Roles → Nuevo usuario** (`/usuarios/create`):
+
+- Nombre, email, contraseña (+ confirmación) y rol.
+- Si el rol es **Cliente**, pide también la ficha (nombre, apellido, teléfono
+  y dirección) y la crea en `customers`. Sin esa fila el usuario entra al
+  sistema pero no puede comprar: no tiene carrito ni historial.
+- Si el rol es de personal, la cuenta queda disponible en el formulario de
+  empleados.
+
+Cuando no quedan cuentas libres, el formulario de empleados lo dice y lleva
+directo a la pantalla de alta, en vez de mostrar un desplegable vacío sin
+explicación.
+
+### Un bug de orden que escondía las cuentas
+
+El `UserSeeder` inserta los cuatro usuarios base **sin `created_at`**. Como el
+listado ordena por `latest()` (`created_at DESC`), esos usuarios quedaban al
+final de la lista: el administrador no aparecía ni en la primera página.
+Ahora los seeders ponen las marcas de tiempo al crear (y solo al crear, para
+que la siembra siga siendo idempotente).
+
+### Cómo se verificó
+
+Se escribió `scripts/buscar-fugas.php`, que entra con cada rol y revisa todas
+las páginas que ese rol puede ver, buscando el email de **cualquier otro
+usuario**:
+
+```
+admin@ecommerce.com          25 paginas    0 bloqueadas    22 fugas   <- es su trabajo
+vendedor@ecommerce.com       8 paginas    17 bloqueadas    0 fugas
+deposito@ecommerce.com      11 paginas    14 bloqueadas    0 fugas
+cliente@gmail.com            6 paginas    17 bloqueadas    0 fugas
+```
+
+Las 22 "fugas" del administrador están en `/usuarios` (gestionar cuentas) y en
+`/sales` (el email de los clientes que gestiona): **es exactamente lo que le
+corresponde ver**. Los otros tres roles, en cero.
+
+Además se agregaron **23 tests** (`tests/Feature/FugasTest.php` y
+`tests/Feature/UsuariosTest.php`) que fijan estas reglas para que no se
+vuelvan a romper.
+
+---
+
+## 1. Interfaz: paleta industrial + modo oscuro
 
 La interfaz tenía **tres acentos conviviendo** y ningún modo oscuro:
 
@@ -131,7 +242,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **42 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **122 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |
@@ -147,6 +258,10 @@ queda igual.
 | Cliente viendo el catálogo | **HTTP 403** | **HTTP 200** (modo lectura) |
 | Clientes con historial de compras | 1 | **11** |
 | Ventas en los últimos 4 meses | 6 | **34** |
+| Emails ajenos que ve el Cliente | **Todos** | **0** |
+| Emails ajenos que ve el Vendedor | **Todos** | **0** |
+| Clientes ofrecidos como empleados | **Todos** | **0** |
+| Desplegable del alta de empleado | **Vacío, sin explicación** | **Avisa y lleva al alta de usuario** |
 
 ---
 

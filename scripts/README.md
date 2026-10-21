@@ -21,6 +21,9 @@ sistema. Se ejecutan con PHP desde la raiz del proyecto.
 | `testear-flujo-cliente.php` | Prueba funcional del flujo de compra del **Cliente**: ver el catálogo, agregar a su carrito, y no poder tocar el carrito de otro. |
 | `verificar-movimiento.php` | Cuantos clientes y ventas hay, como se reparten por cliente y por mes, y cuantos hay en los ultimos 30/90 dias y 4 meses. |
 | `verificar-dashboard.php` | Que datos ve el dashboard en cada periodo (30 dias, 90 dias, 6 meses, año, todo): meses con ventas, totales y graficos con datos. |
+| `buscar-fugas.php` | **Fugas de informacion.** Entra con cada rol y revisa todas las paginas que ese rol puede ver, buscando el email de cualquier otro usuario. Cliente, Vendedor y Deposito tienen que dar **0 fugas**; el administrador tiene algunas en `/usuarios` y `/sales`, que son las suyas. |
+| `crear-cliente.php` | Crea un cliente con su usuario y su ficha: `php scripts/crear-cliente.php <email> <nombre> <apellido> [clave]`. |
+| `http-cliente.php` | No es un script que se ejecute: es el cliente HTTP que comparten los de testeo (cookies en memoria). |
 
 ## Uso
 
@@ -38,6 +41,7 @@ php scripts/testear-flujo-venta.php
 php scripts/testear-flujo-cliente.php
 php scripts/verificar-movimiento.php
 php scripts/verificar-dashboard.php
+php scripts/buscar-fugas.php
 ```
 
 > **Nota sobre las cookies:** los scripts manejan las cookies en memoria,
