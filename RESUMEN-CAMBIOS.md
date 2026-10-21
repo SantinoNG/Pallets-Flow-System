@@ -197,6 +197,28 @@ había un solo cliente con 6 ventas.
 
 ---
 
+## El Cliente ya no ve el panel de la empresa
+
+El rol Cliente entraba a `/dashboard` y veía **el panel del negocio**: la venta
+total de la empresa, el estado del inventario, los proveedores, las materias
+primas y la facturación por medio de pago. Con once clientes en la base, eso
+le mostraba los datos de los demás.
+
+Ahora hay **dos paneles**:
+
+| | Del negocio | Del Cliente |
+|---|---|---|
+| **Quién lo ve** | Jefe, Administrador, Encargado, Vendedor, Depósito | Solo el Cliente |
+| **Qué muestra** | KPIs de la empresa, 4 gráficos, stock, proveedores | Sus compras: cuántas hizo, cuánto gastó, qué compró |
+| **Ruta** | `/dashboard` | `/dashboard` (misma ruta, según el rol) |
+| **Menú** | "Panel de control" | "Mi panel" |
+
+Además, el componente Livewire del panel de negocio **aborta con 403** si
+quien lo pide es un Cliente: sin eso se lo podía pedir por su endpoint y
+llevarse los KPIs de la empresa aunque la vista no los mostrara.
+
+---
+
 ## Testeo de la aplicación
 
 Barrido de las 34 rutas GET con la sesión de cada uno de los 4 roles, sobre

@@ -53,6 +53,22 @@ class Dashboard extends Component
 
     public function render()
     {
+        /*
+         * El panel de negocio es del PERSONAL.
+         *
+         * El Cliente tiene su propio panel (DashboardController lo sirve en
+         * dashboard.cliente), pero este componente se puede pedir
+         * directamente por el endpoint de Livewire. Sin este chequeo, un
+         * Cliente podria pedir los KPIs de la empresa: la venta total, el
+         * stock, los proveedores y los medios de pago.
+         */
+        \Illuminate\Support\Facades\Log::info('DBG auth=' . var_export(auth()->user()?->id_user, true) . ' req=' . var_export(request()->user()?->id_user, true) . ' check=' . var_export(auth()->check(), true) . ' guard=' . var_export(auth()->guard()->id(), true) . ' hasRoleCliente=' . var_export(auth()->user()?->hasRole('Cliente'), true) . ' roles=' . json_encode(auth()->user()?->roles?->pluck('name')));
+        abort_if(
+            auth()->user()?->hasRole('Cliente') ?? false,
+            403,
+            'El panel de la empresa es del personal.'
+        );
+
         $desde = $this->fechaDesde();
 
         // ------------------------------------------------------------------

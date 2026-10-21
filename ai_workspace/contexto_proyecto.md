@@ -187,6 +187,10 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 41. **RESUELTO** — El link del panel de control en el sidebar decía "Dashboard" (en ingles). Ahora dice "Panel de control", que es lo que decia la seccion de arriba. Tambien "Top Productos Vendidos" -> "Productos Más Vendidos".
 42. **RESUELTO** — En pantallas angostas, el titulo del encabezado y los botones no entraban en una linea: el flex los aplastaba y el ultimo boton quedaba cortado fuera de la pantalla. Se agrego `flex-wrap` al header del layout y a los headers de las vistas, y se separaron las acciones de las tablas (`space-x-2` -> `space-x-4`).
 43. **PENDIENTE** — Un bloque `@php` dentro del slot de un componente `<x-app-layout>` **no define variables** para el resto de la vista, y un comentario `{{-- --}}` adentro de un bloque `@php` rompe el PHP con un error de sintaxis (Blade compila el `@php` antes de reemplazar los comentarios). Por eso los flags como `$esCliente` los pasan los controladores y no se calculan en las vistas.
+44. **RESUELTO** — El rol Cliente veia el **panel de control del negocio**: la venta total de la empresa, el estado del inventario, los proveedores, las materias primas y la facturacion por medio de pago. Ademas podia pedir ese panel por el endpoint de Livewire. Ahora hay dos paneles:
+    - **El del negocio** (KPIs de la empresa, 4 graficos, stock, proveedores): del personal (Jefe, Administrador, Encargado, Vendedor, Deposito).
+    - **El del Cliente** (`dashboard/cliente.blade.php`): sus propias compras (compras realizadas, total gastado, articulos distintos, ultima compra y sus ultimas 5 compras). El menu dice "Mi panel" y el del personal "Panel de control".
+    - El componente `App\Livewire\Dashboard` aborta con 403 si quien lo pide es un Cliente, para que no se lo pueda pedir por su endpoint.
 
 ## 8. Convenciones para cambios futuros
 

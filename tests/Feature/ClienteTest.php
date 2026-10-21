@@ -239,4 +239,73 @@ class ClienteTest extends TestCase
         // Y el de ventas es "Mis compras".
         $this->assertStringContainsString('Mis compras', $html);
     }
+
+    #[Test]
+    public function el_cliente_no_ve_el_panel_de_la_empresa(): void
+    {
+        $html = $this->actingAs($this->cliente())
+            ->get('/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        // Se miran los comentarios HTML: el sidebar tiene "<!-- Proveedores -->"
+        // como comentario del source, que se renderiza siempre aunque el link
+        // no aparezca para el Cliente.
+        $visible = preg_replace('/<!--.*?-->/s', '', $html);
+
+        // El panel del negocio muestra datos de la empresa: la venta total,
+        // el stock, los proveedores y los medios de pago. Un Cliente no
+        // tiene por que verlos.
+        $this->assertStringNotContainsString('Rendimiento de Ventas', $visible);
+        $this->assertStringNotContainsString('Estado de Inventario', $visible);
+        $this->assertStringNotContainsString('Facturación por Medio de Pago', $visible);
+        $this->assertStringNotContainsString('Materias Primas', $visible);
+        $this->assertStringNotContainsString('Proveedores', $visible);
+        $this->assertStringNotContainsString('Alertas de Stock', $visible);
+
+        // Y ve el suyo, con sus compras.
+        $this->assertStringContainsString('Mi panel', $visible);
+        $this->assertStringContainsString('Compras realizadas', $visible);
+        $this->assertStringContainsString('Total gastado', $visible);
+        $this->assertStringContainsString('Mis últimas compras', $visible);
+    }
+
+    #[Test]
+    public function el_cliente_no_puede_pedir_el_panel_de_la_empresa_por_livewire(): void
+    {
+        $cliente = $this->cliente();
+
+        // El componente Livewire se puede pedir directo por su endpoint.
+        // Sin el chequeo dentro del componente, el Cliente se llevaria los
+        // KPIs de la empresa: la venta total, el stock y los proveedores.
+        //
+        // OJO: la sesion se activa con actingAs() del TestCase y NO con el
+        // del Testable de Livewire, porque Livewire::test() ya renderiza el
+        // componente antes de que el actingAs() de la cadena se aplique:
+        // el componente veia auth()->user() en null y no abortaba.
+        $this->actingAs($cliente);
+
+        \Livewire\Livewire::test(\App\Livewire\Dashboard::class)
+            ->assertStatus(403);
+    }
+
+    #[Test]
+    public function el_cliente_solo_ve_sus_propias_compras_en_su_panel(): void
+    {
+        $cliente = $this->cliente();
+
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+
+        $propias = Sale::where('id_customer', $customer->id_customer)->count();
+        $totales = Sale::count();
+
+        $html = $this->actingAs($cliente)
+            ->get('/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        // El panel muestra la cantidad de compras SUyas, no las de todos.
+        $this->assertStringContainsString('>' . $propias . '<', $html);
+        $this->assertLessThan($totales, $propias, 'El Cliente debe tener menos compras que el total.');
+    }
 }

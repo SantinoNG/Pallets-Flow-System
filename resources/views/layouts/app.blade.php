@@ -47,9 +47,11 @@
                         <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mb-2">Panel de Control</p>
                         
                         <!-- Panel de control -->
+                        {{-- Para el Cliente, el panel es el suyo: muestra sus
+                             compras, no los datos de la empresa. --}}
                         <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('dashboard') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                            <span>Panel de control</span>
+                            <span>{{ auth()->user()->hasRole('Cliente') ? 'Mi panel' : 'Panel de control' }}</span>
                         </a>
 
                         <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mt-6 mb-2">Catálogo e Inventario</p>

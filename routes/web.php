@@ -8,6 +8,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\DashboardController;
 
 // -----------------------------------------------------------------------------
 // RUTAS PÚBLICAS
@@ -19,9 +20,12 @@ Route::get('/', function () {
 // -----------------------------------------------------------------------------
 // RUTAS BÁSICAS DE AUTENTICACIÓN (Cualquiera que inicie sesión)
 // -----------------------------------------------------------------------------
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// El panel de control cambia segun el rol: el del negocio (KPIs de la
+// empresa, stock, proveedores) para el personal, y uno personal con sus
+// compras para el Cliente. Ver DashboardController.
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     // Rutas del perfil nativas de Laravel Breeze
