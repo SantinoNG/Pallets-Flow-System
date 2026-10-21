@@ -10,7 +10,7 @@
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
 
                 <!-- 1. Encabezado con Botón + Nuevo Empleado -->
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h3 class="text-base font-semibold text-gray-800 dark:text-zinc-100">Listado de Empleados</h3>
                     <a href="{{ route('employees.create') }}"
                        class="bg-hazard-600 hover:bg-hazard-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-sm">
@@ -66,7 +66,7 @@
                 </div>
 
                 <!-- 3. Contador de resultados y Botón Exportar PDF -->
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <span class="text-xs text-gray-500 dark:text-zinc-400 font-medium">
                         {{ method_exists($employees, 'total') ? $employees->total() : count($employees) }} resultado(s) encontrado(s)
                     </span>
@@ -115,7 +115,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center font-mono tabular-nums">
-                                    <div class="inline-flex items-center space-x-2">
+                                    <div class="inline-flex items-center space-x-4">
                                         <a href="{{ route('employees.edit', $employee->id_employee) }}"
                                            class="bg-hazard-50 text-hazard-600 hover:bg-hazard-100 text-xs font-semibold px-2.5 py-1 rounded transition">
                                             Editar

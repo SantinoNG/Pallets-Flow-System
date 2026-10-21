@@ -1,9 +1,12 @@
 <x-app-layout>
+    {{-- Para el Cliente, el listado es el de SUS compras. El flag
+         $esCliente lo pasa el controlador (SaleController@index). --}}
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-            Ventas
+            {{ $esCliente ? 'Mis compras' : 'Ventas' }}
             <span class="text-sm font-normal text-gray-500 dark:text-zinc-400">
-                — {{ $ventas->total() }} venta(s) · total ${{ number_format($totalFiltrado, 2, ',', '.') }}
+                — {{ $ventas->total() }} {{ $esCliente ? 'compra(s)' : 'venta(s)' }} · total ${{ number_format($totalFiltrado, 2, ',', '.') }}
             </span>
         </h2>
     </x-slot>
@@ -102,7 +105,7 @@
                                     <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
                                         ${{ number_format($venta->total(), 2, ',', '.') }}
                                     </td>
-                                    <td class="px-4 py-3 text-right space-x-2 font-mono tabular-nums">
+                                    <td class="px-4 py-3 text-right space-x-4 font-mono tabular-nums">
                                         <a href="{{ route('sales.show', $venta->id_sale) }}"
                                            class="text-hazard-600 hover:text-hazard-800 font-medium">Ver</a>
                                         <a href="{{ route('sales.pdf', $venta->id_sale) }}"

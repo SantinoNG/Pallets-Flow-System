@@ -17,7 +17,7 @@
                 @endif
 
                 {{-- Encabezado del comprobante --}}
-                <div class="flex justify-between items-start mb-8">
+                <div class="flex flex-wrap justify-between items-start gap-3 mb-8">
                     <div>
                         <h3 class="text-xl font-bold text-gray-900 dark:text-zinc-100">PalletStore</h3>
                         <p class="text-sm text-gray-500 dark:text-zinc-400">Muebles artesanales de pallets</p>

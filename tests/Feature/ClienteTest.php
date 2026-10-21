@@ -188,4 +188,55 @@ class ClienteTest extends TestCase
             ->get('/sales/' . $ventaAjena->id_sale)
             ->assertNotFound();
     }
+
+    #[Test]
+    public function para_el_cliente_una_venta_se_llama_compra(): void
+    {
+        $cliente = $this->cliente();
+
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+        $venta = Sale::where('id_customer', $customer->id_customer)->firstOrFail();
+
+        $html = $this->actingAs($cliente)
+            ->get('/sales/' . $venta->id_sale)
+            ->assertOk()
+            ->getContent();
+
+        // Para el Cliente, una venta es su COMPRA.
+        $this->assertStringContainsString('Compra #' . $venta->id_sale, $html);
+        $this->assertStringNotContainsString('Venta #' . $venta->id_sale, $html);
+
+        // Y no le muestra el vendedor: en una compra propia no hay.
+        // OJO: se busca la etiqueta del campo exacta, no la palabra suelta:
+        // el sidebar tiene un link "Empleados" que no tiene nada que ver.
+        $this->assertStringNotContainsString('>Empleado<', $html);
+        $this->assertStringContainsString('Artículos comprados', $html);
+    }
+
+    #[Test]
+    public function el_listado_del_cliente_se_titula_mis_compras(): void
+    {
+        $html = $this->actingAs($this->cliente())
+            ->get('/sales')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Mis compras', $html);
+    }
+
+    #[Test]
+    public function el_menu_que_ve_el_cliente_esta_en_espanol(): void
+    {
+        $html = $this->actingAs($this->cliente())
+            ->get('/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        // El link del panel de control estaba en ingles ("Dashboard").
+        $this->assertStringContainsString('Panel de control', $html);
+        $this->assertStringNotContainsString('>Dashboard<', $html);
+
+        // Y el de ventas es "Mis compras".
+        $this->assertStringContainsString('Mis compras', $html);
+    }
 }

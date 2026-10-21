@@ -14,7 +14,7 @@
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
 
                 {{-- Encabezado --}}
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100">
                         {{ $esCliente ? 'Productos disponibles' : 'Inventario de artículos' }}
                     </h3>
@@ -83,7 +83,7 @@
                 </form>
 
                 {{-- Resultados y botón PDF --}}
-                <div class="flex justify-between items-center mb-3">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
                     <p class="text-sm text-gray-500 dark:text-zinc-400">
                         {{ $articles->count() }} resultado(s) encontrado(s)
                     </p>
@@ -143,7 +143,7 @@
                                     <td class="px-6 py-4 font-mono tabular-nums">
                                         {{ $article->stock->minimum_stock ?? '—' }}
                                     </td>
-                                    <td class="px-6 py-4 text-center space-x-2 font-mono tabular-nums">
+                                    <td class="px-6 py-4 text-center space-x-4 font-mono tabular-nums">
                                         <a href="{{ route('articles.edit', $article->id_article) }}"
                                            class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">
                                             Editar

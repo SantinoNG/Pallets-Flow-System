@@ -117,11 +117,22 @@ class SaleController extends Controller
             ->get()
             ->sum(fn ($s) => $s->total());
 
+        /*
+         * Para el Cliente, el listado es el de SUS compras: la vista cambia
+         * el titulo y las etiquetas.
+         *
+         * El flag lo pasa el controlador y no se calcula en la vista: un
+         * bloque @php dentro del slot de un componente <x-app-layout> no
+         * define variables para el resto de la vista.
+         */
+        $esCliente = $request->user()?->hasRole('Cliente') ?? false;
+
         return view('sales.index', compact(
             'ventas',
             'mediosPago',
             'empleados',
-            'totalFiltrado'
+            'totalFiltrado',
+            'esCliente'
         ));
     }
 
@@ -134,7 +145,10 @@ class SaleController extends Controller
 
         $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
 
-        return view('sales.show', compact('sale'));
+        // Para el Cliente, una venta es su COMPRA.
+        $esCliente = $request->user()?->hasRole('Cliente') ?? false;
+
+        return view('sales.show', compact('sale', 'esCliente'));
     }
 
     /**

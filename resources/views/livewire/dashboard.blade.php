@@ -119,7 +119,7 @@
 
         <!-- Gráfico 3: Top productos vendidos (Bar Chart horizontal) -->
         <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
-            <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-4 uppercase tracking-wider">Top Productos Vendidos (unidades)</h3>
+            <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-4 uppercase tracking-wider">Productos Más Vendidos (unidades)</h3>
             <div class="relative h-72" wire:ignore>
                 <canvas id="topProductsChart"></canvas>
             </div>

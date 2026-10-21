@@ -46,10 +46,10 @@
                     <nav class="p-4 space-y-1.5 text-xs font-semibold">
                         <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mb-2">Panel de Control</p>
                         
-                        <!-- Dashboard -->
+                        <!-- Panel de control -->
                         <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('dashboard') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                            <span>Dashboard</span>
+                            <span>Panel de control</span>
                         </a>
 
                         <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mt-6 mb-2">Catálogo e Inventario</p>
@@ -99,10 +99,13 @@
                             <span>Carrito</span>
                         </a>
                         <!-- Ventas -->
-                        @role('Jefe|Administrador|Encargado|Vendedor')
+                        {{-- El Cliente tambien entra, pero son sus compras:
+                             la etiqueta cambia para que no lo confunda con
+                             las ventas del personal. --}}
+                        @role('Jefe|Administrador|Encargado|Vendedor|Cliente')
                         <a href="{{ route('sales.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('sales.*') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            <span>Ventas</span>
+                            <span>{{ auth()->user()->hasRole('Cliente') ? 'Mis compras' : 'Ventas' }}</span>
                         </a>
                         @endrole
                     </nav>
@@ -132,8 +135,12 @@
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-zinc-100 dark:bg-zinc-950">
                 <!-- Topbar Móvil / Contenedor Superior -->
                 @if (isset($header))
-                    <header class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 py-4 px-6 sm:px-8 shadow-sm flex items-center justify-between gap-4">
-                        <div class="min-w-0">{{ $header }}</div>
+                    {{-- flex-wrap: en pantallas angostas el titulo y los botones
+                         del encabezado no entran en una linea y el ultimo
+                         queda cortado. Con wrap, el grupo de botones baja a
+                         la linea siguiente. --}}
+                    <header class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 py-4 px-6 sm:px-8 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                        <div class="min-w-0 flex-1">{{ $header }}</div>
                         <x-theme-toggle />
                     </header>
                 @else

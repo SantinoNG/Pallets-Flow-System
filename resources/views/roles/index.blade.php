@@ -10,7 +10,7 @@
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
 
                 {{-- Encabezado con botón --}}
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100">Listado de Roles</h3>
                     <a href="{{ route('roles.create') }}"
                        class="bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
@@ -42,7 +42,7 @@
                                 <td class="px-6 py-4 text-gray-900 dark:text-zinc-100 font-mono tabular-nums">{{ $role->id_role }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-zinc-100">{{ $role->role_name }}</td>
                                 <td class="px-6 py-4">{{ $role->description ?? '—' }}</td>
-                                <td class="px-6 py-4 text-center space-x-2 font-mono tabular-nums">
+                                <td class="px-6 py-4 text-center space-x-4 font-mono tabular-nums">
                                     <a href="{{ route('roles.edit', $role->id_role) }}"
                                        class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">
                                         Editar
