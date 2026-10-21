@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Pallets Flow">
+  <!--
+    Icono de la marca: un pallet de madera.
+
+    Es un glifo, no el logo completo: el logo de marca (el monograma "PF"
+    con el texto PALLETS FLOW) vive en logo-marca.svg y se usa donde hay
+    espacio (comprobantes en PDF, marca de agua). En el sidebar y en el
+    login el espacio es de 32 o 44 pixels, y a ese tamano el logo entero
+    no se lee: el texto se vuelve una mancha.
+
+    Este dibujo son solo tablas y tacos, con los mismos tonos de madera y
+    el mismo contorno oscuro (#4A3626) del logo de marca, asi que se le
+    reconoce como la misma marca.
+
+    OJO: sin los contornos, los tacos se funden con las tablas y a 32 px
+    queda un bloque marron.
+  -->
+  <g stroke="#4A3626" stroke-width="3" stroke-linejoin="round">
+    <!-- Tablas del piso superior -->
+    <rect x="5" y="12" width="54" height="8" rx="1.5" fill="#C09566"/>
+    <rect x="5" y="23" width="54" height="8" rx="1.5" fill="#B98F5E"/>
+
+    <!-- Tacos: lo que separa el piso de arriba del de abajo -->
+    <rect x="9"  y="35" width="10" height="14" rx="1.5" fill="#A97F55"/>
+    <rect x="27" y="35" width="10" height="14" rx="1.5" fill="#8E6843"/>
+    <rect x="45" y="35" width="10" height="14" rx="1.5" fill="#A97F55"/>
+
+    <!-- Tablas del piso inferior -->
+    <rect x="5" y="52" width="54" height="8" rx="1.5" fill="#C09566"/>
+  </g>
+
+  <!--
+    Hoja: el detalle "diseno natural" de la marca, en el mismo verde del
+    logo. Va pegada al piso superior, arriba a la derecha.
+  -->
+  <path d="M44 10 C 54 10 59 5 59 2 C 48 2 43 5 42 10 Z"
+        fill="#6E9152" stroke="#4A3626" stroke-width="2" stroke-linejoin="round"/>
+</svg>

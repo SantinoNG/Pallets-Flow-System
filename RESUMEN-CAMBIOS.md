@@ -122,6 +122,30 @@ Además se agregaron **26 tests** (`tests/Feature/FugasTest.php` y
 `tests/Feature/UsuariosTest.php`) que fijan estas reglas para que no se
 vuelvan a romper.
 
+### El icono de la aplicación: un pallet que se lee
+
+El sidebar y el login usaban el **logo de marca entero** (`logo-marca.svg`): un
+cuadrado de 1024 px con el monograma "PF" y el texto PALLETS FLOW debajo. En
+el sidebar el espacio es de **32 px** y en el login de **44 px**: a ese tamaño
+el texto no se lee, queda una mancha y lo único que se distingue es el
+cuadrado marrón.
+
+Se hizo un **glifo aparte**, `public/images/icono-pallet.svg`: un pallet de
+madera (dos tablas de arriba, tres tacos, una tabla de abajo) con la hoja
+verde de la marca en la esquina. Usa los mismos tonos de madera y el mismo
+contorno `#4A3626` del logo, así que se reconoce como la misma marca, pero se
+lee de un vistazo.
+
+| Archivo | Donde va |
+|---|---|
+| `public/images/icono-pallet.svg` | Sidebar y login (32 y 44 px) |
+| `public/images/logo-marca.svg` | Comprobantes en PDF y marca de agua |
+
+De paso, `public/favicon.ico` estaba en **0 bytes** (el navegador pedía un
+archivo vacío y mostraba su icono por defecto). Ahora lo genera
+`scripts/generar-favicon.php`, que dibuja el pallet con GD y arma el ICO con
+el PNG adentro, y los dos layouts anuncian el SVG y un PNG de 32 px.
+
 ---
 
 ## 1. Interfaz: paleta industrial + modo oscuro
@@ -242,7 +266,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **125 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **127 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |

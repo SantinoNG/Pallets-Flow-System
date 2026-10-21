@@ -190,6 +190,73 @@ class InterfazTest extends TestCase
     }
 
     #[Test]
+    public function el_icono_de_la_aplicacion_es_el_pallet(): void
+    {
+        $this->comoAdmin();
+
+        /*
+         * Hay dos archivos de marca y cada uno va en su lugar:
+         *
+         * - icono-pallet.svg: el glifo. Va en el sidebar y en el login,
+         *   donde el espacio es de 32 o 44 pixels y el logo completo no
+         *   se lee.
+         * - logo-marca.svg: el logo entero. Va en los comprobantes en PDF
+         *   y en la marca de agua.
+         *
+         * Antes el sidebar usaba el logo completo y a ese tamano el
+         * texto "PALLETS FLOW" se convertia en una mancha.
+         */
+        $this->assertFileExists(public_path('images/icono-pallet.svg'));
+        $this->assertFileExists(public_path('images/logo-marca.svg'));
+
+        $html = $this->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('images/icono-pallet.svg', $html);
+        $this->assertStringNotContainsString('images/logo-marca.svg', $html);
+
+        // El SVG del icono tiene que ser un SVG de verdad, no una foto.
+        $svg = (string) file_get_contents(public_path('images/icono-pallet.svg'));
+
+        $this->assertStringContainsString('<svg', $svg);
+        $this->assertStringContainsString('viewBox="0 0 64 64"', $svg);
+    }
+
+    #[Test]
+    public function el_favicon_es_el_pallet_y_no_esta_vacio(): void
+    {
+        // El favicon estaba en 0 bytes: el navegador pedia un archivo vacio.
+        $ico = public_path('favicon.ico');
+
+        $this->assertFileExists($ico);
+        $this->assertGreaterThan(0, (int) filesize($ico));
+
+        // Es un ICO de verdad: el directorio dice "reservado 0, tipo 1
+        // (icono), cantidad 1".
+        $directorio = unpack('vreservado/vtipo/vcantidad', (string) file_get_contents($ico, false, null, 0, 6));
+
+        $this->assertSame(0, $directorio['reservado']);
+        $this->assertSame(1, $directorio['tipo']);
+        $this->assertSame(1, $directorio['cantidad']);
+
+        $this->assertFileExists(public_path('images/favicon-32.png'));
+        $this->assertGreaterThan(0, (int) filesize(public_path('images/favicon-32.png')));
+
+        // Y las dos paginas lo anuncian en el head. El login se pide
+        // sin sesion: si se pide con sesion, redirige al panel (302).
+        $html = $this->get('/login')->assertOk()->getContent();
+
+        $this->assertStringContainsString('images/icono-pallet.svg', $html);
+        $this->assertStringContainsString('rel="icon"', $html);
+
+        $this->comoAdmin();
+
+        $html = $this->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('images/icono-pallet.svg', $html);
+        $this->assertStringContainsString('rel="icon"', $html);
+    }
+
+    #[Test]
     public function todos_los_enlaces_a_pdf_son_rojos(): void
     {
         $this->comoAdmin();

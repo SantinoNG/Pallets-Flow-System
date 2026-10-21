@@ -5,6 +5,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        {{-- Favicon: el glifo del pallet, en SVG y en PNG. --}}
+        <link rel="icon" type="image/svg+xml" href="{{ asset('images/icono-pallet.svg') }}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32.png') }}">
+
         <title>{{ config('app.name', 'Pallets Flow') }}</title>
 
         {{-- Tema: se aplica antes de pintar para que no haya destello --}}

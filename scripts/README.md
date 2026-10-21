@@ -11,6 +11,7 @@ sistema. Se ejecutan con PHP desde la raiz del proyecto.
 | `auditar-modo-oscuro.php` | Busca clases de superficie claras (`bg-white`, `text-gray-700`, ...) que **no** tienen su variante `dark:`. Cada hallazgo es un elemento que se ve mal en modo oscuro. |
 | `agregar-modo-oscuro.php` | Agrega automaticamente la variante `dark:` que falta en las vistas Blade. Es idempotente: si ya esta, no hace nada. |
 | `generar-imagenes-demo.php` | Genera siluetas SVG de los artículos del catalogo y las guarda en `storage/app/public/articles/`. Sirven para ver la interfaz con imagenes; cuando subas las fotos reales desde *Articulos > Editar*, reemplazan a estas. |
+| `generar-favicon.php` | Genera `public/favicon.ico` y `public/images/favicon-32.png` con el glifo del pallet. Como GD no dibuja SVG, el pallet se dibuja con las mismas medidas que tiene `public/images/icono-pallet.svg`: si se cambia el SVG, hay que cambiar las medidas del script. |
 
 ## Testeo
 
@@ -33,6 +34,7 @@ php scripts/auditar-paleta.php
 php scripts/auditar-modo-oscuro.php
 php scripts/agregar-modo-oscuro.php
 php scripts/generar-imagenes-demo.php
+php scripts/generar-favicon.php
 
 # Testeo (necesitan la aplicacion levantada en Apache de Laragon)
 php scripts/testear-rutas.php                                   # admin
