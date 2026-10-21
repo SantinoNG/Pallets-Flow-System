@@ -2,12 +2,12 @@
 
 // Genera imagenes de demostracion para los articulos del catalogo.
 //
-// Son siluetas simples dibujadas con SVG, no fotos: sirven para ver como
-// queda la interfaz con imagenes. Cuando tengas las fotos, subilas desde
-// Articulos > Editar y la imagen generada se reemplaza sola.
+// Son las ilustraciones de la marca PALLETS FLOW en SVG. Sirven para ver la
+// interfaz con imagenes; cuando subas las fotos reales desde Articulos >
+// Editar, reemplazan a estas.
 //
-// La logica de dibujo vive en el seeder ImagenesArticuloSeeder, que tambien
-// corre con `php artisan migrate:fresh --seed`. Este script solo lo invoca.
+// La logica de dibujo vive en App\Support\IlustracionArticulo, que tambien
+// corre con `php artisan migrate:fresh --seed` (seeder ImagenesArticuloSeeder).
 //
 // Uso: php scripts/generar-imagenes-demo.php
 
@@ -16,9 +16,8 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Models\Article;
-use Database\Seeders\ImagenesArticuloSeeder;
 
-(new ImagenesArticuloSeeder())->run();
+(new \Database\Seeders\ImagenesArticuloSeeder())->run();
 
 foreach (Article::all() as $articulo) {
     printf("  %-3s %-40s -> %s\n", $articulo->id_article, mb_substr($articulo->article_name, 0, 40), $articulo->image);

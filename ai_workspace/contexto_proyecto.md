@@ -130,6 +130,7 @@ tecnica.
 | Rotulos principales | Los rotulos en mayusculas de las tarjetas del dashboard van en **blanco puro** en modo oscuro (`dark:text-zinc-100`): son el texto que define cada tarjeta. El texto de apoyo (subtitulos, contadores) se queda en gris claro (`dark:text-zinc-300`) para no competir con los datos. | `views/livewire/dashboard.blade.php` |
 | Logo | Archivo `public/images/logo.svg` (pallet industrial: tablas en naranja de seguridad, tacos en grafito). Se muestra con el componente `<x-app-logo>` en el sidebar y en el login. Al ser un archivo y no un SVG inline, **se puede reemplazar por el logo propio sin tocar codigo**. | `public/images/logo.svg`, `components/app-logo.blade.php` |
 | Foto del articulo | Componente `<x-article-image>`: muestra la foto si hay, y si no dibuja un placeholder (trama diagonal de plano tecnico + glifo de pallet + inicial del producto). El placeholder es un SVG inline, sin archivos de por medio. | `components/article-image.blade.php` |
+| Ilustraciones de la marca | `App\Support\IlustracionArticulo` dibuja en SVG el lenguaje de la marca PALLETS FLOW (pergamino crema con trama diagonal, vineta circular, madera calida y plantas) para los 8 articulos, y el logo (circulo con el nombre arcedado, el pallet de dibujo lineal con una planta brotando y el eslogan). Son SVG: se ven nitidos a cualquier tamaño y pesan 1-4 KB. Cuando lleguen las fotos reales, se suben desde *Articulos > Editar* y reemplazan a estas. | `app/Support/IlustracionArticulo.php`, `public/images/logo.svg` |
 | Subida de foto | Componente `<x-image-upload>`: input de archivo con **vista previa en vivo** (Alpine + FileReader) y la foto actual si ya habia una. | `components/image-upload.blade.php` |
 
 **Scripts de mantenimiento** en `scripts/` (ver `scripts/README.md`):
@@ -191,6 +192,7 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
     - **El del negocio** (KPIs de la empresa, 4 graficos, stock, proveedores): del personal (Jefe, Administrador, Encargado, Vendedor, Deposito).
     - **El del Cliente** (`dashboard/cliente.blade.php`): sus propias compras (compras realizadas, total gastado, articulos distintos, ultima compra y sus ultimas 5 compras). El menu dice "Mi panel" y el del personal "Panel de control".
     - El componente `App\Livewire\Dashboard` aborta con 403 si quien lo pide es un Cliente, para que no se lo pueda pedir por su endpoint.
+45. **RESUELTO** — La imagen de la marca (el mosaico de 6 fichas) no llego como archivo, asi que se REHIZO el sistema de diseno en SVG: las ilustraciones de los 8 articulos y el logo. Todo queda en `App\Support\IlustracionArticulo`, que es el unico lugar del que salen las imagenes (lo usan el seeder `ImagenesArticuloSeeder` y el script `scripts/generar-imagenes-marca.php`). El logo quedo como `public/images/logo.svg` con el texto arcedado por `textPath`; el componente `<x-app-logo>` le pone un `?v=` con la fecha de modificacion del archivo, asi el navegador no se queda con el viejo.
 
 ## 8. Convenciones para cambios futuros
 
