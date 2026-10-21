@@ -38,13 +38,13 @@
 <body>
 
     {{-- Marca de agua de la marca --}}
-    <img src="{{ public_path('images/marca.png') }}" class="marca-agua" alt="">
+    <img src="{{ public_path('images/marca-agua.jpg') }}" class="marca-agua" alt="">
 
     <div class="header">
         <table>
             <tr>
                 <td style="width: 62px; vertical-align: top;">
-                    <img src="{{ public_path('images/logo-marca-256.png') }}" style="width: 54px; border-radius: 4px;" alt="Pallets Flow">
+                    <img src="{{ public_path('images/logo-pdf.jpg') }}" style="width: 54px; border-radius: 4px;" alt="Pallets Flow">
                 </td>
                 <td>
                     <h1>PalletStore</h1>

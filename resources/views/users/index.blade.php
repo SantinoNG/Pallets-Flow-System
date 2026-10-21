@@ -15,8 +15,7 @@
                     {{-- Exportar a PDF. La ruta users.pdf ya existia, pero no
                          habia ningun boton que llegara a ella. --}}
                     <a href="{{ route('users.pdf') }}"
-                       target="_blank"
-                       class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-sm">
+class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-sm">
                         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
                             <path d="M4 18h12v-2H4v2zM12 2H8v6H5l5 5 5-5h-3V2z"/>
                         </svg>
