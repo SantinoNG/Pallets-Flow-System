@@ -1,7 +1,14 @@
 <x-app-layout>
+    {{-- El Cliente ve "Mi carrito"; el personal, la venta que está armando.
+         El flag $esCliente lo pasa el controlador. --}}
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-            Venta — {{ $cart->customer->first_name }} {{ $cart->customer->last_name }}
+            @if ($esCliente)
+                {{ __('Mi carrito') }}
+            @else
+                Venta — {{ $cart->customer->first_name }} {{ $cart->customer->last_name }}
+            @endif
         </h2>
     </x-slot>
 

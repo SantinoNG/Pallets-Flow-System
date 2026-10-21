@@ -109,6 +109,29 @@ $ids = [
     'cart'        => DB::table('cart')->value('id_cart'),
 ];
 
+/*
+ * El Cliente solo puede ver SUS ventas: si se prueba con la venta de otro,
+ * el 404 es la respuesta correcta y no un problema. Se busca entonces una
+ * venta que sea suya.
+ */
+if ($email === 'cliente@gmail.com' || DB::table('users')->where('email', $email)->value('id_role')) {
+    $idRoleCliente = DB::table('roles')->where('role_name', 'Cliente')->value('id_role');
+    $esCliente = DB::table('users')->where('email', $email)->value('id_role') == $idRoleCliente;
+
+    if ($esCliente) {
+        $idCustomer = DB::table('customers')
+            ->join('users', 'users.id_user', '=', 'customers.id_user')
+            ->where('users.email', $email)
+            ->value('customers.id_customer');
+
+        $ventaPropia = DB::table('sales')->where('id_customer', $idCustomer)->value('id_sale');
+
+        if ($ventaPropia) {
+            $ids['sales'] = $ventaPropia;
+        }
+    }
+}
+
 // --- Rutas ----------------------------------------------------------------
 $rutas = [];
 foreach (Route::getRoutes() as $ruta) {

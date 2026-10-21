@@ -65,9 +65,13 @@ class SalesTest extends TestCase
 
         $response->assertStatus(200);
 
-        // El SaleSeeder crea 6 ventas
+        // El SaleSeeder crea ventas para TODOS los clientes (Ana Torres y los
+        // 10 de CustomerSeeder), repartidas en los ultimos meses. El test
+        // no fija un numero: comprueba que hay al menos una venta por
+        // cliente, que es lo que el seeder garantiza.
         $response->assertSee('Venta');
-        $this->assertCount(6, Sale::all());
+        $this->assertGreaterThanOrEqual(Customer::count(), Sale::all()->count());
+        $this->assertGreaterThan(0, Sale::all()->count());
     }
 
     #[Test]

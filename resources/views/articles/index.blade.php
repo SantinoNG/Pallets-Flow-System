@@ -1,7 +1,11 @@
 <x-app-layout>
+    {{-- El Cliente ve el catálogo en modo lectura: puede buscar y
+         comprar, pero no gestionar el inventario. El flag $esCliente lo
+         pasa el controlador. --}}
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-            {{ __('Gestión de Artículos') }}
+            {{ $esCliente ? __('Catálogo de productos') : __('Gestión de Artículos') }}
         </h2>
     </x-slot>
 
@@ -11,11 +15,15 @@
 
                 {{-- Encabezado --}}
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100">Inventario de artículos</h3>
-                    <a href="{{ route('articles.create') }}"
-                       class="bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
-                        + Nuevo Artículo
-                    </a>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100">
+                        {{ $esCliente ? 'Productos disponibles' : 'Inventario de artículos' }}
+                    </h3>
+                    @unless ($esCliente)
+                        <a href="{{ route('articles.create') }}"
+                           class="bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
+                            + Nuevo Artículo
+                        </a>
+                    @endunless
                 </div>
 
                 @if(session('success'))
@@ -79,10 +87,12 @@
                     <p class="text-sm text-gray-500 dark:text-zinc-400">
                         {{ $articles->count() }} resultado(s) encontrado(s)
                     </p>
-                    <a href="{{ route('articles.pdf', request()->query()) }}"
-                       class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
-                        📄 Exportar PDF
-                    </a>
+                    @unless ($esCliente)
+                        <a href="{{ route('articles.pdf', request()->query()) }}"
+                           class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
+                            📄 Exportar PDF
+                        </a>
+                    @endunless
                 </div>
 
                 {{-- Tabla --}}
@@ -94,8 +104,12 @@
                                 <th class="px-6 py-3">Nombre</th>
                                 <th class="px-6 py-3">Precio unitario</th>
                                 <th class="px-6 py-3">Stock actual</th>
-                                <th class="px-6 py-3">Stock mínimo</th>
-                                <th class="px-6 py-3 text-center">Acciones</th>
+                                @unless ($esCliente)
+                                    <th class="px-6 py-3">Stock mínimo</th>
+                                    <th class="px-6 py-3 text-center">Acciones</th>
+                                @else
+                                    <th class="px-6 py-3 text-center">Comprar</th>
+                                @endunless
                             </tr>
                         </thead>
                         <tbody>
@@ -125,29 +139,52 @@
                                         <span class="text-gray-400 dark:text-zinc-500 italic">Sin stock</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 font-mono tabular-nums">
-                                    {{ $article->stock->minimum_stock ?? '—' }}
-                                </td>
-                                <td class="px-6 py-4 text-center space-x-2 font-mono tabular-nums">
-                                    <a href="{{ route('articles.edit', $article->id_article) }}"
-                                       class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">
-                                        Editar
-                                    </a>
-                                    <form action="{{ route('articles.destroy', $article->id_article) }}"
-                                          method="POST" style="display:inline-block;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="font-medium text-red-600 hover:text-red-900 bg-red-50 px-3 py-2 rounded-md transition"
-                                                onclick="return confirm('¿Estás seguro?')">
-                                            Eliminar
-                                        </button>
-                                    </form>
-                                </td>
+                                @unless ($esCliente)
+                                    <td class="px-6 py-4 font-mono tabular-nums">
+                                        {{ $article->stock->minimum_stock ?? '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-center space-x-2 font-mono tabular-nums">
+                                        <a href="{{ route('articles.edit', $article->id_article) }}"
+                                           class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">
+                                            Editar
+                                        </a>
+                                        <form action="{{ route('articles.destroy', $article->id_article) }}"
+                                              method="POST" style="display:inline-block;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="font-medium text-red-600 hover:text-red-900 bg-red-50 px-3 py-2 rounded-md transition"
+                                                    onclick="return confirm('¿Estás seguro?')">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    </td>
+                                @else
+                                    {{-- El Cliente compra: el carrito se resuelve
+                                         desde su propia ficha, asi que no
+                                         puede meter cosas en el de otro. --}}
+                                    <td class="px-6 py-4 text-center">
+                                        @if ($article->stock && $article->stock->remaining_quantity > 0)
+                                            <form action="{{ route('cart.mine.addItem') }}" method="POST" class="inline-flex items-center gap-2">
+                                                @csrf
+                                                <input type="hidden" name="id_article" value="{{ $article->id_article }}">
+                                                <input type="number" name="quantity" value="1" min="1"
+                                                       max="{{ $article->stock->remaining_quantity }}"
+                                                       class="w-16 border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm text-center font-mono tabular-nums">
+                                                <button type="submit"
+                                                        class="bg-hazard-600 hover:bg-hazard-700 text-white text-xs font-semibold px-3 py-2 rounded-md transition">
+                                                    Agregar
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="text-gray-400 dark:text-zinc-500 italic text-xs">Sin stock</span>
+                                        @endif
+                                    </td>
+                                @endunless
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-400 dark:text-zinc-500 italic">
+                                <td colspan="{{ $esCliente ? 5 : 7 }}" class="px-6 py-8 text-center text-gray-400 dark:text-zinc-500 italic">
                                     No se encontraron artículos con esos filtros.
                                 </td>
                             </tr>

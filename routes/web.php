@@ -93,13 +93,18 @@ Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function
 // Control de acceso por rol (middleware de Spatie, registrado en
 // bootstrap/app.php con el alias 'role').
 //
-// El inventario lo gestionan Jefe, Administrador, Encargado y Depósito.
-// NO entran el Vendedor ni el Cliente.
+// El CATÁLOGO se puede ver con cualquier usuario autenticado: el Cliente
+// necesita ver los productos y sus precios para comprar. Lo que no puede es
+// GESTIONAR el inventario: eso sigue siendo del Jefe, Administrador,
+// Encargado y Depósito.
 //
 // El middleware de Spatie lee la tabla `spatie_roles`, que se puebla como
 // espejo del catálogo de `roles` (ver RoleSeeder y User::asignarRol()).
-Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Deposito'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
+});
+
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Deposito'])->group(function () {
     Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
     Route::get('/articles/pdf', [ArticleController::class, 'exportPdf'])->name('articles.pdf');
     Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store');
@@ -126,7 +131,10 @@ Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function
 // -----------------------------------------------------------------------------
 // MÓDULO DE VENTAS / CARRITO
 // -----------------------------------------------------------------------------
-Route::middleware(['auth'])->group(function () {
+// El middleware `carrito.propio` va DENTRO del grupo: si se encadena
+// después del ->group(), Laravel ya registró las rutas con los atributos
+// anteriores y el middleware no se aplica (se ve en route:list -v).
+Route::middleware(['auth', 'carrito.propio'])->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart', [CartController::class, 'createOrGetCart'])->name('cart.create');
     Route::get('/cart/{cart}', [CartController::class, 'show'])->name('cart.show');
@@ -135,6 +143,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/cart/{cart}/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
     Route::post('/cart/{cart}/confirm', [CartController::class, 'confirmSale'])->name('cart.confirm');
     Route::get('/sales/{sale}/receipt', [CartController::class, 'showReceipt'])->name('cart.receipt');
+});
+
+// -----------------------------------------------------------------------------
+// CARRITO DEL CLIENTE
+// -----------------------------------------------------------------------------
+// El flujo del mostrador (/cart) es para el personal: elige a qué cliente le
+// está vendiendo. Para el rol Cliente el carrito es el suyo: no elige a quién
+// le compra, y no ve el selector de clientes.
+//
+// Estas rutas resuelven el carrito del cliente a partir de su ficha, así que
+// un Cliente no puede meter cosas en el carrito de otro.
+Route::middleware(['auth', 'role:Cliente'])->group(function () {
+    Route::get('/mi-carrito', [CartController::class, 'miCarrito'])->name('cart.mine');
+    Route::post('/mi-carrito/items', [CartController::class, 'agregarAlMiCarrito'])->name('cart.mine.addItem');
 });
 
 // -----------------------------------------------------------------------------

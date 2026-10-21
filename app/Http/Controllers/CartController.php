@@ -15,13 +15,88 @@ use Illuminate\Support\Facades\DB;
 class CartController extends Controller
 {
     // PASO 1 — Muestra el formulario para iniciar una venta
-    public function index()
+    public function index(Request $request)
     {
+        /*
+         * El rol Cliente no pasa por el mostrador: su carrito es el suyo.
+         * Si lo dejamos en la pagina de "seleccionar cliente", un cliente
+         * veria un formulario para elegir a quien le compra, que no tiene
+         * sentido. Se lo manda a su propio carrito.
+         */
+        if ($this->esCliente($request)) {
+            return redirect()->route('cart.mine');
+        }
+
         $customers = Customer::with('user')->get();
         $articles  = Article::with('stock')->get();
         $cart      = null;
 
         return view('cart.index', compact('customers', 'articles', 'cart'));
+    }
+
+    /**
+     * El carrito del usuario con rol Cliente.
+     *
+     * Si no tiene uno activo se le crea. Si su usuario no tiene ficha de
+     * cliente, se le avisa (el error lo ve el administrador).
+     */
+    public function miCarrito(Request $request)
+    {
+        $cart = $this->carritoActivoDelCliente($request);
+
+        if (! $cart) {
+            return redirect()->route('cart.index')
+                ->with('error', 'Tu usuario no tiene una ficha de cliente. Contactá al administrador.');
+        }
+
+        return redirect()->route('cart.show', $cart->id_cart);
+    }
+
+    /**
+     * Agrega un artículo al carrito del Cliente.
+     *
+     * El carrito se resuelve desde la ficha del usuario, no desde un
+     * parámetro: así un Cliente no puede meter cosas en el carrito de otro.
+     */
+    public function agregarAlMiCarrito(Request $request)
+    {
+        $request->validate([
+            'id_article' => 'required|exists:articles,id_article',
+            'quantity'   => 'required|integer|min:1',
+        ]);
+
+        $cart = $this->carritoActivoDelCliente($request);
+
+        if (! $cart) {
+            return back()->with('error', 'Tu usuario no tiene una ficha de cliente. Contactá al administrador.');
+        }
+
+        return $this->agregarItem($request, $cart);
+    }
+
+    /**
+     * Carrito activo del cliente de la sesión (o null si no tiene ficha).
+     */
+    private function carritoActivoDelCliente(Request $request): ?Cart
+    {
+        $customer = $request->user()?->customer;
+
+        if (! $customer) {
+            return null;
+        }
+
+        return Cart::firstOrCreate(
+            ['id_customer' => $customer->id_customer, 'status' => 'active'],
+            []
+        );
+    }
+
+    /**
+     * True si el usuario de la sesión tiene el rol Cliente.
+     */
+    private function esCliente(Request $request): bool
+    {
+        return $request->user()?->hasRole('Cliente') ?? false;
     }
 
     // PASO 2 — Crea o recupera el carrito activo del cliente
@@ -53,7 +128,10 @@ class CartController extends Controller
         $articles = Article::with('stock')->get();
         $subtotal = $cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
 
-        return view('cart.show', compact('cart', 'articles', 'subtotal'));
+        // El Cliente ve "Mi carrito"; el personal, la venta que está armando.
+        $esCliente = request()->user()?->hasRole('Cliente') ?? false;
+
+        return view('cart.show', compact('cart', 'articles', 'subtotal', 'esCliente'));
     }
 
     // PASO 4 — Agrega un artículo al carrito (DSD-4)
@@ -64,6 +142,18 @@ class CartController extends Controller
             'quantity'   => 'required|integer|min:1',
         ]);
 
+        return $this->agregarItem($request, $cart);
+    }
+
+    /**
+     * Agrega un artículo a un carrito concreto.
+     *
+     * La lógica está separada porque la usan dos entradas distintas: el
+     * mostrador (donde el carrito viene en la URL) y el carrito del Cliente
+     * (que se resuelve desde su ficha).
+     */
+    private function agregarItem(Request $request, Cart $cart)
+    {
         $article = Article::with('stock')->findOrFail($request->id_article);
 
         // Verificar stock (DSD-4 paso 2)

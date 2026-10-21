@@ -77,10 +77,20 @@ Notas:
 - Las migraciones de dominio están fechadas `2024_01_01_*` (convención manual de orden), las de paquetes `2026_06_21_*`.
 - `config/permission.php` mapea la tabla de roles de Spatie a `spatie_roles` para no chocar con la tabla propia `roles`. Además la clave `'permissions'` aparece duplicada dentro de `table_names` (la segunda sobreescribe a la primera → tabla `permissions`).
 - `cart_items` no tiene restricción única `(id_cart, id_article)`; `cart` no tiene índice `(id_customer, status)`.
-- Seeders: `RoleSeeder`, `UserSeeder`, `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder`, `SaleSeeder` (crea un carrito `completed`, sus ítems, una venta y un comprobante). Usuarios semilla: admin, vendedor, depósito, cliente.
+- Seeders: `RoleSeeder`, `UserSeeder`, `CustomerSeeder`, `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder`, `ImagenesArticuloSeeder`, `SaleSeeder`. Usuarios semilla: admin, vendedor, depósito, cliente.
 - `2026_10_15_000001_add_email_verified_at_and_remember_token_to_users_table.php`, `2026_10_15_000002_create_infrastructure_tables.php` (sessions, jobs, job_batches, failed_jobs, password_reset_tokens), `2026_10_15_000003_create_audits_table.php` (stub de owen-it).
 - `2026_10_20_000001_add_image_to_articles_table.php`: agrega `articles.image` (string nullable) para la foto del producto. Guarda la **ruta relativa** dentro del disco `public` (por ejemplo `articles/sillon.jpg`), no la URL completa: si el dominio cambia, la ruta sigue sirviendo.
 - `2026_10_20_000002_rename_deposito_role.php`: renombra el rol "Depósito" a "Deposito" (ver deuda técnica 34).
+
+### Seeders de clientes y movimiento
+
+| Seeder | Que hace |
+|---|---|
+| `CustomerSeeder` | Crea **10 clientes mas** (Bruno Ferrari, Carla Méndez, Diego Sosa, Elena Duarte, Facundo Ríos, Gabriela Paz, Hernán Cabrera, Irina López, Julián Vargas, Karen Aquino), cada uno con su usuario (rol Cliente) y su ficha en `customers`. Es idempotente (`updateOrInsert`). |
+| `SaleSeeder` | Reparte **36 ventas** entre los 11 clientes: 6 de Ana Torres (las de antes) y 3 de cada cliente nuevo, separadas 37 dias y dentro de los ultimos cuatro meses. Los precios salen del catálogo actual y los medios de pago se alternan. |
+| `ImagenesArticuloSeeder` | Genera una silueta SVG para cada artículo sin foto, para que el catálogo no quede vacío tras `migrate:fresh --seed`. No toca los artículos que ya tienen imagen. |
+
+Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ventas** (jul a oct) y el de "Últimos 6 meses", 7 meses. Antes había un solo cliente con 6 ventas.
 
 ## 6. Módulos actuales
 
@@ -169,6 +179,9 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 33. **PENDIENTE** — El modulo de artículos sigue cerrado para el rol Cliente (`role:Jefe|Administrador|Encargado|Deposito`): un cliente no puede ver el catalogo, solo el carrito. Es decision del profesor, escrita en el comentario de las rutas, pero como usuario final es raro: el cliente no ve los productos que puede comprar. Mismo tema con `/cart`, que muestra el flujo de caja ("seleccionar cliente") en vez de un carrito de compra.
 34. **RESUELTO** — El rol de deposito se llamaba **"Depósito" (con tilde)** en `RoleSeeder` y `UserSeeder`, pero el codigo del profesor lo escribe **"Deposito" (sin tilde)**: `routes/web.php` (`role:Jefe|Administrador|Encargado|Deposito`) y `layouts/app.blade.php` (`@role('Jefe|Administrador|Encargado|Deposito')`). MySQL no distingue tildes al comparar (collation `*_ci`), asi que la base de datos SI encontraba el rol y no habia error visible; pero Spatie compara los nombres como cadenas de PHP, donde `'Depósito' === 'Deposito'` es **false**. Resultado: el usuario de deposito caia en **HTTP 403** en todo el modulo de articulos (su trabajo) y el link del sidebar tampoco le aparecia. Se unifico la grafia en "Deposito" (la que usa el codigo del profesor) y se agrego `tests/Feature/RolesTest.php` para que no vuelva: el test lee los roles de las rutas, de las directivas de Blade y de los seeders, y exige que existan **exactamente** en el catalogo.
 35. **RESUELTO** — El usuario de deposito no podia ver el modulo de articulos por el bug 34. Verificado con barrido HTTP: antes 403, ahora **200**, y el link "Articulos" le aparece en el sidebar.
+36. **RESUELTO** — El rol Cliente no podia ver el catalogo (403) y el carrito le mostraba el flujo de caja del mostrador ("seleccionar cliente"), que es para el personal. Ahora el Cliente compra como usuario final: ve el catalogo en modo lectura (sin botones de alta, edicion, borrado ni PDF), tiene **su propio carrito** (`/mi-carrito`, resuelto desde su ficha, no desde un parametro) y el mostrador sigue intacto para el personal.
+37. **RESUELTO** — Un Cliente podia abrir el carrito de otro cliente con el id en la URL, ver sus productos y hasta confirmar la venta. Se agrego el middleware `carrito.propio` (`app/Http/Middleware/CarritoPropio.php`), que devuelve 403 si el rol Cliente pide un carrito que no es suyo. **OJO:** el middleware tiene que ir DENTRO del `Route::middleware([...])->group(...)`: si se encadena despues del `->group()`, Laravel ya registro las rutas con los atributos anteriores y no se aplica (se verifica con `route:list -v`).
+38. **RESUELTO** — Habia un solo cliente (Ana Torres) con las 6 ventas, asi que el dashboard no mostraba movimiento. Ahora hay **11 clientes con 36 ventas** repartidas en los ultimos cuatro meses (ver seccion 5).
 
 ## 8. Convenciones para cambios futuros
 
@@ -178,6 +191,8 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 - **Autorización de usuarios/roles**: `User::isAdmin()` (Jefe o Administrador). Para proteger rutas con el middleware de Spatie usar `->middleware('role:Jefe|Administrador')`.
 - **Interfaz**: el color de acento es `hazard` y las superficies son `zinc`. No volver a `indigo`, `blue`, `amber` ni `slate`. Toda superficie clara (`bg-white`, `text-gray-*`, `border-gray-*`) necesita su variante `dark:`; al agregar vistas, correr `php scripts/agregar-modo-oscuro.php` y despues `php scripts/auditar-modo-oscuro.php`.
 - **Modo oscuro**: la clase `dark` en `<html>` la pone el script del `<head>` segun `localStorage['tema']`. No usar `prefers-color-scheme` en las vistas ni poner la clase a mano: el interruptor es el unico que decide.
+- **Dos tipos de compra, dos flujos**: el mostrador (`/cart`) es del personal y elige a quién le vende. El flujo del Cliente (`/mi-carrito`) es suyo y no lleva selector. Para agregar un flujo nuevo, decidir primero cual de los dos es.
+- **Catalogo**: el Cliente ve `/articles` en modo lectura. Los controles de gestion (alta, edicion, borrado, PDF) van detras de `role:Jefe|Administrador|Encargado|Deposito` en las RUTAS, y la vista los oculta con el flag `$esCliente` que pasa el controlador. Las dos capas: la ruta es la seguridad, la vista es la usanza.
 - Registrar cada cambio nuevo en este archivo (sección 4, 5, 6) y crear el plan siguiente en `ai_workspace/NNN_plan_<tema>.md` siguiendo `PLANtemplate.md`.
 
 ## 9. Planes de `ai_workspace`

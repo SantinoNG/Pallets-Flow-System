@@ -17,7 +17,10 @@ sistema. Se ejecutan con PHP desde la raiz del proyecto.
 | Script | Para que sirve |
 |---|---|
 | `testear-rutas.php` | Barrido de **todas** las rutas GET con la sesion de un usuario. Reporta el codigo HTTP de cada una. Sirve para verificar de un golpe que no hay 404 ni 500, y para ver que rutas bloquea el control de acceso de cada rol (403). |
-| `testear-flujo-venta.php` | Prueba funcional del flujo de venta sobre HTTP real: crear carrito, agregar item, checkout, confirmar y generar el comprobante en PDF. |
+| `testear-flujo-venta.php` | Prueba funcional del flujo de venta del **personal** sobre HTTP real: crear carrito, agregar item, checkout, confirmar y generar el comprobante en PDF. |
+| `testear-flujo-cliente.php` | Prueba funcional del flujo de compra del **Cliente**: ver el catálogo, agregar a su carrito, y no poder tocar el carrito de otro. |
+| `verificar-movimiento.php` | Cuantos clientes y ventas hay, como se reparten por cliente y por mes, y cuantos hay en los ultimos 30/90 dias y 4 meses. |
+| `verificar-dashboard.php` | Que datos ve el dashboard en cada periodo (30 dias, 90 dias, 6 meses, año, todo): meses con ventas, totales y graficos con datos. |
 
 ## Uso
 
@@ -32,6 +35,9 @@ php scripts/generar-imagenes-demo.php
 php scripts/testear-rutas.php                                   # admin
 php scripts/testear-rutas.php cliente@gmail.com cliente1234    # otro rol
 php scripts/testear-flujo-venta.php
+php scripts/testear-flujo-cliente.php
+php scripts/verificar-movimiento.php
+php scripts/verificar-dashboard.php
 ```
 
 > **Nota sobre las cookies:** los scripts manejan las cookies en memoria,

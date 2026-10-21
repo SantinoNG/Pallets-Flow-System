@@ -143,7 +143,57 @@ queda igual.
 | Páginas con modo oscuro completo | 0 | **15 de 15** |
 | Archivos con encoding roto | 1 | **0** |
 | Rol "depósito" entrando a Artículos | **HTTP 403** | **HTTP 200** |
-| Rutas que devuelven 404 o 500 | ? | **0** (34 rutas × 4 roles) |
+| Rutas que devuelven 404 o 500 | ? | **0** (35 rutas × 5 roles) |
+| Cliente viendo el catálogo | **HTTP 403** | **HTTP 200** (modo lectura) |
+| Clientes con historial de compras | 1 | **11** |
+| Ventas en los últimos 4 meses | 6 | **34** |
+
+---
+
+## El Cliente como usuario que compra
+
+El rol Cliente no podia **ver el catálogo** (403) y el carrito le mostraba el
+flujo de caja del mostrador ("seleccionar cliente"), que es para el personal.
+Ahora compra como usuario final.
+
+### Catálogo
+
+`/articles` pasó a ser visible para todo usuario autenticado. Lo que el
+Cliente **no** puede es gestionarlo: el alta, la edición, el borrado y el
+reporte PDF siguen detrás de `role:Jefe|Administrador|Encargado|Deposito`.
+
+La vista usa un flag `$esCliente` que pasa el controlador, para ocultar los
+controles de administración. **Las dos capas hacen falta**: la ruta es la
+seguridad, la vista es la usanza.
+
+### Carrito propio
+
+Se agregaron dos rutas y un controlador:
+
+| Ruta | Qué hace |
+|---|---|
+| `GET /mi-carrito` | El carrito del Cliente (se le crea si no tiene) |
+| `POST /mi-carrito/items` | Agrega un artículo a SU carrito |
+
+El carrito se resuelve **desde su ficha de cliente**, no desde un parámetro:
+un Cliente no puede meter cosas en el carrito de otro. El mostrador
+(`/cart`) sigue siendo del personal, con su selector de clientes.
+
+Y para que no pueda ni mirar el carrito ajeno, se agregó el middleware
+`carrito.propio`, que devuelve **403** si el rol Cliente pide un carrito que
+no es suyo.
+
+### Diez clientes más y cuatro meses de compras
+
+| Seeder | Qué hace |
+|---|---|
+| `CustomerSeeder` | 10 clientes más, cada uno con su usuario y su ficha |
+| `SaleSeeder` | 36 ventas repartidas entre los 11 clientes, en los últimos 4 meses |
+| `ImagenesArticuloSeeder` | Silueta SVG para cada artículo sin foto |
+
+El filtro **"Últimos 90 días"** del dashboard ahora muestra 4 meses con
+ventas (jul → oct, $4.581.500) y el de "Últimos 6 meses", 7 meses. Antes
+había un solo cliente con 6 ventas.
 
 ---
 

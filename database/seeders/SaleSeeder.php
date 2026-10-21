@@ -122,47 +122,141 @@ class SaleSeeder extends Seeder
         ];
 
         // ------------------------------------------------------------------
+        //  Ventas de los clientes que agregado CustomerSeeder
+        // ------------------------------------------------------------------
+        /*
+         * Cada cliente nuevo hace TRES compras, separadas y repartidas en
+         * los ultimos cuatro meses (120 dias). Las fechas se calculan con
+         * un indice fijo, no al azar: la siembra siempre da el mismo
+         * resultado y el dashboard se puede comparar entre corridas.
+         *
+         * Con los 10 clientes nuevos son 30 compras mas, que se suman a las
+         * 6 de Ana Torres. Todas dentro de la ventana que usa el filtro
+         * "6 meses" del dashboard, asi que el grafico de ventas por mes
+         * muestra movimiento real y no una sola barra.
+         */
+        $clientesNuevos = DB::table('customers')
+            ->join('users', 'users.id_user', '=', 'customers.id_user')
+            ->where('users.email', '!=', 'cliente@gmail.com')
+            ->orderBy('customers.id_customer')
+            ->get([
+                'customers.id_customer',
+                'customers.first_name',
+                'customers.last_name',
+                'users.email',
+            ]);
+
+        $mediosDePago = ['Efectivo', 'Tarjeta de crédito', 'Transferencia', 'Tarjeta de débito'];
+
+        // Los artículos, con su precio actual del catálogo.
+        $articulos = DB::table('articles')
+            ->orderBy('id_article')
+            ->get(['id_article', 'article_name', 'unit_price']);
+
+        $i = 0;
+
+        foreach ($clientesNuevos as $cliente) {
+            // Tres compras por cliente, a 37 dias de distancia una de otra.
+            $base = 2 + $i * 4;
+
+            foreach ([$base, $base + 37, $base + 74] as $n => $hace) {
+                // Cada compra lleva entre 1 y 3 artículos del catálogo.
+                $cuantos = 1 + (($i + $n) % 3);
+                $items = [];
+
+                for ($k = 0; $k < $cuantos; $k++) {
+                    // Se va recorriendo el catálogo, empezando en un punto
+                    // distinto para cada cliente, para que no todos
+                    // compren siempre lo mismo.
+                    $posicion = ($i * 3 + $n * 2 + $k) % $articulos->count();
+                    $articulo = $articulos[$posicion];
+
+                    $items[] = [
+                        'id_article' => $articulo->id_article,
+                        'quantity'   => 1 + (($i + $n + $k) % 3),
+                        'unit_price' => $articulo->unit_price,
+                    ];
+                }
+
+                $this->escribirVenta(
+                    idCustomer: (int) $cliente->id_customer,
+                    idEmpleado: ($i + $n) % 2 === 0 ? $vendedor : $deposito,
+                    pago: $mediosDePago[($i + $n) % count($mediosDePago)],
+                    items: $items,
+                    fecha: now()->subDays($hace),
+                );
+            }
+
+            $i++;
+        }
+
+        // ------------------------------------------------------------------
         //  Se escriben
         // ------------------------------------------------------------------
         foreach ($ventas as $v) {
-            $fecha = now()->subDays($v['hace']);
-
-            // Carrito de la venta
-            $idCart = DB::table('cart')->insertGetId([
-                'id_customer' => $idCustomer,
-                'status'      => 'completed',
-                'created_at'  => $fecha,
-                'updated_at'  => $fecha,
-            ]);
-
-            // Items del carrito
-            foreach ($v['items'] as $item) {
-                DB::table('cart_items')->insert([
-                    'id_cart'    => $idCart,
+            $this->escribirVenta(
+                idCustomer: $idCustomer,
+                idEmpleado: $v['empleado'],
+                pago: $v['pago'],
+                items: array_map(fn ($item) => [
                     'id_article' => $articuloId($item['articulo']),
                     'quantity'   => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'created_at' => $fecha,
-                    'updated_at' => $fecha,
-                ]);
-            }
+                ], $v['items']),
+                fecha: now()->subDays($v['hace']),
+            );
+        }
+    }
 
-            // Venta
-            $idVenta = DB::table('sales')->insertGetId([
-                'id_cart'        => $idCart,
-                'id_customer'    => $idCustomer,
-                'id_employee'    => $v['empleado'],
-                'payment_method' => $v['pago'],
-                'created_at'     => $fecha,
-                'updated_at'     => $fecha,
-            ]);
+    /**
+     * Escribe una venta completa: carrito, items, venta y comprobante.
+     *
+     * Se separo en un metodo porque ahora las ventas se generan de dos
+     * maneras (la lista fija de Ana Torres y las de los clientes nuevos)
+     * y las dos terminan igual.
+     */
+    private function escribirVenta(
+        int $idCustomer,
+        ?int $idEmpleado,
+        string $pago,
+        array $items,
+        \Illuminate\Support\Carbon $fecha
+    ): void {
+        // Carrito de la venta
+        $idCart = DB::table('cart')->insertGetId([
+            'id_customer' => $idCustomer,
+            'status'      => 'completed',
+            'created_at'  => $fecha,
+            'updated_at'  => $fecha,
+        ]);
 
-            // Comprobante
-            DB::table('receipts')->insert([
-                'id_sale'    => $idVenta,
-                'issue_date' => $fecha->toDateString(),
-                'due_date'   => $fecha->copy()->addDays(30)->toDateString(),
+        // Items del carrito
+        foreach ($items as $item) {
+            DB::table('cart_items')->insert([
+                'id_cart'    => $idCart,
+                'id_article' => $item['id_article'],
+                'quantity'   => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'created_at' => $fecha,
+                'updated_at' => $fecha,
             ]);
         }
+
+        // Venta
+        $idVenta = DB::table('sales')->insertGetId([
+            'id_cart'        => $idCart,
+            'id_customer'    => $idCustomer,
+            'id_employee'    => $idEmpleado,
+            'payment_method' => $pago,
+            'created_at'     => $fecha,
+            'updated_at'     => $fecha,
+        ]);
+
+        // Comprobante
+        DB::table('receipts')->insert([
+            'id_sale'    => $idVenta,
+            'issue_date' => $fecha->toDateString(),
+            'due_date'   => $fecha->copy()->addDays(30)->toDateString(),
+        ]);
     }
 }

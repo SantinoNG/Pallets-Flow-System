@@ -40,7 +40,14 @@ class ArticleController extends Controller
 
         $articles = $query->get();
 
-        return view('articles.index', compact('articles'));
+        /*
+         * El Cliente ve el catálogo en modo lectura (puede comprar, pero no
+         * gestionar el inventario). El flag lo usa la vista para ocultar los
+         * controles de administración.
+         */
+        $esCliente = $request->user()?->hasRole('Cliente') ?? false;
+
+        return view('articles.index', compact('articles', 'esCliente'));
     }
 
     // EXPORTAR PDF con los mismos filtros
