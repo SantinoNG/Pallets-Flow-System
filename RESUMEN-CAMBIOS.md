@@ -118,7 +118,7 @@ Las 22 "fugas" del administrador están en `/usuarios` (gestionar cuentas) y en
 `/sales` (el email de los clientes que gestiona): **es exactamente lo que le
 corresponde ver**. Los otros tres roles, en cero.
 
-Además se agregaron **23 tests** (`tests/Feature/FugasTest.php` y
+Además se agregaron **26 tests** (`tests/Feature/FugasTest.php` y
 `tests/Feature/UsuariosTest.php`) que fijan estas reglas para que no se
 vuelvan a romper.
 
@@ -242,7 +242,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **122 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **125 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |

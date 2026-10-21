@@ -142,12 +142,12 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 122 tests, 1020 aserciones, todas en verde.
+**Pruebas:** 125 tests, 1029 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
 oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
-`tests/Feature/FugasTest.php` (6 casos) y `tests/Feature/UsuariosTest.php`
+`tests/Feature/FugasTest.php` (9 casos) y `tests/Feature/UsuariosTest.php`
 (17 casos) fijan la separacion entre clientes y personal.
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta

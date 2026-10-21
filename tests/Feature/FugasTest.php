@@ -107,6 +107,63 @@ class FugasTest extends TestCase
     }
 
     #[Test]
+    public function el_comprobante_en_pdf_del_cliente_no_trae_al_personal(): void
+    {
+        $cliente = $this->como('carla.mendez@ecommerce.com', 'Cliente');
+
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+        $venta = Sale::where('id_customer', $customer->id_customer)->firstOrFail();
+
+        // El PDF se arma con esta vista, asi que se revisa el HTML que
+        // dompdf convierte en PDF.
+        $html = view('sales.pdf', [
+            'sale'     => $venta->load('cart.items.article', 'customer.user', 'employee', 'receipt'),
+            'esCliente' => true,
+            'veEmails' => false,
+        ])->render();
+
+        $this->assertStringNotContainsString('Atendido por', $html);
+        $this->assertStringNotContainsString($cliente->email, $html);
+        $this->assertStringContainsString('Medio de pago', $html);
+    }
+
+    #[Test]
+    public function el_cliente_descarga_su_comprobante_con_el_nombre_de_compra(): void
+    {
+        $cliente = $this->como('carla.mendez@ecommerce.com', 'Cliente');
+
+        $customer = Customer::where('id_user', $cliente->id_user)->firstOrFail();
+        $venta = Sale::where('id_customer', $customer->id_customer)->firstOrFail();
+
+        $respuesta = $this->get('/sales/' . $venta->id_sale . '/pdf');
+
+        $respuesta->assertOk();
+        $respuesta->assertHeader('content-type', 'application/pdf');
+
+        $this->assertStringContainsString(
+            'comprobante-compra-' . $venta->id_sale . '.pdf',
+            $respuesta->headers->get('content-disposition')
+        );
+    }
+
+    #[Test]
+    public function el_personal_descarga_su_comprobante_con_el_nombre_de_venta(): void
+    {
+        $this->como('admin@ecommerce.com', 'Administrador');
+
+        $venta = Sale::firstOrFail();
+
+        $respuesta = $this->get('/sales/' . $venta->id_sale . '/pdf');
+
+        $respuesta->assertOk();
+
+        $this->assertStringContainsString(
+            'comprobante-venta-' . $venta->id_sale . '.pdf',
+            $respuesta->headers->get('content-disposition')
+        );
+    }
+
+    #[Test]
     public function el_formulario_de_empleados_no_ofrece_a_los_clientes(): void
     {
         $this->como('admin@ecommerce.com', 'Administrador');

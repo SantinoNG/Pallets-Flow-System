@@ -28,8 +28,8 @@ curl_exec($ch); curl_close($ch);
 
 $paginas = [
     '/dashboard', '/articles', '/articles/create', '/suppliers', '/employees',
-    '/roles', '/roles/create', '/usuarios', '/usuarios/1/roles', '/cart', '/sales',
-    '/profile', '/tutorial',
+    '/roles', '/roles/create', '/usuarios', '/usuarios/create', '/usuarios/1/roles',
+    '/cart', '/sales', '/profile', '/tutorial',
 ];
 
 // Paginas de invitado: se piden SIN sesion (siEstasConectado seria
