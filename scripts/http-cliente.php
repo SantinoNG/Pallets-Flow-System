@@ -38,7 +38,12 @@ class ClienteHttp
 
         if ($post !== null) {
             $opciones[CURLOPT_POST] = true;
-            $opciones[CURLOPT_POSTFIELDS] = $post;
+            // Con POSTFIELDS como array, curl manda multipart. Los arrays
+            // anidados hay que aplanarlos a la forma que entiende PHP
+            // ("materials[0]"): si se dejan como array, curl los convierte
+            // en la cadena "Array" y la validacion falla con "debe ser un
+            // conjunto".
+            $opciones[CURLOPT_POSTFIELDS] = $this->aplanar($post);
         }
 
         curl_setopt_array($ch, $opciones);
@@ -65,6 +70,32 @@ class ClienteHttp
             'destino' => $destino,
             'tipo'    => $tipo,
         ];
+    }
+
+    /**
+     * Aplana arrays anidados a la forma que entiende PHP.
+     *
+     *     ['materials' => ['Tela', 'Hilo']]
+     *       ->  ['materials[0]' => 'Tela', 'materials[1]' => 'Hilo']
+     *
+     * @param  array<string, mixed>  $datos
+     * @return array<string, string>
+     */
+    private function aplanar(array $datos, string $prefijo = ''): array
+    {
+        $salida = [];
+
+        foreach ($datos as $clave => $valor) {
+            $nombre = $prefijo === '' ? (string) $clave : $prefijo . '[' . $clave . ']';
+
+            if (is_array($valor)) {
+                $salida += $this->aplanar($valor, $nombre);
+            } else {
+                $salida[$nombre] = (string) $valor;
+            }
+        }
+
+        return $salida;
     }
 
     /**

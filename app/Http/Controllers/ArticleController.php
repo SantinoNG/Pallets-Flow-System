@@ -151,7 +151,13 @@ class ArticleController extends Controller
         $article->image        = $this->guardarImagen($request, $article->image);
         $article->save();
 
-        $stock                     = $article->stock;
+        /*
+         * El stock se crea si no existe. Si el artículo se quedó sin fila de
+         * stock (por ejemplo, porque se borró a mano en la base), el
+         * update reventaba con un error de tipo.
+         */
+        $stock = $article->stock ?? new ProductStock();
+        $stock->id_article         = $article->id_article;
         $stock->remaining_quantity = $request->remaining_quantity;
         $stock->minimum_stock      = $request->minimum_stock;
         $stock->save();
@@ -173,6 +179,30 @@ class ArticleController extends Controller
     // DELETE
     public function destroy(Article $article)
     {
+        /*
+         * Un artículo que ya se vendió NO se puede borrar.
+         *
+         * El item del carrito apunta al artículo (cart_items.id_article), y
+         * ese item es el historial de la venta. Si se borra el artículo, la
+         * base tira el error de clave foránea y el usuario ve un 500.
+         *
+         * Lo que sí se puede limpiar son los items que quedaron en carritos
+         * SIN venta (carritos abandonados): no son historia de nadie.
+         */
+        $itemsVendidos = $article->cartItems()
+            ->whereHas('cart.sale')
+            ->count();
+
+        if ($itemsVendidos > 0) {
+            return redirect()->route('articles.index')
+                ->with('error', 'No se puede eliminar «' . $article->article_name . '»: tiene '
+                    . $itemsVendidos . ' venta(s) registradas. Si ya no se ofrece, '
+                    . 'dejalo con stock en cero en vez de borrarlo.');
+        }
+
+        // Items de carritos sin venta: se van con el artículo.
+        $article->cartItems()->delete();
+
         $this->borrarImagen($article->image);
 
         $article->rawMaterials()->detach();

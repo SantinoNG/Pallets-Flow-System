@@ -130,6 +130,29 @@ class SupplierController extends Controller
     // DELETE — Elimina el proveedor
     public function destroy(Supplier $supplier)
     {
+        /*
+         * Las materias primas del proveedor pueden estar en la receta de un
+         * artículo (article_materials). Si lo están, borrarlas dejaría al
+         * producto sin un insumo, así que se avisa en vez de romper la base
+         * con un error de clave foránea.
+         */
+        $materias = $supplier->rawMaterials;
+        $enRecetas = $materias->filter(fn ($materia) => $materia->articles()->exists());
+
+        if ($enRecetas->isNotEmpty()) {
+            $nombres = $enRecetas->pluck('description')->implode(', ');
+
+            return redirect()->route('suppliers.index')
+                ->with('error', 'No se puede eliminar «' . $supplier->company_name . '»: sus materias primas ('
+                    . $nombres . ') están en la receta de artículos.');
+        }
+
+        // Las que no están en ninguna receta se van con su stock.
+        foreach ($materias as $materia) {
+            RawMaterialStock::where('id_raw_material', $materia->id_raw_material)->delete();
+            $materia->delete();
+        }
+
         $supplier->delete();
 
         return redirect()->route('suppliers.index')

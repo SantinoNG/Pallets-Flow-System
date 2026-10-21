@@ -112,8 +112,10 @@ $ids = [
 /*
  * El Cliente solo puede ver SUS ventas: si se prueba con la venta de otro,
  * el 404 es la respuesta correcta y no un problema. Se busca entonces una
- * venta que sea suya.
+ * venta que sea suya. Si no tiene ninguna, el 404 de las rutas de venta es
+ * lo esperado.
  */
+$ventas404Esperado = false;
 if ($email === 'cliente@gmail.com' || DB::table('users')->where('email', $email)->value('id_role')) {
     $idRoleCliente = DB::table('roles')->where('role_name', 'Cliente')->value('id_role');
     $esCliente = DB::table('users')->where('email', $email)->value('id_role') == $idRoleCliente;
@@ -128,6 +130,10 @@ if ($email === 'cliente@gmail.com' || DB::table('users')->where('email', $email)
 
         if ($ventaPropia) {
             $ids['sales'] = $ventaPropia;
+        } else {
+            // No tiene compras: las rutas de venta tienen que dar 404, y eso
+            // es lo correcto, no un problema.
+            $ventas404Esperado = true;
         }
     }
 }
@@ -189,9 +195,16 @@ foreach ($rutas as $uri => $nombre) {
 
     $problema = '';
 
-    if (in_array($r['codigo'], [404, 419, 500], true)) {
+    // Las rutas de venta de un cliente sin compras tienen que dar 404: es
+    // la respuesta correcta (no puede ver las ventas de otro).
+    $esRutaDeVenta = str_contains($uri, 'sales/');
+    $esperado404 = $ventas404Esperado && $esRutaDeVenta && $r['codigo'] == 404;
+
+    if (in_array($r['codigo'], [404, 419, 500], true) && ! $esperado404) {
         $problema = '  <-- PROBLEMA';
         $malos++;
+    } elseif ($esperado404) {
+        $problema = '  (404 esperado: no tiene compras)';
     }
     if ($r['codigo'] == 403) {
         $bloqueadas++;
