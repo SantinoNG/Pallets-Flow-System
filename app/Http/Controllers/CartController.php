@@ -45,7 +45,14 @@ class CartController extends Controller
         $cart = $this->carritoActivoDelCliente($request);
 
         if (! $cart) {
-            return redirect()->route('cart.index')
+            /*
+             * OJO: aca NO se puede redirigir a cart.index. Esa pagina, para
+             * el rol Cliente, redirige a su vez a /mi-carrito: el navegador
+             * quedaba en un bucle infinito (ERR_TOO_MANY_REDIRECTS).
+             *
+             * Al panel: es una pagina que el Cliente si puede ver.
+             */
+            return redirect()->route('dashboard')
                 ->with('error', 'Tu usuario no tiene una ficha de cliente. Contactá al administrador.');
         }
 
@@ -75,15 +82,21 @@ class CartController extends Controller
     }
 
     /**
-     * Carrito activo del cliente de la sesión (o null si no tiene ficha).
+     * Carrito activo del cliente de la sesión (o null si no es Cliente).
+     *
+     * Si al usuario le falta la ficha de cliente, se le crea en el momento:
+     * sin ficha no hay carrito, y el cliente se quedaba sin poder comprar.
      */
     private function carritoActivoDelCliente(Request $request): ?Cart
     {
-        $customer = $request->user()?->customer;
+        $user = $request->user();
 
-        if (! $customer) {
+        // El personal no tiene carrito propio: usa el mostrador (/cart).
+        if (! $user || ! $user->hasRole('Cliente')) {
             return null;
         }
+
+        $customer = $user->asegurarFichaCliente();
 
         return Cart::firstOrCreate(
             ['id_customer' => $customer->id_customer, 'status' => 'active'],

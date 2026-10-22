@@ -74,6 +74,19 @@
                         </button>
                     </div>
                 </form>
+
+                {{-- Registro publico: cualquiera puede crearse una cuenta de
+                     cliente. El alta crea tambien su ficha y su carrito. --}}
+                @if (Route::has('register'))
+                    <div class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
+                        <p class="text-center text-xs text-gray-500 dark:text-zinc-400">¿Todavía no tenés cuenta?</p>
+
+                        <a href="{{ route('register') }}"
+                           class="block w-full text-center border border-gray-300 dark:border-zinc-700 hover:border-hazard-500 dark:hover:border-hazard-500 hover:text-hazard-600 dark:hover:text-hazard-500 text-gray-700 dark:text-zinc-200 font-bold py-3 rounded-lg transition text-xs uppercase tracking-wider">
+                            Crear una Cuenta
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

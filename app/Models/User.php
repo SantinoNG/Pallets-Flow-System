@@ -134,6 +134,57 @@ class User extends Authenticatable implements Auditable
     }
 
     /**
+     * Devuelve la ficha de cliente del usuario, y la crea si no existe.
+     *
+     * Un usuario con rol Cliente NECESITA una fila en `customers`: es la que
+     * enlaza su carrito y su historial de compras. Si falta, el cliente entra
+     * al sistema pero no puede comprar.
+     *
+     * Esto paso de verdad: el registro publico creaba el usuario con rol
+     * Cliente pero sin ficha, y al entrar a /mi-carrito la pagina rebotaba a
+     * /cart, que a su vez rebotaba a /mi-carrito... el navegador terminaba
+     * con ERR_TOO_MANY_REDIRECTS.
+     *
+     * Sirve de red de seguridad para los usuarios que ya quedaron sin ficha:
+     * se arreglan solos la proxima vez que entran.
+     *
+     * @param  array{first_name?: string, last_name?: string, phone?: ?string, address?: ?string}  $datos
+     */
+    public function asegurarFichaCliente(array $datos = []): Customer
+    {
+        $existente = $this->customer()->first();
+
+        if ($existente) {
+            return $existente;
+        }
+
+        // Si no vienen nombre y apellido se parten del nombre del usuario.
+        [$nombre, $apellido] = $this->partirNombre();
+
+        return $this->customer()->create([
+            'first_name' => $datos['first_name'] ?? $nombre,
+            'last_name'  => $datos['last_name'] ?? $apellido,
+            'phone'      => $datos['phone'] ?? null,
+            'address'    => $datos['address'] ?? null,
+        ]);
+    }
+
+    /**
+     * Parte "Nombre Apellido" en sus dos partes.
+     *
+     * El apellido puede tener espacios ("De la Fuente"), asi que solo se
+     * corta en el primer espacio.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function partirNombre(): array
+    {
+        $partes = preg_split('/\s+/', trim((string) $this->name), 2) ?: [];
+
+        return [$partes[0] ?? (string) $this->name, $partes[1] ?? ''];
+    }
+
+    /**
      * Id del rol 'Cliente' en el catalogo de roles.
      *
      * Se consulta por nombre y no por id fijo, porque los ids se autogeneran

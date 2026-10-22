@@ -50,18 +50,12 @@ class DashboardController extends Controller
      */
     private function datosDelCliente(Request $request): array
     {
-        $customer = $request->user()->customer;
-
-        if (! $customer) {
-            return [
-                'compras'         => 0,
-                'totalGastado'    => 0.0,
-                'ultimaCompra'    => null,
-                'articulos'       => 0,
-                'carritoPendiente'=> null,
-                'recientes'       => collect(),
-            ];
-        }
+        /*
+         * Si al cliente le falta la ficha, se le crea aca. Un cliente nuevo
+         * (por ejemplo, uno que se acaba de registrar solo) tiene que ver su
+         * panel igual que cualquier otro, no una pantalla en cero.
+         */
+        $customer = $request->user()->asegurarFichaCliente();
 
         $ventas = Sale::where('id_customer', $customer->id_customer)
             ->with('cart.items.article')

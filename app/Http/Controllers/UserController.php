@@ -191,17 +191,12 @@ class UserController extends Controller
          * entra al sistema pero no puede comprar: no tiene carrito ni
          * historial, porque toda la logica de compras se apoya en
          * `customers.id_user`.
+         *
+         * Se delega en el modelo: la misma regla la usan el registro
+         * publico y el carrito.
          */
-        if ($rol->role_name === 'Cliente' && ! $user->customer()->exists()) {
-            $partes = preg_split('/\s+/', trim($user->name), 2) ?: [];
-
-            Customer::create([
-                'id_user'    => $user->id_user,
-                'first_name' => $partes[0] ?? $user->name,
-                'last_name'  => $partes[1] ?? '',
-                'phone'      => null,
-                'address'    => null,
-            ]);
+        if ($rol->role_name === 'Cliente') {
+            $user->asegurarFichaCliente();
         }
 
         return redirect()

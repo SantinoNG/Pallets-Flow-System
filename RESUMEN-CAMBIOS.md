@@ -146,6 +146,52 @@ archivo vacío y mostraba su icono por defecto). Ahora lo genera
 `scripts/generar-favicon.php`, que dibuja el pallet con GD y arma el ICO con
 el PNG adentro, y los dos layouts anuncian el SVG y un PNG de 32 px.
 
+### Registro público: faltaba el botón, y el alta dejaba al cliente sin ficha
+
+La ruta `/register` existía desde Breeze, pero **no había ningún enlace que
+llevara a ella**: el login no la ofrecía. Y la pantalla era la de Breeze por
+defecto, en inglés y sin el diseño del sistema.
+
+El botón ya está en el login (`Crear una Cuenta`) y la pantalla se rehizo con
+el mismo split-screen del login: nombre, apellido, correo, contraseña y
+repetir contraseña.
+
+Pero el problema de fondo era otro. El registro creaba la cuenta en `users`
+**y nada más**. La ficha en `customers` no se creaba, y toda la lógica de
+compras se apoya en ella (`cart.id_customer`, `sales.id_customer`). Con el
+cliente recién registrado pasaba esto:
+
+1. Entraba al panel y veía todo en cero (su panel no encontraba sus compras).
+2. Tocaba "Mi carrito" y `/mi-carrito` lo mandaba a `/cart` porque no tenía
+   ficha.
+3. `/cart` **lo volvía a mandar a `/mi-carrito`** (esa página es del
+   mostrador, y al rol Cliente se lo deriva a su carrito).
+4. El navegador cortaba con **ERR_TOO_MANY_REDIRECTS**.
+
+O sea: la cuenta se guardaba, pero quedaba inutilizable, y por eso parecía
+que "no se guardaba".
+
+**Qué se hizo**
+
+- El registro crea ahora las dos filas: la cuenta y la ficha, con el nombre y
+  el apellido del formulario. El rol sigue fijo en `Cliente` (no viene del
+  request: si no, cualquiera se registraría como Administrador).
+- El correo se guarda **en minúsculas**, para que `Pepe@Mail.com` y
+  `pepe@mail.com` sean la misma cuenta. (La regla `lowercase` de Laravel no
+  servía: rechaza el alta en vez de normalizar.)
+- Nuevo `User::asegurarFichaCliente()`: devuelve la ficha y **la crea si
+  falta**. Lo usan el registro, el cambio de rol a Cliente, el carrito y el
+  panel del cliente. Sirve de red de seguridad: los usuarios que ya habían
+  quedado sin ficha se arreglan solos al entrar.
+- `miCarrito` ya no puede rebotar al mostrador: si algo falla, vuelve al panel
+  (nunca a `/cart`, que es el otro extremo del bucle).
+- Se completaron las fichas de los clientes que ya estaban sin ella (PEPE).
+
+**Cómo se verificó**: `RegistrationTest` tiene 10 casos — el alta crea la
+ficha, el email se normaliza, un email repetido se rechaza, el cliente nuevo
+abre `/mi-carrito` sin bucle y puede agregar artículos a su carrito, y un
+cliente viejo sin ficha se arregla solo.
+
 ---
 
 ## 1. Interfaz: paleta industrial + modo oscuro
@@ -266,7 +312,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **127 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **135 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |
