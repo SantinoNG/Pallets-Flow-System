@@ -203,9 +203,10 @@ class ClienteTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // Para el Cliente, una venta es su COMPRA.
-        $this->assertStringContainsString('Compra #' . $venta->id_sale, $html);
-        $this->assertStringNotContainsString('Venta #' . $venta->id_sale, $html);
+        // Para el Cliente, una venta es su COMPRA. El titulo ya no lleva el
+        // id interno de la venta: lleva el numero del comprobante.
+        $this->assertStringContainsString('Compra · Comprobante N°', $html);
+        $this->assertStringNotContainsString('Venta · Comprobante N°', $html);
 
         $this->assertStringContainsString('Artículos comprados', $html);
 
@@ -244,7 +245,11 @@ class ClienteTest extends TestCase
         $visible = preg_replace('/<!--.*?-->/s', '', $html);
 
         $this->assertStringNotContainsString('>Empleado<', $visible);
-        $this->assertStringContainsString('Compra #' . $venta->id_sale, $html);
+
+        // El titulo sigue diciendo "Compra" (no "Venta"), aunque esta
+        // venta se haya creado sin comprobante emitido.
+        $this->assertStringContainsString('Artículos comprados', $html);
+        $this->assertStringNotContainsString('Artículos vendidos', $html);
     }
 
     #[Test]

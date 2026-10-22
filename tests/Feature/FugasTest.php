@@ -117,14 +117,14 @@ class FugasTest extends TestCase
         // El PDF se arma con esta vista, asi que se revisa el HTML que
         // dompdf convierte en PDF.
         $html = view('sales.pdf', [
-            'sale'     => $venta->load('cart.items.article', 'customer.user', 'employee', 'receipt'),
+            'sale'     => $venta->load('cart.items.article', 'customer.user', 'employee', 'receipt', 'payments'),
             'esCliente' => true,
             'veEmails' => false,
         ])->render();
 
         $this->assertStringNotContainsString('Atendido por', $html);
         $this->assertStringNotContainsString($cliente->email, $html);
-        $this->assertStringContainsString('Medio de pago', $html);
+        $this->assertStringContainsString('Forma de pago', $html);
     }
 
     #[Test]
@@ -140,8 +140,10 @@ class FugasTest extends TestCase
         $respuesta->assertOk();
         $respuesta->assertHeader('content-type', 'application/pdf');
 
+        // El archivo se nombra con el numero de comprobante (el que el
+        // cliente reconoce), no con el id interno de la venta.
         $this->assertStringContainsString(
-            'comprobante-compra-' . $venta->id_sale . '.pdf',
+            'comprobante-compra-' . $venta->receipt->numeroComprobante() . '.pdf',
             $respuesta->headers->get('content-disposition')
         );
     }
@@ -158,7 +160,7 @@ class FugasTest extends TestCase
         $respuesta->assertOk();
 
         $this->assertStringContainsString(
-            'comprobante-venta-' . $venta->id_sale . '.pdf',
+            'comprobante-venta-' . $venta->receipt->numeroComprobante() . '.pdf',
             $respuesta->headers->get('content-disposition')
         );
     }

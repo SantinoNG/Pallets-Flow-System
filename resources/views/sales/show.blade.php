@@ -5,9 +5,9 @@
 
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-                {{ $esCliente ? 'Compra' : 'Venta' }} #{{ $sale->id_sale }}
-            </h2>
+            {{-- El comprobante no muestra el id interno de la venta:
+                 muestra su numero fiscal. --}}
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">{{ $esCliente ? 'Compra' : 'Venta' }}@if($sale->receipt) · {{ $sale->receipt->etiqueta() }}@endif</h2>
             <div class="flex flex-wrap items-center gap-3">
                 <a href="{{ route('sales.pdf', $sale->id_sale) }}"
                    class="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 focus:bg-red-700 active:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition">
@@ -34,8 +34,19 @@
                         </p>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Medio de pago</p>
+                        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Forma de pago</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $sale->payment_method }}</p>
+                        {{-- Si se pago con varios medios, el detalle con
+                             importes va debajo del resumen. --}}
+                        @if($sale->payments->count() > 1)
+                            <ul class="mt-1 space-y-0.5">
+                                @foreach($sale->payments as $pago)
+                                    <li class="text-xs text-gray-500 dark:text-zinc-400">
+                                        {{ $pago->payment_method }}: ${{ number_format($pago->amount, 2, ',', '.') }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
                     {{-- El campo aparece solo si hay un vendedor. En una
                          compra que el Cliente hizo por su cuenta no hay, y
@@ -54,6 +65,14 @@
                         <p class="text-lg font-bold text-gray-900 dark:text-zinc-100">
                             ${{ number_format($sale->total(), 2, ',', '.') }}
                         </p>
+                        @if($sale->receipt)
+                            @php $desglose = $sale->receipt->desglose(); @endphp
+                            <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                Neto ${{ number_format($desglose['neto'], 2, ',', '.') }}
+                                + IVA {{ \App\Support\Iva::etiqueta($desglose['tasa']) }}
+                                ${{ number_format($desglose['iva'], 2, ',', '.') }}
+                            </p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -144,14 +163,23 @@
             @if($sale->receipt)
                 <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-sm font-bold text-gray-800 dark:text-zinc-100 uppercase tracking-wider mb-4">Comprobante</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Número</p>
+                            <p class="text-gray-900 dark:text-zinc-100 font-mono">{{ $sale->receipt->numeroComprobante() }}</p>
+                            @if($sale->receipt->receipt_number)
+                                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                    Compra N.º {{ $sale->receipt->receipt_number }} del cliente
+                                </p>
+                            @endif
+                        </div>
                         <div>
                             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Emitido</p>
-                            <p class="text-gray-900 dark:text-zinc-100">{{ $sale->receipt->issue_date }}</p>
+                            <p class="text-gray-900 dark:text-zinc-100">{{ $sale->receipt->issue_date?->format('d/m/Y') }}</p>
                         </div>
                         <div>
                             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Vence</p>
-                            <p class="text-gray-900 dark:text-zinc-100">{{ $sale->receipt->due_date }}</p>
+                            <p class="text-gray-900 dark:text-zinc-100">{{ $sale->receipt->due_date?->format('d/m/Y') }}</p>
                         </div>
                         <div>
                             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Estado</p>

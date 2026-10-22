@@ -58,7 +58,7 @@ class DashboardController extends Controller
         $customer = $request->user()->asegurarFichaCliente();
 
         $ventas = Sale::where('id_customer', $customer->id_customer)
-            ->with('cart.items.article')
+            ->with('cart.items.article', 'receipt', 'payments')
             ->orderByDesc('created_at')
             ->get();
 

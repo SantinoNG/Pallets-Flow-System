@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Comprobante de {{ $esCliente ? 'Compra' : 'Venta' }} #{{ $sale->id_sale }}</title>
+    <title>Comprobante de {{ $esCliente ? 'Compra' : 'Venta' }}{{ $sale->receipt ? ' N° ' . $sale->receipt->numeroComprobante() : '' }}</title>
     <style>
         /* dompdf no entiende CSS moderno: nada de flex/grid, solo tablas */
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #1f2937; margin: 0; }
@@ -37,6 +37,16 @@
 </head>
 <body>
 
+    @php
+        /*
+         * El comprobante no muestra el id de la venta (numero interno).
+         * Muestra el numero fiscal: punto de venta + correlativo del
+         * cliente, y el desglose de IVA guardado al emitir.
+         */
+        $desglose = $sale->receipt?->desglose() ?? \App\Support\Iva::desglosar($sale->total());
+        $numeroCompra = $sale->receipt?->receipt_number;
+    @endphp
+
     {{-- Marca de agua de la marca --}}
     <img src="{{ public_path('images/marca-agua.jpg') }}" class="marca-agua" alt="">
 
@@ -49,13 +59,17 @@
                 <td>
                     <h1>Pallets Flow</h1>
                     <div class="muted">Muebles de pallet · Diseño natural</div>
+                    <div class="muted">Responsable Inscripto · IVA 21%</div>
                 </td>
                 <td class="right font-mono tabular-nums">
-                    <div class="label">Comprobante</div>
-                    <div><strong>#{{ $sale->id_sale }}</strong></div>
+                    <div class="label">Comprobante N°</div>
+                    <div><strong>{{ $sale->receipt?->numeroComprobante() ?? '—' }}</strong></div>
+                    @if($numeroCompra)
+                        <div class="muted">Compra N.º {{ $numeroCompra }} del cliente</div>
+                    @endif
                     <div class="muted">Emitido: {{ $sale->created_at?->format('d/m/Y H:i') ?? '—' }}</div>
                     @if($sale->receipt)
-                        <div class="muted">Vence: {{ $sale->receipt->due_date }}</div>
+                        <div class="muted">Vence: {{ $sale->receipt->due_date?->format('d/m/Y') }}</div>
                     @endif
                 </td>
             </tr>
@@ -94,8 +108,15 @@
                             <span class="muted">Sin empleado</span>
                         @endif
                     @endunless
-                    <div class="label" style="margin-top:8px;">Medio de pago</div>
-                    <strong>{{ $sale->payment_method }}</strong>
+                    <div class="label" style="margin-top:8px;">Forma de pago</div>
+                    @forelse($sale->payments as $pago)
+                        <div>{{ $pago->payment_method }}: <strong>$ {{ number_format($pago->amount, 2, ',', '.') }}</strong></div>
+                    @empty
+                        <strong>{{ $sale->payment_method }}</strong>
+                    @endforelse
+                    @if($sale->payments->count() > 1)
+                        <div class="muted">Pago combinado</div>
+                    @endif
                 </div>
             </td>
         </tr>
@@ -132,8 +153,16 @@
             <td class="right font-mono tabular-nums">{{ $sale->unidades() }}</td>
         </tr>
         <tr>
+            <td class="muted">Subtotal (neto)</td>
+            <td class="right font-mono tabular-nums">$ {{ number_format($desglose['neto'], 2, ',', '.') }}</td>
+        </tr>
+        <tr>
+            <td class="muted">IVA {{ \App\Support\Iva::etiqueta($desglose['tasa']) }}</td>
+            <td class="right font-mono tabular-nums">$ {{ number_format($desglose['iva'], 2, ',', '.') }}</td>
+        </tr>
+        <tr>
             <td class="final">Total</td>
-            <td class="right final font-mono tabular-nums">$ {{ number_format($sale->total(), 2, ',', '.') }}</td>
+            <td class="right final font-mono tabular-nums">$ {{ number_format($desglose['total'], 2, ',', '.') }}</td>
         </tr>
     </table>
 

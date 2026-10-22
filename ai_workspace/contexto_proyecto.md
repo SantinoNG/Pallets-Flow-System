@@ -64,14 +64,15 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 | `ProductStock` | `product_stock` | `id_article` | `belongsTo Article` |
 | `Cart` | `cart` | `id_cart` | `belongsTo Customer`, `hasMany CartItem` (`items`), `hasOne Sale`. Declara `protected $table = 'cart'`. |
 | `CartItem` | `cart_items` | `id_cart_item` | `belongsTo Cart`, `belongsTo Article`. Con `getRouteKeyName()`. |
-| `Sale` | `sales` | `id_sale` | `belongsTo Cart`, `belongsTo Customer`, `belongsTo Employee`, `hasOne Receipt` |
-| `Receipt` | `receipts` | `id_receipt` | `belongsTo Sale` |
+| `Sale` | `sales` | `id_sale` | `belongsTo Cart`, `belongsTo Customer`, `belongsTo Employee`, `hasOne Receipt`, `hasMany SalePayment` (`payments()`). `payment_method` guarda un **resumen**: `Efectivo` o `Pago combinado (Efectivo + Transferencia)`. `esPagoCombinado()` y `numeroComprobante()`. |
+| `SalePayment` | `sale_payments` | `id_payment` | `belongsTo Sale`. Una fila por medio de pago usado, con `payment_method` y `amount`. La suma de los importes es el total de la venta. |
+| `Receipt` | `receipts` | `id_receipt` | `belongsTo Sale`. Guarda el numero fiscal (`receipt_number` correlativo por cliente + `point_of_sale`) y el desglose de IVA (`tax_rate`, `net_amount`, `tax_amount`, `total_amount`). `numeroComprobante()` arma `0001-00000003`; `desglose()` devuelve neto/IVA/total guardados. |
 
 Diagrama lógico: `User 1─1 Employee | Customer` · `Customer 1─N Cart 1─N CartItem N─1 Article` · `Cart 1─1 Sale 1─1 Receipt` · `Sale N─1 Employee` · `Article N─M RawMaterial` · `Article 1─1 ProductStock` · `Supplier 1─N RawMaterial 1─1 RawMaterialStock`.
 
 ## 5. Migraciones (`database/migrations`)
 
-Orden actual: `roles` → `users` (con `id_role` NOT NULL) → `employees` → `customers` → `suppliers` → `raw_materials` → `raw_material_stock` → `articles` → `product_stock` → `article_materials` → **`cart`** (`id_customer`, `status` enum `active|completed|abandoned` default `active`) → **`cart_items`** (`id_cart`, `id_article`, `quantity`, `unit_price`) → `sales` (`id_cart`, `id_customer`, `id_employee` nullable, `payment_method`) → `receipts` (`id_sale`, `issue_date`, `due_date`) → `2026_06_21_225300_create_permission_tables` (Spatie) → `2026_06_21_230236_create_cache_table`.
+Orden actual: `roles` → `users` (con `id_role` NOT NULL) → `employees` → `customers` → `suppliers` → `raw_materials` → `raw_material_stock` → `articles` → `product_stock` → `article_materials` → **`cart`** (`id_customer`, `status` enum `active|completed|abandoned` default `active`) → **`cart_items`** (`id_cart`, `id_article`, `quantity`, `unit_price`) → `sales` (`id_cart`, `id_customer`, `id_employee` nullable, `payment_method`) → `receipts` (`id_sale`, `receipt_number`, `point_of_sale`, `issue_date`, `due_date`, `tax_rate`, `net_amount`, `tax_amount`, `total_amount`) → `sale_payments` (`id_sale`, `payment_method`, `amount`) → `2026_06_21_225300_create_permission_tables` (Spatie) → `2026_06_21_230236_create_cache_table`.
 
 Notas:
 - Las migraciones de dominio están fechadas `2024_01_01_*` (convención manual de orden), las de paquetes `2026_06_21_*`.
@@ -81,13 +82,15 @@ Notas:
 - `2026_10_15_000001_add_email_verified_at_and_remember_token_to_users_table.php`, `2026_10_15_000002_create_infrastructure_tables.php` (sessions, jobs, job_batches, failed_jobs, password_reset_tokens), `2026_10_15_000003_create_audits_table.php` (stub de owen-it).
 - `2026_10_20_000001_add_image_to_articles_table.php`: agrega `articles.image` (string nullable) para la foto del producto. Guarda la **ruta relativa** dentro del disco `public` (por ejemplo `articles/sillon.jpg`), no la URL completa: si el dominio cambia, la ruta sigue sirviendo.
 - `2026_10_20_000002_rename_deposito_role.php`: renombra el rol "Depósito" a "Deposito" (ver deuda técnica 34).
+- `2026_10_22_000001_create_sale_payments_table.php`: detalle del cobro. Una fila por medio usado (`id_sale`, `payment_method`, `amount`). Permite el **pago combinado**. `sales.payment_method` queda como resumen para listados y filtros.
+- `2026_10_22_000002_add_fiscal_fields_to_receipts_table.php`: agrega al comprobante el **numero correlativo por cliente** (`receipt_number`), el punto de venta (`point_of_sale`, default `0001`) y el **desglose de IVA** (`tax_rate`, `net_amount`, `tax_amount`, `total_amount`). La migracion tambien **numera y desglosa los comprobantes existentes** y crea la fila de pago que falte en las ventas viejas, usando el query builder (no los modelos: una migracion no puede depender de codigo de la aplicacion).
 
 ### Seeders de clientes y movimiento
 
 | Seeder | Que hace |
 |---|---|
 | `CustomerSeeder` | Crea **10 clientes mas** (Bruno Ferrari, Carla Méndez, Diego Sosa, Elena Duarte, Facundo Ríos, Gabriela Paz, Hernán Cabrera, Irina López, Julián Vargas, Karen Aquino), cada uno con su usuario (rol Cliente) y su ficha en `customers`. Es idempotente (`updateOrInsert`). |
-| `SaleSeeder` | Reparte **36 ventas** entre los 11 clientes: 6 de Ana Torres (las de antes) y 3 de cada cliente nuevo, separadas 37 dias y dentro de los ultimos cuatro meses. Los precios salen del catálogo actual y los medios de pago se alternan. |
+| `SaleSeeder` | Reparte **36 ventas** entre los 11 clientes: 6 de Ana Torres (las de antes) y 3 de cada cliente nuevo, separadas 37 dias y dentro de los ultimos cuatro meses. Los precios salen del catalogo actual y los medios de pago se alternan. Cada venta escribe su **detalle en `sale_payments`**, numera el comprobante **por cliente** (1, 2, 3…) y guarda el **desglose de IVA**. La primera venta de Ana queda **combinada** (efectivo + tarjeta) para mostrar la funcion. |
 | `ImagenesArticuloSeeder` | Genera una silueta SVG para cada artículo sin foto, para que el catálogo no quede vacío tras `migrate:fresh --seed`. No toca los artículos que ya tienen imagen. |
 
 Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ventas** (jul a oct) y el de "Últimos 6 meses", 7 meses. Antes había un solo cliente con 6 ventas.
@@ -103,8 +106,8 @@ Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ven
 | Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
-| **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas) | `CartController`, vistas `cart/*` |
-| **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. | `SaleController`, vistas `sales/*`, `Sale` |
+| **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas). El cobro acepta **varios medios de pago** (`payments[]`) y valida que sumen el total. | `CartController`, `App\Support\MediosPago`, vistas `cart/*` |
+| **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. El comprobante muestra **numero fiscal por cliente**, **neto + IVA 21% + total** y el **detalle de pagos**. | `SaleController`, vistas `sales/*`, `Sale`, `Receipt`, `App\Support\Iva` |
 | Dashboard | **Funcional con datos reales.** Componente Livewire con 5 consultas agregadas a la base y selector de periodo (30 días / 90 días / 6 meses / año / todo). Charts de Chart.js se re-inicializan en cada morph de Livewire. | `app/Livewire/Dashboard.php`, `views/livewire/dashboard.blade.php` |
 
 ### 6.1 Sistema visual (interfaz)
@@ -143,13 +146,30 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 125 tests, 1029 aserciones, todas en verde.
+**Pruebas:** 153 tests, 1131 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
 oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 `tests/Feature/FugasTest.php` (9 casos) y `tests/Feature/UsuariosTest.php`
 (17 casos) fijan la separacion entre clientes y personal.
+`tests/Feature/PagoCombinadoTest.php` (18 casos) fija el cobro combinado, el
+IVA y la numeracion del comprobante.
+
+### 6.2 Cobro, IVA y comprobante
+
+| Elemento | Decision | Donde se define |
+|---|---|---|
+| Medios de pago | Catalogo unico: `Efectivo`, `Tarjeta de débito`, `Tarjeta de crédito`, `Transferencia`, `Mercado Pago`. El **nombre es el valor guardado**: no hay ids ni slugs intermedios. | `App\Support\MediosPago` |
+| Pago combinado | El checkout manda `payments[]` (una lista de `method` + `amount`). Una venta con un solo medio es una lista de un elemento: **no hay dos caminos de cobro**. La suma tiene que dar el total (tolerancia `0.009`). | `CartController@confirmSale`, `views/cart/checkout.blade.php` |
+| Resumen en la venta | `sales.payment_method` guarda `Efectivo` o `Pago combinado (Efectivo + Transferencia)`. Sirve para el listado y los filtros; el detalle real vive en `sale_payments`. | `MediosPago::resumen()` |
+| Filtro por medio | Mira **el detalle** (`sale_payments`) con un `or` sobre el resumen, asi una venta combinada aparece al filtrar por cualquiera de sus medios. | `SaleController@index` |
+| Grafico de medios | Suma `sale_payments.amount` agrupado por medio, no el resumen: cada peso cae en su medio. | `app/Livewire/Dashboard.php` |
+| IVA | Los precios del catalogo **ya incluyen IVA**. El comprobante desglosa: `neto = round(total / 1,21)` e `iva = total - neto`, asi la suma da exacto. `TASA_GENERAL = 21.0`; `TASA_REDUCIDA = 10.5` esta declarada pero sin uso. | `App\Support\Iva` |
+| Desglose guardado | `receipts` guarda `tax_rate`, `net_amount`, `tax_amount`, `total_amount` al emitir. **No se recalcula al mostrar**: un comprobante emitido no cambia si cambia un precio. | `Receipt::desglose()` |
+| Numero de comprobante | Correlativo **por cliente**, no por venta: su primera compra es la 1. Se guarda en `receipts.receipt_number` y se muestra como `0001-00000003` (punto de venta + 8 digitos). | `Receipt::numeroComprobante()` |
+| Donde se muestra | Listado de ventas, detalle, panel del cliente, comprobante HTML y PDF, y nombre del archivo PDF. **El id de la venta no se muestra**: es interno y las rutas lo siguen usando. | `sales/*`, `dashboard/cliente`, `cart/receipt`, `sales/pdf` |
+| Alcance fiscal | **No hay CAE ni integracion con AFIP.** El sistema arma numeracion y desglose; la autorizacion fiscal electronica es de otro sistema. | — |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
@@ -224,6 +244,11 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 54. **RESUELTO** — `public/favicon.ico` estaba en **0 bytes**: el navegador pedia un archivo vacio y mostraba el icono por defecto. Ahora lo genera `scripts/generar-favicon.php`, que dibuja el pallet con GD y arma un ICO con el PNG adentro. Los dos layouts anuncian ademas el SVG y un PNG de 32 px con `<link rel="icon">`.
 55. **RESUELTO** — **No habia forma de llegar al registro**: `auth/register.blade.php` existia (era la pantalla de Breeze, en ingles y sin el diseño del sistema) y la ruta `/register` estaba, pero **ningun enlace del login llevaba a ella**. Ahora el login tiene el boton "Crear una Cuenta" y la pantalla se rehizo con el split-screen del login, en español, pidiendo nombre, apellido, correo y contraseña (dos veces).
 56. **RESUELTO** — **El registro publico no creaba la ficha del cliente**. Creaba la fila en `users` y nada mas, asi que el cliente nuevo quedaba con rol Cliente pero sin `customers`. Consecuencia: su panel mostraba todo en cero, y `/mi-carrito` lo mandaba a `/cart`, que a su vez manda al Cliente a `/mi-carrito`: **bucle infinito de redirecciones (ERR_TOO_MANY_REDIRECTS)**. La cuenta se guardaba, pero parecia que no. Ahora el registro crea las dos filas (con el nombre y el apellido del formulario), el correo se guarda en minusculas, y `User::asegurarFichaCliente()` crea la ficha si falta en el registro, en el cambio de rol, en el carrito y en el panel del cliente (los usuarios que ya habian quedado sin ficha se arreglan solos al entrar). `miCarrito` ya no puede rebotar a `/cart`: si falla, vuelve al panel.
+57. **RESUELTO** — **Una venta se cobraba con un solo medio de pago.** En el mostrador es normal cobrar una parte en efectivo y el resto con transferencia, pero `sales.payment_method` era una sola cadena y el checkout un `<select>`. Ahora hay `sale_payments` (una fila por medio con su importe), el checkout manda `payments[]`, el servidor exige que la suma sea el total y `sales.payment_method` queda como **resumen** para el listado. El grafico de medios y el filtro de ventas miran el detalle.
+58. **RESUELTO** — **El comprobante no desglosaba el IVA.** Mostraba solo el total. Ahora guarda `tax_rate`, `net_amount`, `tax_amount` y `total_amount` al emitir y los muestra (neto + IVA 21% + total). El desglose no se recalcula al abrir el comprobante: un documento emitido no cambia si despues cambia un precio (cubierto por test).
+59. **RESUELTO** — **El comprobante mostraba el id de la venta** (`#39`), que es un numero interno. Ahora muestra el numero fiscal `0001-00000003` (punto de venta + correlativo **por cliente**) y debajo "Compra N.º 3 del cliente". El id se reemplazo en el listado, el detalle, el panel del cliente, el HTML, el PDF y el nombre del archivo. Las rutas siguen usando `id_sale`.
+60. **PENDIENTE** — La numeracion del comprobante calcula `max(receipt_number) + 1` **sin lock**. Hoy hay una sola caja, asi que no hay carrera. Si algun dia hay varias cajas cobrando al mismo cliente en el mismo instante, dos ventas podrian llevarse el mismo numero: ahi hace falta bloquear por cliente (o una tabla de contadores).
+61. **PENDIENTE** — **No hay CAE ni integracion con AFIP.** El sistema arma la numeracion y el desglose de IVA, pero no autoriza el comprobante electronicamente. Es alcance de otro sistema; si el profesor lo pide, hay que integrar un web service de facturacion.
 
 ## 8. Convenciones para cambios futuros
 
@@ -232,6 +257,10 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 - **Roles**: el catálogo es la tabla `roles` (columna `role_name`). Cualquier rol nuevo se crea ahí y se refleja en `spatie_roles`; a los usuarios se les asigna con `User::asignarRol($nombre)`, que escribe en los dos sistemas a la vez. No usar `syncRoles()` ni `assignRole()` por separado.
 - **Autorización de usuarios/roles**: `User::isAdmin()` (Jefe o Administrador). Para proteger rutas con el middleware de Spatie usar `->middleware('role:Jefe|Administrador')`.
 - **Interfaz**: el color de acento es `hazard` y las superficies son `zinc`. No volver a `indigo`, `blue`, `amber` ni `slate`. Toda superficie clara (`bg-white`, `text-gray-*`, `border-gray-*`) necesita su variante `dark:`; al agregar vistas, correr `php scripts/agregar-modo-oscuro.php` y despues `php scripts/auditar-modo-oscuro.php`.
+- **Medios de pago**: cualquier medio nuevo se agrega **solo** en `App\Support\MediosPago` (constante + `todos()`). Lo usan el checkout, la validacion, el filtro y el comprobante. No escribir la lista de medios a mano en otro archivo.
+- **Cobro**: el contrato es `payments[]` (`method` + `amount`), nunca un `payment_method` suelto. La suma tiene que dar el total (tolerancia `0.009`); si no, se rechaza y el carrito queda activo. `sales.payment_method` es un resumen: para saber cuanto entro por cada medio, mirar `sale_payments`.
+- **IVA**: los precios del catalogo **incluyen IVA**. Usar `Iva::desglosar($total)` (neto redondeado, IVA por diferencia) y **guardar** el resultado en el comprobante. No recalcular al mostrar.
+- **Comprobante**: el numero visible es `receipts.receipt_number` (correlativo por cliente), formateado con `Receipt::numeroComprobante()` → `0001-00000003`. El `id_sale` es interno: puede ir en la URL, pero no se muestra en pantalla, PDF ni nombre de archivo.
 - **Modo oscuro**: la clase `dark` en `<html>` la pone el script del `<head>` segun `localStorage['tema']`. No usar `prefers-color-scheme` en las vistas ni poner la clase a mano: el interruptor es el unico que decide.
 - **Dos tipos de compra, dos flujos**: el mostrador (`/cart`) es del personal y elige a quién le vende. El flujo del Cliente (`/mi-carrito`) es suyo y no lleva selector. Para agregar un flujo nuevo, decidir primero cual de los dos es.
 - **Catalogo**: el Cliente ve `/articles` en modo lectura. Los controles de gestion (alta, edicion, borrado, PDF) van detras de `role:Jefe|Administrador|Encargado|Deposito` en las RUTAS, y la vista los oculta con el flag `$esCliente` que pasa el controlador. Las dos capas: la ruta es la seguridad, la vista es la usanza.

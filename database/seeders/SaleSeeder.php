@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Support\Iva;
+use App\Support\MediosPago;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +26,17 @@ use Illuminate\Support\Facades\DB;
  */
 class SaleSeeder extends Seeder
 {
+    /**
+     * Correlativo de comprobantes por cliente.
+     *
+     * El numero de comprobante es POR CLIENTE: su primera compra es la 1,
+     * la segunda la 2. Se lleva en memoria mientras se siembra; en la
+     * aplicacion lo calcula CartController@confirmSale.
+     *
+     * @var array<int, int>
+     */
+    private array $correlativos = [];
+
     public function run(): void
     {
         // ------------------------------------------------------------------
@@ -70,7 +83,17 @@ class SaleSeeder extends Seeder
             [
                 'hace'     => 5,
                 'empleado' => $vendedor,
-                'pago'     => 'Tarjeta de crédito',
+                'pago'     => MediosPago::TARJETA_CREDITO,
+                /*
+                 * Esta venta se paga COMBINADA: $10.000 en efectivo y el
+                 * resto con tarjeta. Es el ejemplo que queda sembrado para
+                 * mostrar el pago combinado en el comprobante y en el
+                 * grafico de medios de pago del dashboard.
+                 */
+                'pagos'    => [
+                    ['method' => MediosPago::EFECTIVO,        'amount' => 10000.00],
+                    ['method' => MediosPago::TARJETA_CREDITO, 'amount' => 19500.00],
+                ],
                 'items'    => [
                     ['articulo' => 'Sillón individual de pallet', 'quantity' => 2, 'unit_price' => 5500.00],
                     ['articulo' => 'Mesa ratona de pallet',      'quantity' => 1, 'unit_price' => 18500.00],
@@ -79,7 +102,7 @@ class SaleSeeder extends Seeder
             [
                 'hace'     => 38,
                 'empleado' => $vendedor,
-                'pago'     => 'Efectivo',
+                'pago'     => MediosPago::EFECTIVO,
                 'items'    => [
                     ['articulo' => 'Sillón doble de pallet',    'quantity' => 1, 'unit_price' => 27500.00],
                     ['articulo' => 'Mesa de comedor de pallet', 'quantity' => 1, 'unit_price' => 37500.00],
@@ -88,7 +111,7 @@ class SaleSeeder extends Seeder
             [
                 'hace'     => 72,
                 'empleado' => $deposito,
-                'pago'     => 'Transferencia',
+                'pago'     => MediosPago::TRANSFERENCIA,
                 'items'    => [
                     ['articulo' => 'Estantería de pallet', 'quantity' => 3, 'unit_price' => 11000.00],
                 ],
@@ -96,7 +119,7 @@ class SaleSeeder extends Seeder
             [
                 'hace'     => 104,
                 'empleado' => $vendedor,
-                'pago'     => 'Tarjeta de debito',
+                'pago'     => MediosPago::TARJETA_DEBITO,
                 'items'    => [
                     ['articulo' => 'Mueble TV de pallet', 'quantity' => 2, 'unit_price' => 21000.00],
                     ['articulo' => 'Macetero de pallet',  'quantity' => 4, 'unit_price' => 7500.00],
@@ -105,7 +128,7 @@ class SaleSeeder extends Seeder
             [
                 'hace'     => 131,
                 'empleado' => $deposito,
-                'pago'     => 'Efectivo',
+                'pago'     => MediosPago::EFECTIVO,
                 'items'    => [
                     ['articulo' => 'Cama de pallet 2 plazas', 'quantity' => 1, 'unit_price' => 45000.00],
                 ],
@@ -113,7 +136,7 @@ class SaleSeeder extends Seeder
             [
                 'hace'     => 158,
                 'empleado' => $vendedor,
-                'pago'     => 'Transferencia',
+                'pago'     => MediosPago::TRANSFERENCIA,
                 'items'    => [
                     ['articulo' => 'Mesa ratona de pallet',      'quantity' => 2, 'unit_price' => 18500.00],
                     ['articulo' => 'Mesa de comedor de pallet', 'quantity' => 1, 'unit_price' => 37500.00],
@@ -146,7 +169,7 @@ class SaleSeeder extends Seeder
                 'users.email',
             ]);
 
-        $mediosDePago = ['Efectivo', 'Tarjeta de crédito', 'Transferencia', 'Tarjeta de débito'];
+        $mediosDePago = MediosPago::todos();
 
         // Los artículos, con su precio actual del catálogo.
         $articulos = DB::table('articles')
@@ -204,23 +227,29 @@ class SaleSeeder extends Seeder
                     'unit_price' => $item['unit_price'],
                 ], $v['items']),
                 fecha: now()->subDays($v['hace']),
+                pagos: $v['pagos'] ?? [],
             );
         }
     }
 
     /**
-     * Escribe una venta completa: carrito, items, venta y comprobante.
+     * Escribe una venta completa: carrito, items, venta, pagos y comprobante.
      *
      * Se separo en un metodo porque ahora las ventas se generan de dos
      * maneras (la lista fija de Ana Torres y las de los clientes nuevos)
      * y las dos terminan igual.
+     *
+     * @param  array<int, array{method: string, amount: float}>  $pagos
+     *         Detalle del cobro. Si viene vacio, la venta se paga entera
+     *         con el medio que dice $pago.
      */
     private function escribirVenta(
         int $idCustomer,
         ?int $idEmpleado,
         string $pago,
         array $items,
-        \Illuminate\Support\Carbon $fecha
+        \Illuminate\Support\Carbon $fecha,
+        array $pagos = []
     ): void {
         // Carrito de la venta
         $idCart = DB::table('cart')->insertGetId([
@@ -242,21 +271,63 @@ class SaleSeeder extends Seeder
             ]);
         }
 
-        // Venta
+        // Total de la venta: sale de los items, no hay columna de monto.
+        $total = round(array_sum(array_map(
+            fn ($item) => $item['quantity'] * $item['unit_price'],
+            $items
+        )), 2);
+
+        // Pago simple: un solo medio por el total.
+        if ($pagos === []) {
+            $pagos = [['method' => $pago, 'amount' => $total]];
+        }
+
+        // Venta. El medio de pago se guarda como resumen (pago simple o
+        // "Pago combinado (...)"); el detalle va en sale_payments.
         $idVenta = DB::table('sales')->insertGetId([
             'id_cart'        => $idCart,
             'id_customer'    => $idCustomer,
             'id_employee'    => $idEmpleado,
-            'payment_method' => $pago,
+            'payment_method' => MediosPago::resumen(array_column($pagos, 'method')),
             'created_at'     => $fecha,
             'updated_at'     => $fecha,
         ]);
 
-        // Comprobante
+        // Un renglon por medio de pago
+        foreach ($pagos as $pagoDeLaVenta) {
+            DB::table('sale_payments')->insert([
+                'id_sale'        => $idVenta,
+                'payment_method' => $pagoDeLaVenta['method'],
+                'amount'         => $pagoDeLaVenta['amount'],
+                'created_at'     => $fecha,
+                'updated_at'     => $fecha,
+            ]);
+        }
+
+        /*
+         * Comprobante.
+         *
+         * El numero es el correlativo del cliente: su primera compra es la
+         * 1, la segunda la 2. Se lleva en $this->correlativos porque las
+         * ventas de un mismo cliente no se escriben seguidas.
+         */
+        $this->correlativos[$idCustomer] = ($this->correlativos[$idCustomer] ?? 0) + 1;
+
+        // Desglose de IVA: los precios ya lo incluyen.
+        $iva = Iva::desglosar($total);
+
         DB::table('receipts')->insert([
-            'id_sale'    => $idVenta,
-            'issue_date' => $fecha->toDateString(),
-            'due_date'   => $fecha->copy()->addDays(30)->toDateString(),
+            'id_sale'        => $idVenta,
+            'receipt_number' => $this->correlativos[$idCustomer],
+            'point_of_sale'  => '0001',
+            'issue_date'     => $fecha->toDateString(),
+            'due_date'       => $fecha->copy()->addDays(30)->toDateString(),
+            'tax_rate'       => $iva['tasa'],
+            'net_amount'     => $iva['neto'],
+            'tax_amount'     => $iva['iva'],
+            'total_amount'   => $iva['total'],
+            'created_at'     => $fecha,
+            'updated_at'     => $fecha,
         ]);
     }
 }

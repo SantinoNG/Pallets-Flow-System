@@ -1,21 +1,188 @@
 # Resumen de modificaciones — Pallets Flow System
 
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
-Fecha: 21 de octubre de 2026
+Fecha: 22 de octubre de 2026
 
-**9 tandas de trabajo · 68 archivos tocados en esta última (interfaz)**
+**10 tandas de trabajo · 24 archivos tocados en esta última (cobro y comprobante)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen de abajo arranca con la primera tanda (corrección de roles,
-> seguridad y tests). La **sección 0** documenta la última tanda: la
-> separación entre clientes y personal, y el cierre de las fugas de
-> información. La sección 1 documenta la anterior: el rediseño de la
-> interfaz con paleta industrial y modo oscuro.
+> seguridad y tests). La **sección 0** documenta la última tanda: el pago
+> combinado, el IVA y la numeración de los comprobantes. La sección 1
+> documenta la separación entre clientes y personal, y el cierre de las
+> fugas de información. La sección 2, el rediseño de la interfaz con paleta
+> industrial y modo oscuro.
 
 ---
 
-## 0. Roles: clientes y personal bien separados, y sin fugas de información
+## 0. Cobro: pago combinado, IVA y numeración del comprobante
+
+Tres cosas del circuito de venta que no cerraban con la realidad:
+
+1. Una venta se cobraba con **un solo medio de pago**. En el mostrador es
+   normal cobrar una parte en efectivo y el resto con transferencia.
+2. El comprobante mostraba el **total sin desglosar el IVA**. Un comprobante
+   de venta en Argentina tiene que mostrar neto + IVA = total.
+3. El comprobante mostraba **el id de la venta** (`#39`). Ese número es
+   interno y no le dice nada al cliente.
+
+### Pago combinado
+
+Se agregó la tabla **`sale_payments`**: una fila por cada medio usado, con su
+importe. La venta (`sales.payment_method`) guarda un **resumen** para el
+listado y los filtros:
+
+- un solo medio → `Efectivo`
+- varios medios → `Pago combinado (Efectivo + Transferencia)`
+
+El checkout ahora arma una **lista de pagos**:
+
+```php
+'payments' => [
+    ['method' => 'Efectivo',      'amount' => 30000],
+    ['method' => 'Transferencia', 'amount' => 40000],
+]
+```
+
+En pantalla hay una fila por medio, un botón **"+ Agregar otro medio"** y un
+resumen en vivo que muestra *Pagado / Falta / Sobra / Pago completo*. Al
+agregar una fila, el importe se precarga con lo que falta.
+
+**El servidor valida que los pagos sumen exactamente el total** (tolerancia de
+un centavo por los redondeos). Si no cierra, no se registra la venta y el
+carrito sigue activo para reintentar. También se ignoran las filas vacías que
+quedan en el formulario.
+
+El catálogo de medios vive en un solo lugar: `App\Support\MediosPago`
+(Efectivo, Tarjeta de débito, Tarjeta de crédito, Transferencia, Mercado Pago).
+Lo usan el formulario, la validación, el filtro del listado y el comprobante.
+
+El gráfico "Medios de pago" del dashboard ahora suma **`sale_payments`**, no el
+resumen: si una venta se pagó mitad y mitad, cada peso cae en su medio. El
+filtro `/sales?pago=Efectivo` también encuentra las ventas combinadas.
+
+### IVA
+
+Los precios del catálogo **ya incluyen IVA** (como en la calle). El comprobante
+lo desglosa hacia atrás:
+
+```
+Subtotal (neto)   $57.851,24
+IVA 21%           $12.148,76
+Total             $70.000,00
+```
+
+La alícuota y el cálculo están en `App\Support\Iva`. El neto se redondea y el
+IVA sale por diferencia, así **neto + IVA da exactamente el total** (probado con
+varios importes).
+
+El desglose **se guarda en el comprobante** (`tax_rate`, `net_amount`,
+`tax_amount`, `total_amount`), no se calcula al mostrarlo: un comprobante
+emitido no puede cambiar si después cambia un precio. Hay un test que lo fija.
+
+> **Alcance:** no se emite CAE ni se habla con AFIP. El sistema arma la
+> numeración y el desglose; la autorización fiscal electrónica es de otro
+> sistema.
+
+### Numeración del comprobante
+
+El comprobante ya no muestra el id de la venta. Muestra un número con el
+formato argentino:
+
+```
+Comprobante N° 0001-00000004
+               ^^^^ ^^^^^^^^
+               |    +-- 4ta compra del cliente
+               +------- punto de venta
+```
+
+El correlativo es **por cliente**: su primera compra es la 1, la segunda la 2.
+Se guarda en `receipts.receipt_number` al emitir y se calcula con
+`max(receipt_number) + 1` para ese cliente, dentro de la misma transacción del
+cobro.
+
+Debajo del número, el comprobante aclara **"Compra N.º 4 del cliente"**, para
+que se vea la relación sin tener que explicarla.
+
+El número también reemplazó al id en:
+
+- el listado de ventas (columna "Comprobante")
+- el detalle de la venta (título y bloque "Comprobante")
+- el panel del cliente (columna "Compra")
+- el nombre del PDF: `comprobante-venta-0001-00000004.pdf`
+
+Las rutas siguen usando `id_sale` por dentro: es la clave, no un número que se
+muestre.
+
+### Migraciones y datos existentes
+
+| Migración | Qué hace |
+|---|---|
+| `2026_10_22_000001_create_sale_payments_table` | Crea el detalle de pagos |
+| `2026_10_22_000002_add_fiscal_fields_to_receipts_table` | Agrega número, punto de venta y desglose de IVA |
+
+La segunda **numera y desglosa los comprobantes que ya existen**: recorre las
+ventas ordenadas por cliente, les asigna 1, 2, 3… y calcula neto/IVA desde los
+items del carrito. También crea la fila de pago que falta en las ventas viejas.
+
+Se hizo con el query builder y no con los modelos: una migración no puede
+depender de código de la aplicación, que cambia con el tiempo.
+
+En la base de desarrollo, después de la migración: **0 comprobantes sin número,
+0 sin total y 0 ventas sin detalle de pago**; la suma de los pagos coincidió con
+la de las ventas.
+
+`SaleSeeder` también quedó actualizado: numera por cliente, desglosa el IVA y
+deja **una venta combinada sembrada** (Ana, mitad efectivo y mitad tarjeta)
+para que el pago combinado se vea en la demo.
+
+### Tests
+
+`tests/Feature/PagoCombinadoTest.php` — **18 casos**:
+
+- pago combinado guarda un renglón por medio y el resumen correcto
+- pago simple guarda un solo renglón
+- pagos que suman de menos o de más se rechazan y no crean la venta
+- medio desconocido y lista vacía se rechazan
+- las filas vacías del formulario se ignoran
+- numeración correlativa por cliente (1, 2) e independiente entre clientes
+- IVA 21%: 12.100 → neto 10.000 + IVA 2.100
+- el IVA guardado no cambia si después cambia el precio del artículo
+- el comprobante muestra el número y **no** el id de la venta
+- el comprobante lista los dos medios del pago combinado
+- el PDF se descarga con el número en el nombre
+- el listado filtra por un medio de un pago combinado
+- la venta combinada sembrada tiene su detalle
+- el desglose cierra para varios importes
+
+**Total del proyecto: 153 tests, 1131 assertions, todos en verde.**
+
+### Lo que se tocó
+
+| Archivo | Cambio |
+|---|---|
+| `app/Support/Iva.php` | **nuevo** — alícuotas y desglose |
+| `app/Support/MediosPago.php` | **nuevo** — catálogo y resumen |
+| `app/Models/SalePayment.php` | **nuevo** — detalle de un pago |
+| `app/Models/Receipt.php` | número, etiqueta y desglose |
+| `app/Models/Sale.php` | `payments()`, `esPagoCombinado()`, `numeroComprobante()` |
+| `app/Http/Controllers/CartController.php` | cobro con lista de pagos, numeración y IVA |
+| `app/Http/Controllers/SaleController.php` | filtro por detalle, PDF con número, `payments` |
+| `app/Http/Controllers/DashboardController.php` | `receipt` y `payments` en el panel del cliente |
+| `app/Livewire/Dashboard.php` | gráfico de medios sobre `sale_payments` |
+| `resources/views/cart/checkout.blade.php` | filas de pago + resumen en vivo |
+| `resources/views/cart/receipt.blade.php` | número, IVA y detalle de pagos |
+| `resources/views/sales/pdf.blade.php` | número, IVA y detalle de pagos |
+| `resources/views/sales/show.blade.php` | número y desglose |
+| `resources/views/sales/index.blade.php` | columna "Comprobante" |
+| `resources/views/dashboard/cliente.blade.php` | columna "Compra" con el número |
+| `database/seeders/SaleSeeder.php` | numeración, IVA y venta combinada |
+| `scripts/testear-flujo-venta.php` | prueba el cobro combinado por HTTP real |
+
+---
+
+## 1. Roles: clientes y personal bien separados, y sin fugas de información
 
 En el sistema **un usuario es O empleado O cliente**, pero la aplicación los
 trataba como si fueran la misma cosa. Eso producía dos problemas: en el
@@ -194,7 +361,7 @@ cliente viejo sin ficha se arregla solo.
 
 ---
 
-## 1. Interfaz: paleta industrial + modo oscuro
+## 2. Interfaz: paleta industrial + modo oscuro
 
 La interfaz tenía **tres acentos conviviendo** y ningún modo oscuro:
 
@@ -821,7 +988,7 @@ Si el profesor prefiere otro catálogo (por ejemplo, cambiar "Jefe" por
 ```cmd
 cd /d C:\laragon\www\Pallets-Flow-System
 
-REM 1. Tests (debe dar 25 passed)
+REM 1. Tests (debe dar 153 passed)
 php artisan test
 
 REM 2. La base completa desde cero
@@ -829,6 +996,9 @@ php artisan migrate:fresh --seed
 
 REM 3. Sintaxis de todo
 php -l app\Models\User.php
+
+REM 4. Flujo de venta completo por HTTP real (incluye cobro combinado)
+php scripts\testear-flujo-venta.php
 ```
 
 Para ver el módulo de roles funcionando, entrar como administrador en
@@ -836,3 +1006,9 @@ Para ver el módulo de roles funcionando, entrar como administrador en
 
 Con `vendedor@ecommerce.com / vendedor1234` se puede comprobar que
 `/usuarios` devuelve **403**.
+
+Para ver el **pago combinado y el comprobante**: entrar como vendedor, abrir
+*Carrito*, agregar artículos, ir al checkout, **+ Agregar otro medio**, repartir
+los importes hasta que diga *Pago completo* y confirmar. El comprobante muestra
+el número `0001-XXXXXXXX` (la compra N.º del cliente), el neto, el IVA y cada
+medio con su importe. En `/ventas` hay una venta combinada sembrada (Ana).

@@ -110,7 +110,10 @@
                                 @foreach ($recientes as $compra)
                                     <tr class="bg-white dark:bg-zinc-900 border-b hover:bg-gray-50 dark:hover:bg-zinc-800">
                                         <td class="px-4 py-3 font-medium text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
-                                            #{{ $compra->id_sale }}
+                                            {{-- Numero del comprobante: la
+                                                 1ra compra del cliente es
+                                                 la 1, la 2da la 2. --}}
+                                            {{ $compra->numeroComprobante() ?? '—' }}
                                         </td>
                                         <td class="px-4 py-3 font-mono tabular-nums">
                                             {{ $compra->created_at?->format('d/m/Y') ?? '—' }}

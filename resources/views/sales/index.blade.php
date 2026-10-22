@@ -76,7 +76,7 @@
                     <table class="min-w-full text-sm text-left text-gray-600 dark:text-zinc-300">
                         <thead class="text-xs text-gray-700 dark:text-zinc-200 uppercase bg-gray-50 dark:bg-zinc-950">
                             <tr>
-                                <th class="px-4 py-3">#</th>
+                                <th class="px-4 py-3">Comprobante</th>
                                 <th class="px-4 py-3">Fecha</th>
                                 <th class="px-4 py-3">Cliente</th>
                                 @unless ($esCliente)
@@ -91,7 +91,11 @@
                         <tbody>
                             @forelse($ventas as $venta)
                                 <tr class="border-b border-gray-100 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800">
-                                    <td class="px-4 py-3 font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">{{ $venta->id_sale }}</td>
+                                    <td class="px-4 py-3 font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
+                                        {{-- Numero fiscal del comprobante, no
+                                             el id interno de la venta. --}}
+                                        {{ $venta->numeroComprobante() ?? '—' }}
+                                    </td>
                                     <td class="px-4 py-3">
                                         {{ $venta->created_at?->format('d/m/Y H:i') ?? '—' }}
                                     </td>

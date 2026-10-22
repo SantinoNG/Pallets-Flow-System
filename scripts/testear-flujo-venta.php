@@ -33,7 +33,14 @@ class Cliente
 
         if ($post !== null) {
             $opciones[CURLOPT_POST] = true;
-            $opciones[CURLOPT_POSTFIELDS] = $post;
+
+            // http_build_query y no el array crudo: curl convierte los
+            // arrays anidados (payments[0][method]) a "Array" y el cobro
+            // combinado no llega. Con la query string, los corchetes
+            // viajan tal cual y Laravel los parsea.
+            $opciones[CURLOPT_POSTFIELDS] = is_array($post)
+                ? http_build_query($post)
+                : $post;
         }
 
         curl_setopt_array($ch, $opciones);
@@ -130,20 +137,44 @@ paso('el carrito muestra el item', $r['codigo'] == 200 && str_contains($r['html'
 // 5. Checkout
 $r = $c->pedir("$base/cart/$idCarrito/checkout");
 paso('pantalla de checkout', $r['codigo'] == 200, "HTTP {$r['codigo']}");
-paso('el checkout pide el medio de pago', str_contains($r['html'], 'payment_method'),
-    'campo payment_method');
+paso('el checkout pide los pagos', str_contains($r['html'], 'payments[0][amount]'),
+    'campo payments[0][amount]');
+paso('el checkout ofrece combinar medios', str_contains($r['html'], 'Agregar otro medio'),
+    'boton Agregar otro medio');
 
-// 6. Confirmar la venta
+// El total viene precargado en la primera fila de pago.
+$total = null;
+if (preg_match('/name="payments\[0\]\[amount\]"\s+value="([\d.]+)"/', $r['html'], $m)) {
+    $total = (float) $m[1];
+}
+paso('el checkout muestra el total a cobrar', $total !== null && $total > 0,
+    "total = {$total}");
+
+if ($total === null) {
+    echo "\n  no se puede seguir sin total\n";
+    exit(1);
+}
+
+// 6. Confirmar la venta con PAGO COMBINADO: 40% efectivo + 60% transferencia
+$efectivo = round($total * 0.4, 2);
+$resto    = round($total - $efectivo, 2);
+
 $r = $c->pedir("$base/cart/$idCarrito/confirm", [
-    '_token' => $c->token("$base/cart/$idCarrito/checkout"),
-    'payment_method' => 'Efectivo',
+    '_token'   => $c->token("$base/cart/$idCarrito/checkout"),
+    'payments' => [
+        ['method' => 'Efectivo', 'amount' => number_format($efectivo, 2, '.', '')],
+        ['method' => 'Transferencia', 'amount' => number_format($resto, 2, '.', '')],
+    ],
 ]);
-paso('confirmar la venta', $r['codigo'] == 302, "HTTP {$r['codigo']}");
+paso('confirmar la venta combinada', $r['codigo'] == 302, "HTTP {$r['codigo']}");
 
 // 7. La venta queda registrada y con comprobante
 $r = $c->pedir("$base/sales");
-paso('la venta aparece en el listado', $r['codigo'] == 200 && str_contains($r['html'], 'Efectivo'),
+paso('la venta aparece en el listado', $r['codigo'] == 200 && str_contains($r['html'], 'Pago combinado'),
     "HTTP {$r['codigo']}");
+paso('el listado muestra el numero de comprobante',
+    (bool) preg_match('/\d{4}-\d{8}/', (string) $r['html']),
+    'formato 0001-00000001');
 
 // 8. PDF de la venta recien hecha
 preg_match('#/sales/(\d+)/pdf#', (string) $r['html'], $m);

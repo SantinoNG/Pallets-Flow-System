@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use App\Models\User;
+use App\Support\MediosPago;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -95,11 +97,21 @@ class SaleController extends Controller
         $veEmails = $user->isAdmin();
 
         $ventas = $this->scopeVisibles(
-            Sale::with(['customer.user', 'employee', 'cart.items', 'items']),
+            Sale::with(['customer.user', 'employee', 'cart.items', 'items', 'receipt', 'payments']),
             $user
         )
-            // Filtro por medio de pago
-            ->when($request->filled('pago'), fn ($q) => $q->where('payment_method', $request->pago))
+            /*
+             * Filtro por medio de pago.
+             *
+             * Se mira el DETALLE (sale_payments), no el resumen: una venta
+             * pagada mitad en efectivo y mitad con transferencia tiene que
+             * aparecer al filtrar por cualquiera de los dos. El "or" deja
+             * entrar las ventas viejas, que solo tienen el resumen.
+             */
+            ->when($request->filled('pago'), fn ($q) => $q->where(function ($sub) use ($request) {
+                $sub->where('payment_method', $request->pago)
+                    ->orWhereHas('payments', fn ($p) => $p->where('payment_method', $request->pago));
+            }))
             // Filtro por empleado que procesó la venta
             ->when($request->filled('empleado'), fn ($q) => $q->where('id_employee', $request->empleado))
             // Filtro por rango de fechas
@@ -109,8 +121,19 @@ class SaleController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // Opciones de los filtros
-        $mediosPago = Sale::select('payment_method')->distinct()->pluck('payment_method');
+        /*
+         * Opciones del filtro: los medios del catalogo mas los que ya esten
+         * guardados en ventas viejas (por ejemplo, "Tarjeta de debito" sin
+         * acento, de una siembra anterior). Asi el filtro no deja afuera
+         * datos que existen.
+         */
+        $mediosPago = collect(MediosPago::todos())
+            ->merge(SalePayment::select('payment_method')->distinct()->pluck('payment_method'))
+            ->merge(Sale::select('payment_method')->distinct()->pluck('payment_method'))
+            ->filter(fn ($m) => ! MediosPago::esCombinado((string) $m))
+            ->unique()
+            ->values();
+
         $empleados = Employee::with('user')->get();
 
         // Total del conjunto filtrado (no solo de la pagina)
@@ -118,7 +141,10 @@ class SaleController extends Controller
             Sale::with('items'),
             $user
         )
-            ->when($request->filled('pago'), fn ($q) => $q->where('payment_method', $request->pago))
+            ->when($request->filled('pago'), fn ($q) => $q->where(function ($sub) use ($request) {
+                $sub->where('payment_method', $request->pago)
+                    ->orWhereHas('payments', fn ($p) => $p->where('payment_method', $request->pago));
+            }))
             ->when($request->filled('empleado'), fn ($q) => $q->where('id_employee', $request->empleado))
             ->when($request->filled('desde'), fn ($q) => $q->where('created_at', '>=', $request->desde))
             ->when($request->filled('hasta'), fn ($q) => $q->where('created_at', '<=', Carbon::parse($request->hasta)->endOfDay()))
@@ -152,7 +178,7 @@ class SaleController extends Controller
     {
         $this->abortarSiNoVisible($sale, $request->user());
 
-        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
+        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt', 'payments');
 
         // Para el Cliente, una venta es su COMPRA.
         $esCliente = $request->user()?->hasRole('Cliente') ?? false;
@@ -172,7 +198,7 @@ class SaleController extends Controller
     {
         $this->abortarSiNoVisible($sale, $request->user());
 
-        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
+        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt', 'payments');
 
         // Para el Cliente, una venta es su COMPRA.
         $esCliente = $request->user()?->hasRole('Cliente') ?? false;
@@ -184,8 +210,11 @@ class SaleController extends Controller
             ->setPaper('a4')
             ->setOption('isRemoteEnabled', true);
 
-        // Para el Cliente el comprobante es de su COMPRA.
-        $nombre = 'comprobante-' . ($esCliente ? 'compra' : 'venta') . "-{$sale->id_sale}.pdf";
+        // El nombre del archivo usa el numero de comprobante, no el id
+        // interno de la venta: es el numero que el cliente reconoce.
+        $numero = $sale->receipt?->numeroComprobante() ?? $sale->id_sale;
+
+        $nombre = 'comprobante-' . ($esCliente ? 'compra' : 'venta') . "-{$numero}.pdf";
 
         return $pdf->download($nombre);
     }

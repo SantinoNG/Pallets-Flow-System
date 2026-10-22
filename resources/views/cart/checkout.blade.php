@@ -5,6 +5,24 @@
         </h2>
     </x-slot>
 
+    @php
+        /*
+         * Las filas de pago se arman aca para que, si la validacion falla,
+         * el usuario no pierda lo que habia cargado. Si no hay datos
+         * viejos, arranca con una sola fila por el total (pago simple).
+         */
+        $medios = \App\Support\MediosPago::todos();
+
+        $pagosViejos = old('payments');
+
+        if (! is_array($pagosViejos) || count($pagosViejos) === 0) {
+            $pagosViejos = [[
+                'method' => $medios[0],
+                'amount' => number_format((float) $subtotal, 2, '.', ''),
+            ]];
+        }
+    @endphp
+
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200 dark:border-zinc-800">
@@ -38,31 +56,126 @@
                 </div>
 
                 {{-- Total --}}
-                <div class="flex justify-between text-lg font-bold text-gray-900 dark:text-zinc-100 mb-6 px-1">
+                <div class="flex justify-between text-lg font-bold text-gray-900 dark:text-zinc-100 mb-2 px-1">
                     <span>Total</span>
                     <span>${{ number_format($subtotal, 2) }}</span>
                 </div>
+
+                {{-- Los precios de la calle ya traen el IVA: el comprobante
+                     lo desglosa, pero el cliente paga el total. --}}
+                <p class="text-xs text-gray-500 dark:text-zinc-400 mb-6 px-1">
+                    Los precios incluyen IVA (21%). El comprobante muestra el neto y el IVA desglosados.
+                </p>
+
+                {{-- Errores de validación --}}
+                @if ($errors->any())
+                    <div class="mb-4 rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3">
+                        <ul class="text-sm text-red-700 dark:text-red-300 list-disc list-inside space-y-1">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 {{-- Formulario de pago --}}
                 <form action="{{ route('cart.confirm', $cart->id_cart) }}" method="POST">
                     @csrf
 
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-                            Método de pago <span class="text-red-500">*</span>
+                    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200">
+                            Forma de pago <span class="text-red-500">*</span>
                         </label>
-                        <select name="payment_method"
-                                class="w-full border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm"
-                                required>
-                            <option value="">Seleccioná...</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Tarjeta de crédito">Tarjeta de crédito</option>
-                            <option value="Tarjeta de débito">Tarjeta de débito</option>
-                            <option value="Transferencia">Transferencia</option>
-                        </select>
-                        @error('payment_method')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        <button type="button" id="agregar-pago"
+                                class="text-xs font-semibold uppercase tracking-wider text-hazard-600 dark:text-hazard-400 hover:text-hazard-700 dark:hover:text-hazard-300 transition">
+                            + Agregar otro medio
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
+                        Podés combinar medios: por ejemplo, una parte en efectivo y el resto con transferencia.
+                        Los importes tienen que sumar el total.
+                    </p>
+
+                    {{-- Filas de pago --}}
+                    <div id="pagos" class="space-y-2 mb-4">
+                        @foreach($pagosViejos as $i => $pago)
+                            <div class="fila-pago flex flex-col sm:flex-row gap-2 sm:items-center" data-fila>
+                                <select name="payments[{{ $i }}][method]"
+                                        class="w-full sm:w-1/2 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm">
+                                    @foreach($medios as $medio)
+                                        <option value="{{ $medio }}" @selected(($pago['method'] ?? '') === $medio)>{{ $medio }}</option>
+                                    @endforeach
+                                </select>
+
+                                <div class="relative w-full sm:w-1/3">
+                                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm">$</span>
+                                    <input type="number"
+                                           name="payments[{{ $i }}][amount]"
+                                           value="{{ $pago['amount'] ?? '' }}"
+                                           step="0.01"
+                                           min="0"
+                                           inputmode="decimal"
+                                           placeholder="0.00"
+                                           class="w-full pl-7 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
+                                </div>
+
+                                <button type="button"
+                                        class="quitar-pago shrink-0 px-3 py-2 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                                        title="Quitar este medio"
+                                        aria-label="Quitar este medio">
+                                    ✕
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Molde para las filas que se agregan con JavaScript.
+                         El índice se reemplaza al insertar. --}}
+                    <template id="plantilla-pago">
+                        <div class="fila-pago flex flex-col sm:flex-row gap-2 sm:items-center" data-fila>
+                            <select name="payments[__i__][method]"
+                                    class="w-full sm:w-1/2 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm">
+                                @foreach($medios as $medio)
+                                    <option value="{{ $medio }}">{{ $medio }}</option>
+                                @endforeach
+                            </select>
+
+                            <div class="relative w-full sm:w-1/3">
+                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm">$</span>
+                                <input type="number"
+                                       name="payments[__i__][amount]"
+                                       value=""
+                                       step="0.01"
+                                       min="0"
+                                       inputmode="decimal"
+                                       placeholder="0.00"
+                                       class="w-full pl-7 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
+                            </div>
+
+                            <button type="button"
+                                    class="quitar-pago shrink-0 px-3 py-2 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                                    title="Quitar este medio"
+                                    aria-label="Quitar este medio">
+                                ✕
+                            </button>
+                        </div>
+                    </template>
+
+                    {{-- Resumen en vivo del cobro --}}
+                    <div class="bg-gray-50 dark:bg-zinc-950 rounded-md p-4 mb-6 space-y-1 text-sm">
+                        <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                            <span>Total a cobrar</span>
+                            <span class="font-mono tabular-nums">${{ number_format($subtotal, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                            <span>Pagado</span>
+                            <span class="font-mono tabular-nums">$<span id="pagado">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between font-semibold">
+                            <span id="estado-pago" class="text-red-600 dark:text-red-400">Falta</span>
+                            <span id="diferencia" class="font-mono tabular-nums text-red-600 dark:text-red-400">$0.00</span>
+                        </div>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -80,4 +193,122 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const TOTAL = {{ (float) $subtotal }};
+            const contenedor = document.getElementById('pagos');
+            const plantilla  = document.getElementById('plantilla-pago');
+            const botonAgregar = document.getElementById('agregar-pago');
+
+            let siguienteIndice = {{ count($pagosViejos) }};
+
+            const pesos = (n) => n.toFixed(2);
+
+            /** Suma lo que hay cargado en las filas. */
+            function pagadoActual() {
+                let pagado = 0;
+
+                contenedor.querySelectorAll('input[name$="[amount]"]').forEach((el) => {
+                    pagado += parseFloat(el.value) || 0;
+                });
+
+                return Math.round(pagado * 100) / 100;
+            }
+
+            /**
+             * Renumera los name="payments[i][...]" y esconde la cruz de la
+             * primera fila: siempre tiene que quedar al menos un medio.
+             */
+            function reindexar() {
+                const filas = contenedor.querySelectorAll('[data-fila]');
+
+                filas.forEach((fila, n) => {
+                    fila.querySelectorAll('[name]').forEach((el) => {
+                        el.name = el.name.replace(/payments\[\d+\]/, 'payments[' + n + ']');
+                    });
+
+                    const quitar = fila.querySelector('.quitar-pago');
+
+                    if (quitar) {
+                        quitar.style.visibility = filas.length === 1 ? 'hidden' : 'visible';
+                    }
+                });
+            }
+
+            /** Muestra Pagado / Falta / Sobra. */
+            function recalcular() {
+                const pagado = pagadoActual();
+                const diferencia = Math.round((TOTAL - pagado) * 100) / 100;
+
+                document.getElementById('pagado').textContent = pesos(pagado);
+
+                const estado = document.getElementById('estado-pago');
+                const monto  = document.getElementById('diferencia');
+
+                if (Math.abs(diferencia) < 0.005) {
+                    estado.textContent = 'Pago completo';
+                    estado.className = 'text-green-600 dark:text-green-400';
+                    monto.textContent = '$0.00';
+                    monto.className = 'font-mono tabular-nums text-green-600 dark:text-green-400';
+                } else if (diferencia > 0) {
+                    estado.textContent = 'Falta';
+                    estado.className = 'text-red-600 dark:text-red-400';
+                    monto.textContent = '$' + pesos(diferencia);
+                    monto.className = 'font-mono tabular-nums text-red-600 dark:text-red-400';
+                } else {
+                    estado.textContent = 'Sobra';
+                    estado.className = 'text-amber-600 dark:text-amber-400';
+                    monto.textContent = '$' + pesos(Math.abs(diferencia));
+                    monto.className = 'font-mono tabular-nums text-amber-600 dark:text-amber-400';
+                }
+            }
+
+            botonAgregar.addEventListener('click', () => {
+                const html = plantilla.innerHTML.replaceAll('__i__', String(siguienteIndice++));
+
+                contenedor.insertAdjacentHTML('beforeend', html);
+                reindexar();
+
+                /*
+                 * La fila nueva arranca con lo que falta: es el caso tipico
+                 * (pago 10.000 en efectivo y el resto con otro medio). Si ya
+                 * esta pago, arranca vacia.
+                 */
+                const filas = contenedor.querySelectorAll('[data-fila]');
+                const ultima = filas[filas.length - 1];
+                const falta = Math.max(0, Math.round((TOTAL - pagadoActual()) * 100) / 100);
+                const input = ultima.querySelector('input[name$="[amount]"]');
+
+                if (input && falta > 0) {
+                    input.value = pesos(falta);
+                }
+
+                recalcular();
+            });
+
+            contenedor.addEventListener('click', (evento) => {
+                const boton = evento.target.closest('.quitar-pago');
+
+                if (!boton) {
+                    return;
+                }
+
+                // La primera fila no se puede quitar (el boton esta oculto,
+                // pero por las dudas).
+                if (contenedor.querySelectorAll('[data-fila]').length <= 1) {
+                    return;
+                }
+
+                boton.closest('[data-fila]').remove();
+                reindexar();
+                recalcular();
+            });
+
+            contenedor.addEventListener('input', recalcular);
+
+            reindexar();
+            recalcular();
+        })();
+    </script>
 </x-app-layout>

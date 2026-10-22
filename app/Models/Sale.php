@@ -33,6 +33,36 @@ class Sale extends Model
     }
 
     /**
+     * Detalle de los pagos: una fila por medio usado.
+     *
+     * Una venta puede tener una sola fila (pago simple) o varias (pago
+     * combinado: parte en efectivo, parte con transferencia).
+     */
+    public function payments()
+    {
+        return $this->hasMany(SalePayment::class, 'id_sale');
+    }
+
+    /**
+     * ¿Se pago con mas de un medio?
+     */
+    public function esPagoCombinado(): bool
+    {
+        return $this->payments->count() > 1;
+    }
+
+    /**
+     * Numero de comprobante de la venta, o null si todavia no tiene.
+     *
+     * Las ventas viejas (o las que crean los tests directamente) pueden no
+     * tener comprobante. Las vistas usan esto para no mostrar "0001-00000000".
+     */
+    public function numeroComprobante(): ?string
+    {
+        return $this->receipt?->numeroComprobante();
+    }
+
+    /**
      * Items del carrito de esta venta.
      *
      * Atajo a cart.items, que es donde estan los articulos vendidos.

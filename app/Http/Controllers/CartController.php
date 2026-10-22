@@ -7,10 +7,14 @@ use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\Article;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use App\Models\Receipt;
 use App\Models\ProductStock;
+use App\Support\Iva;
+use App\Support\MediosPago;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class CartController extends Controller
 {
@@ -239,13 +243,60 @@ class CartController extends Controller
     // PASO 7 — Confirma la venta, descuenta stock, genera Sale y Receipt
     public function confirmSale(Request $request, Cart $cart)
     {
+        /*
+         * El cobro llega como una LISTA de pagos, no como un medio suelto.
+         *
+         * El pago simple es una lista de un elemento; el combinado, una
+         * lista de varios. Asi no hay dos caminos distintos para cobrar y
+         * el comprobante siempre sabe cuanto se pago con cada medio.
+         *
+         * Las filas vacias del formulario (el usuario agrego un medio y no
+         * lo uso) se descartan antes de validar. Si no, el "min:0.01" las
+         * rechazaria y el usuario no entenderia por que.
+         */
+        $pagos = collect($request->input('payments', []))
+            ->filter(fn ($p) => is_array($p) && ($p['amount'] ?? '') !== '' && (float) $p['amount'] > 0)
+            ->map(fn ($p) => [
+                'method' => (string) ($p['method'] ?? ''),
+                'amount' => round((float) $p['amount'], 2),
+            ])
+            ->values()
+            ->all();
+
+        $request->merge(['payments' => $pagos]);
+
         $request->validate([
-            'payment_method' => 'required|string|in:Efectivo,Tarjeta de crédito,Tarjeta de débito,Transferencia',
+            'payments'            => ['required', 'array', 'min:1'],
+            'payments.*.method'   => ['required', 'string', Rule::in(MediosPago::todos())],
+            'payments.*.amount'   => ['required', 'numeric', 'min:0.01'],
+        ], [
+            'payments.required'          => 'Elegí al menos un medio de pago.',
+            'payments.*.method.required' => 'Cada pago necesita un medio.',
+            'payments.*.method.in'       => 'El medio de pago no es válido.',
+            'payments.*.amount.required' => 'Cada pago necesita un importe.',
+            'payments.*.amount.min'      => 'El importe de cada pago tiene que ser mayor a cero.',
         ]);
 
         // Verificar que el carrito tenga items
         if ($cart->items->count() === 0) {
             return back()->with('error', 'El carrito está vacío.');
+        }
+
+        /*
+         * Los pagos tienen que sumar EXACTAMENTE el total. Si suman menos,
+         * la venta queda con saldo; si suman mas, el comprobante no cierra.
+         * Se compara con una tolerancia de un centavo para no pelear con
+         * los redondeos de los decimales.
+         */
+        $total  = round($cart->items->sum(fn ($item) => $item->unit_price * $item->quantity), 2);
+        $pagado = round(collect($pagos)->sum('amount'), 2);
+
+        if (abs($pagado - $total) > 0.009) {
+            return back()->withInput()->withErrors([
+                'payments' => 'Los pagos suman $' . number_format($pagado, 2)
+                    . ' y el total es $' . number_format($total, 2)
+                    . '. Ajustá los importes hasta que coincidan.',
+            ]);
         }
 
         /*
@@ -262,7 +313,7 @@ class CartController extends Controller
          * ve el valor ya descontado.
          */
         try {
-            DB::transaction(function () use ($cart, $request) {
+            DB::transaction(function () use ($cart, $pagos, $total) {
 
                 // Bloquear las filas de stock que van a tocarse
                 $idsArticulo = $cart->items->pluck('id_article')->unique();
@@ -288,13 +339,23 @@ class CartController extends Controller
                 $cart->status = 'completed';
                 $cart->save();
 
-                // Crear la venta (Sale)
+                // Crear la venta (Sale). El medio de pago se guarda como
+                // resumen para el listado; el detalle va en sale_payments.
                 $sale = Sale::create([
                     'id_cart'        => $cart->id_cart,
                     'id_customer'    => $cart->id_customer,
                     'id_employee'    => auth()->user()->employee?->id_employee ?? null,
-                    'payment_method' => $request->payment_method,
+                    'payment_method' => MediosPago::resumen(array_column($pagos, 'method')),
                 ]);
+
+                // Un renglon por medio de pago, con su importe
+                foreach ($pagos as $pago) {
+                    SalePayment::create([
+                        'id_sale'        => $sale->id_sale,
+                        'payment_method' => $pago['method'],
+                        'amount'         => $pago['amount'],
+                    ]);
+                }
 
                 // Descontar stock (las filas ya están bloqueadas)
                 foreach ($cart->items as $item) {
@@ -304,11 +365,38 @@ class CartController extends Controller
                     $stock->save();
                 }
 
+                /*
+                 * Numeracion del comprobante.
+                 *
+                 * El numero es POR CLIENTE: su primera compra es la 1, la
+                 * segunda la 2. No se usa el id de la venta porque es
+                 * interno y no significa nada para el cliente.
+                 *
+                 * Si dos cajas cobraran al mismo cliente en el mismo
+                 * instante podrian sacar el mismo numero. En este sistema
+                 * hay una sola caja, asi que no se bloquea; si algun dia
+                 * hay varias, aca va un lock.
+                 */
+                $numero = (int) Receipt::whereHas(
+                    'sale',
+                    fn ($q) => $q->where('id_customer', $cart->id_customer)
+                )->max('receipt_number') + 1;
+
+                // Los precios del catalogo ya incluyen IVA: se desglosa
+                // hacia atras y se guarda el resultado en el comprobante.
+                $iva = Iva::desglosar($total);
+
                 // Crear el comprobante (Receipt)
                 Receipt::create([
-                    'id_sale'    => $sale->id_sale,
-                    'issue_date' => now()->toDateString(),
-                    'due_date'   => now()->addDays(30)->toDateString(),
+                    'id_sale'        => $sale->id_sale,
+                    'receipt_number' => $numero,
+                    'point_of_sale'  => '0001',
+                    'issue_date'     => now()->toDateString(),
+                    'due_date'       => now()->addDays(30)->toDateString(),
+                    'tax_rate'       => $iva['tasa'],
+                    'net_amount'     => $iva['neto'],
+                    'tax_amount'     => $iva['iva'],
+                    'total_amount'   => $iva['total'],
                 ]);
             });
         } catch (\RuntimeException $e) {
@@ -341,13 +429,17 @@ class CartController extends Controller
             );
         }
 
-        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt');
+        $sale->load('cart.items.article', 'customer.user', 'employee', 'receipt', 'payments');
         $subtotal = $sale->cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
+
+        // Neto / IVA / total guardados al emitir. Si el comprobante es
+        // viejo y no los tiene, se calculan al vuelo.
+        $desglose = $sale->receipt?->desglose() ?? Iva::desglosar((float) $subtotal);
 
         // Para el Cliente, una venta es su COMPRA: el comprobante se titula
         // distinto.
         $esCliente = $user->hasRole('Cliente');
 
-        return view('cart.receipt', compact('sale', 'subtotal', 'esCliente'));
+        return view('cart.receipt', compact('sale', 'subtotal', 'desglose', 'esCliente'));
     }
 }

@@ -244,15 +244,19 @@ class Dashboard extends Component
 
     /**
      * Distribucion por medio de pago.
+     *
+     * Se suma el DETALLE (sale_payments), no el resumen de la venta: en un
+     * pago combinado el resumen dice "Pago combinado (Efectivo + ...)" y
+     * no sirve para saber cuanto entro por cada medio. Con el detalle, cada
+     * peso cae en el medio que corresponde.
      */
     private function mediosDePago(?Carbon $desde): array
     {
-        $q = DB::table('sales')
-            ->join('cart_items', 'cart_items.id_cart', '=', 'sales.id_cart')
-            ->groupBy('sales.payment_method')
-            ->select('sales.payment_method')
-            ->selectRaw('COUNT(DISTINCT sales.id_sale) as ventas')
-            ->selectRaw('SUM(cart_items.quantity * cart_items.unit_price) as total')
+        $q = DB::table('sale_payments')
+            ->join('sales', 'sales.id_sale', '=', 'sale_payments.id_sale')
+            ->groupBy('sale_payments.payment_method')
+            ->select('sale_payments.payment_method')
+            ->selectRaw('SUM(sale_payments.amount) as total')
             ->orderByDesc('total');
 
         if ($desde !== null) {
