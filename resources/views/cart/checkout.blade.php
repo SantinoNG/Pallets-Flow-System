@@ -29,31 +29,131 @@
 
                 <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100 mb-6">{{ $esCliente ? 'Resumen de la compra' : 'Resumen de la venta' }}</h3>
 
-                {{-- Detalle de items --}}
-                <div class="border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden mb-6">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-zinc-400">
-                        <thead class="text-xs text-gray-700 dark:text-zinc-200 uppercase bg-gray-50 dark:bg-zinc-950">
-                            <tr>
-                                <th class="px-4 py-3">Artículo</th>
-                                <th class="px-4 py-3">Cant.</th>
-                                <th class="px-4 py-3 text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($cart->items as $item)
-                            <tr class="border-t border-gray-100 dark:border-zinc-800">
-                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-zinc-100">
-                                    {{ $item->article->article_name }}
-                                </td>
-                                <td class="px-4 py-3 font-mono tabular-nums">{{ $item->quantity }}</td>
-                                <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
+                {{-- Avisos de las acciones sobre los items (cambiar / quitar) --}}
+                @if(session('success'))
+                    <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 text-sm rounded-md">
+                        {{ session('success') }}
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div class="mb-4 px-4 py-3 bg-red-100 text-red-800 text-sm rounded-md">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                {{--
+                    Detalle de items EDITABLE.
+
+                    El pedido se puede corregir aca mismo, sin volver al
+                    carrito: se cambia el producto en el desplegable, se
+                    cambia la cantidad (se guarda al salir del campo) o se
+                    quita el renglon. Cada accion recarga esta misma pantalla
+                    con el total nuevo.
+                --}}
+                <div class="border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden mb-3">
+                    <div class="px-4 py-2 bg-gray-50 dark:bg-zinc-950 text-xs uppercase text-gray-700 dark:text-zinc-200 flex items-center justify-between">
+                        <span>Producto</span>
+                        <span>Importe</span>
+                    </div>
+
+                    @foreach($cart->items as $item)
+                        <div class="border-t border-gray-100 dark:border-zinc-800 px-4 py-3">
+                            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+
+                                {{-- Cambiar producto y cantidad --}}
+                                <form action="{{ route('cart.updateItem', [$cart->id_cart, $item->id_cart_item]) }}"
+                                      method="POST"
+                                      class="flex flex-col sm:flex-row gap-2 flex-1">
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <select name="id_article"
+                                            onchange="this.form.submit()"
+                                            title="Cambiar el producto"
+                                            class="w-full sm:flex-1 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm">
+                                        @foreach($articles as $article)
+                                            <option value="{{ $article->id_article }}"
+                                                    @selected($article->id_article === $item->id_article)
+                                                    @disabled(($article->stock->remaining_quantity ?? 0) <= 0 && $article->id_article !== $item->id_article)>
+                                                {{ $article->article_name }}
+                                                — ${{ number_format($article->unit_price, 2) }}
+                                                (Stock: {{ $article->stock->remaining_quantity ?? 0 }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <div class="flex items-center gap-1">
+                                        <input type="number"
+                                               name="quantity"
+                                               value="{{ $item->quantity }}"
+                                               min="1"
+                                               title="Cantidad"
+                                               onchange="this.form.submit()"
+                                               class="w-20 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
+                                        <button type="submit"
+                                                title="Actualizar cantidad"
+                                                class="px-3 py-2 text-sm rounded-md text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition">
+                                            ↻
+                                        </button>
+                                    </div>
+                                </form>
+
+                                {{-- Importe del renglon --}}
+                                <div class="lg:w-32 lg:text-right font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
                                     ${{ number_format($item->unit_price * $item->quantity, 2) }}
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                </div>
+
+                                {{-- Quitar el producto --}}
+                                <form action="{{ route('cart.removeItem', [$cart->id_cart, $item->id_cart_item]) }}"
+                                      method="POST"
+                                      class="lg:w-20 lg:text-right">
+                                    @csrf
+                                    @method('DELETE')
+                                    <input type="hidden" name="quantity" value="{{ $item->quantity }}">
+                                    <button type="submit"
+                                            class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium text-xs bg-red-50 dark:bg-red-950/40 px-3 py-1 rounded-md"
+                                            onclick="return confirm('¿Quitar «{{ $item->article->article_name }}» del pedido?')">
+                                        Quitar
+                                    </button>
+                                </form>
+                            </div>
+
+                            <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                                ${{ number_format($item->unit_price, 2) }} c/u
+                                · Stock: {{ $item->article->stock->remaining_quantity ?? 0 }}
+                            </p>
+                        </div>
+                    @endforeach
                 </div>
+
+                {{-- Agregar otro producto sin salir del checkout --}}
+                <p class="text-xs text-gray-500 dark:text-zinc-400 mb-2">
+                    Cambiá el producto en el desplegable o la cantidad y se guarda al instante.
+                    Para sacar un producto del pedido, «Quitar».
+                </p>
+                <form action="{{ route('cart.addItem', $cart->id_cart) }}" method="POST" class="mb-6">
+                    @csrf
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <select name="id_article" required
+                                class="w-full sm:flex-1 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm">
+                            <option value="">Agregar otro producto...</option>
+                            @foreach($articles as $article)
+                                <option value="{{ $article->id_article }}"
+                                        @disabled(($article->stock->remaining_quantity ?? 0) <= 0)>
+                                    {{ $article->article_name }}
+                                    — ${{ number_format($article->unit_price, 2) }}
+                                    (Stock: {{ $article->stock->remaining_quantity ?? 0 }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <input type="number" name="quantity" value="1" min="1"
+                               class="w-20 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
+                        <button type="submit"
+                                class="bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700 text-gray-800 dark:text-zinc-100 text-sm font-medium px-4 py-2 rounded-md transition">
+                            + Agregar
+                        </button>
+                    </div>
+                </form>
 
                 {{-- Total --}}
                 <div class="flex justify-between text-lg font-bold text-gray-900 dark:text-zinc-100 mb-2 px-1">

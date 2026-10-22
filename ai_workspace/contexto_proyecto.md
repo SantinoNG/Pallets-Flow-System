@@ -155,6 +155,10 @@ oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
 (17 casos) fijan la separacion entre clientes y personal.
 `tests/Feature/PagoCombinadoTest.php` (18 casos) fija el cobro combinado, el
 IVA y la numeracion del comprobante.
+`tests/Feature/CheckoutEdicionTest.php` (12 casos) fija la edicion del pedido
+desde el checkout: cambiar producto, cambiar cantidad sin re-preciar, fusionar
+renglones repetidos, tope de stock, quitar (y volver al carrito si era el
+ultimo) y que no se pueda tocar el item de otro carrito.
 
 ### 6.2 Cobro, IVA y comprobante
 
@@ -170,6 +174,19 @@ IVA y la numeracion del comprobante.
 | Numero de comprobante | Correlativo **por cliente**, no por venta: su primera compra es la 1. Se guarda en `receipts.receipt_number` y se muestra como `0001-00000003` (punto de venta + 8 digitos). | `Receipt::numeroComprobante()` |
 | Donde se muestra | Listado de ventas, detalle, panel del cliente, comprobante HTML y PDF, y nombre del archivo PDF. **El id de la venta no se muestra**: es interno y las rutas lo siguen usando. | `sales/*`, `dashboard/cliente`, `cart/receipt`, `sales/pdf` |
 | Alcance fiscal | **No hay CAE ni integracion con AFIP.** El sistema arma numeracion y desglose; la autorizacion fiscal electronica es de otro sistema. | — |
+
+### 6.3 Editar el pedido desde el checkout
+
+| Elemento | Decision | Donde se define |
+|---|---|---|
+| Renglon editable | El checkout permite **cambiar de producto, cambiar la cantidad y quitar el renglon** sin volver al carrito. Cada accion recarga el checkout con el total nuevo (y el IVA y la primera fila de pago). | `views/cart/checkout.blade.php` |
+| Cambiar producto | `PATCH /cart/{cart}/items/{item}`. Cambia el articulo **y toma el precio del catalogo del producto nuevo**. | `CartController@updateItem` |
+| Cambiar cantidad | El mismo endpoint. **No re-precio**: se respeta el `unit_price` con el que el articulo entro al carrito, aunque el catalogo haya subido despues. | `CartController@updateItem` |
+| Producto repetido | Si el articulo elegido ya esta en **otro renglon** del carrito, los dos se **fusionan** (suma de cantidades) y el renglon original desaparece: no queda el mismo producto dos veces. | `CartController@updateItem` |
+| Quitar | `DELETE` de siempre. Si era el ultimo articulo, vuelve al carrito y lo marca `abandoned`: un checkout vacio no tiene nada que confirmar. | `CartController@removeItem` |
+| Stock | Se controla contra la **cantidad final** (incluida la suma al fusionar). En el desplegable, los productos sin stock salen deshabilitados. | `updateItem`, vista |
+| Seguridad | El `CartItem` tiene que pertenecer al `Cart` de la URL: si no, 404 (no se edita el renglon de otro cambiando el id). | `updateItem`, `removeItem` |
+| Cuando se guarda | La cantidad se guarda en `change` (al salir del campo), no solo con el boton: asi no se puede escribir una cantidad nueva y confirmar la compra con la vieja. | vista |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
@@ -249,6 +266,7 @@ IVA y la numeracion del comprobante.
 59. **RESUELTO** — **El comprobante mostraba el id de la venta** (`#39`), que es un numero interno. Ahora muestra el numero fiscal `0001-00000003` (punto de venta + correlativo **por cliente**) y debajo "Compra N.º 3 del cliente". El id se reemplazo en el listado, el detalle, el panel del cliente, el HTML, el PDF y el nombre del archivo. Las rutas siguen usando `id_sale`.
 60. **PENDIENTE** — La numeracion del comprobante calcula `max(receipt_number) + 1` **sin lock**. Hoy hay una sola caja, asi que no hay carrera. Si algun dia hay varias cajas cobrando al mismo cliente en el mismo instante, dos ventas podrian llevarse el mismo numero: ahi hace falta bloquear por cliente (o una tabla de contadores).
 61. **PENDIENTE** — **No hay CAE ni integracion con AFIP.** El sistema arma la numeracion y el desglose de IVA, pero no autoriza el comprobante electronicamente. Es alcance de otro sistema; si el profesor lo pide, hay que integrar un web service de facturacion.
+62. **RESUELTO** — **Para corregir el pedido habia que volver al carrito.** En la pantalla de confirmacion el detalle era de solo lectura: si el vendedor o el cliente se equivocaba de producto o de cantidad, tenia que salir a `/cart`, corregir y entrar de nuevo a confirmar (perdiendo el armado del pedido). Ahora el checkout tiene, por renglon, un desplegable con el catalogo, un campo de cantidad y un boton **Quitar**, mas un **"+ Agregar"** abajo. Cambiar de producto toma el precio nuevo; cambiar solo la cantidad **no** cambia el precio con el que entro la venta; si el producto elegido ya estaba, los renglones se fusionan; el stock se controla contra la cantidad final y quitar el ultimo articulo vuelve al carrito. La cantidad se guarda al salir del campo, para que no se pueda confirmar la compra con una cantidad que quedo escrita sin guardar.
 
 ## 8. Convenciones para cambios futuros
 
@@ -261,6 +279,7 @@ IVA y la numeracion del comprobante.
 - **Cobro**: el contrato es `payments[]` (`method` + `amount`), nunca un `payment_method` suelto. La suma tiene que dar el total (tolerancia `0.009`); si no, se rechaza y el carrito queda activo. `sales.payment_method` es un resumen: para saber cuanto entro por cada medio, mirar `sale_payments`.
 - **IVA**: los precios del catalogo **incluyen IVA**. Usar `Iva::desglosar($total)` (neto redondeado, IVA por diferencia) y **guardar** el resultado en el comprobante. No recalcular al mostrar.
 - **Comprobante**: el numero visible es `receipts.receipt_number` (correlativo por cliente), formateado con `Receipt::numeroComprobante()` → `0001-00000003`. El `id_sale` es interno: puede ir en la URL, pero no se muestra en pantalla, PDF ni nombre de archivo.
+- **Editar el pedido**: se hace desde el checkout, no desde el carrito. Cambiar de producto o cantidad es `CartController@updateItem` (`PATCH /cart/{cart}/items/{item}`); quitar es `removeItem`. El precio se actualiza **solo** cuando cambia el producto. Si dos renglones quedan con el mismo articulo, se fusionan. Cualquier accion vuelve a `back()` (el checkout) salvo que el carrito quede vacio: ahi se vuelve al carrito.
 - **Modo oscuro**: la clase `dark` en `<html>` la pone el script del `<head>` segun `localStorage['tema']`. No usar `prefers-color-scheme` en las vistas ni poner la clase a mano: el interruptor es el unico que decide.
 - **Dos tipos de compra, dos flujos**: el mostrador (`/cart`) es del personal y elige a quién le vende. El flujo del Cliente (`/mi-carrito`) es suyo y no lleva selector. Para agregar un flujo nuevo, decidir primero cual de los dos es.
 - **Catalogo**: el Cliente ve `/articles` en modo lectura. Los controles de gestion (alta, edicion, borrado, PDF) van detras de `role:Jefe|Administrador|Encargado|Deposito` en las RUTAS, y la vista los oculta con el flag `$esCliente` que pasa el controlador. Las dos capas: la ruta es la seguridad, la vista es la usanza.

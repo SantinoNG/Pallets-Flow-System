@@ -121,20 +121,69 @@ if (! $idCarrito) {
     exit(1);
 }
 
-// 3. Agregar un item
+// 3. Elegir un articulo CON STOCK
+//
+// Antes estaba fijo el id_article = 1. Cada corrida de este script registra
+// una venta y descuenta stock, asi que al rato el articulo quedaba en 0 y la
+// prueba fallaba por datos, no por codigo. Ahora se lee el desplegable del
+// carrito y se toma el primero que tenga stock para las 2 unidades.
+$r = $c->pedir("$base/cart/$idCarrito");
+paso('abrir el carrito', $r['codigo'] == 200, "HTTP {$r['codigo']}");
+
+preg_match_all(
+    '/<option value="(\d+)"[^>]*>\s*(.+?)\s*—\s*\$[\d,.]+\s*\(Stock:\s*(\d+)\)/s',
+    (string) $r['html'],
+    $opciones,
+    PREG_SET_ORDER
+);
+
+$articulo = null;
+
+foreach ($opciones as $opcion) {
+    if ((int) $opcion[3] >= 2) {
+        $articulo = [
+            'id'     => (int) $opcion[1],
+            'nombre' => trim($opcion[2]),
+            'stock'  => (int) $opcion[3],
+        ];
+        break;
+    }
+}
+
+paso(
+    'hay un articulo con stock',
+    $articulo !== null,
+    $articulo
+        ? "{$articulo['nombre']} (stock {$articulo['stock']})"
+        : 'todos los articulos estan sin stock'
+);
+
+if (! $articulo) {
+    echo "\n  no hay stock para probar el flujo\n";
+    exit(1);
+}
+
+// 4. Agregar el item
 $r = $c->pedir("$base/cart/$idCarrito/items", [
     '_token' => $c->token("$base/cart/$idCarrito"),
-    'id_article' => 1,
+    'id_article' => $articulo['id'],
     'quantity'   => 2,
 ]);
 paso('agregar articulo al carrito', $r['codigo'] == 302, "HTTP {$r['codigo']}");
 
-// 4. Ver el carrito con el item
+// 5. Ver el carrito con el item
+//
+// Se busca el formulario del renglon (/cart/{id}/items/{item}), que solo
+// existe si el articulo entro. El desplegable de "agregar" tiene la ruta sin
+// el id del item, asi que no da falso positivo.
 $r = $c->pedir("$base/cart/$idCarrito");
-paso('el carrito muestra el item', $r['codigo'] == 200 && str_contains($r['html'], 'Sillón'),
-    "HTTP {$r['codigo']}");
+paso(
+    'el carrito muestra el item',
+    $r['codigo'] == 200 && preg_match('#/cart/' . $idCarrito . '/items/\d+#', (string) $r['html']) === 1,
+    "HTTP {$r['codigo']}"
+);
 
-// 5. Checkout
+// 6. Checkout
 $r = $c->pedir("$base/cart/$idCarrito/checkout");
 paso('pantalla de checkout', $r['codigo'] == 200, "HTTP {$r['codigo']}");
 paso('el checkout pide los pagos', str_contains($r['html'], 'payments[0][amount]'),
@@ -155,7 +204,7 @@ if ($total === null) {
     exit(1);
 }
 
-// 6. Confirmar la venta con PAGO COMBINADO: 40% efectivo + 60% transferencia
+// 7. Confirmar la venta con PAGO COMBINADO: 40% efectivo + 60% transferencia
 $efectivo = round($total * 0.4, 2);
 $resto    = round($total - $efectivo, 2);
 
@@ -168,7 +217,7 @@ $r = $c->pedir("$base/cart/$idCarrito/confirm", [
 ]);
 paso('confirmar la venta combinada', $r['codigo'] == 302, "HTTP {$r['codigo']}");
 
-// 7. La venta queda registrada y con comprobante
+// 8. La venta queda registrada y con comprobante
 $r = $c->pedir("$base/sales");
 paso('la venta aparece en el listado', $r['codigo'] == 200 && str_contains($r['html'], 'Pago combinado'),
     "HTTP {$r['codigo']}");
@@ -176,7 +225,7 @@ paso('el listado muestra el numero de comprobante',
     (bool) preg_match('/\d{4}-\d{8}/', (string) $r['html']),
     'formato 0001-00000001');
 
-// 8. PDF de la venta recien hecha
+// 9. PDF de la venta recien hecha
 preg_match('#/sales/(\d+)/pdf#', (string) $r['html'], $m);
 $idVenta = $m[1] ?? null;
 if ($idVenta) {

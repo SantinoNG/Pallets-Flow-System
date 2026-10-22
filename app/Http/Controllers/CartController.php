@@ -208,23 +208,102 @@ class CartController extends Controller
     // PASO 5 — Elimina o reduce un item del carrito (DSD-5)
     public function removeItem(Request $request, Cart $cart, CartItem $item)
     {
+        // El item tiene que ser de ESTE carrito: si no, se podria borrar el
+        // item de otro cambiando el id de la URL.
+        abort_unless((int) $item->id_cart === (int) $cart->id_cart, 404);
+
+        // Sin cantidad, se entiende que se quita el renglon entero.
+        $cantidad = (int) ($request->quantity ?? $item->quantity);
+
         // Si la cantidad a eliminar >= cantidad actual, borrar el item completo
-        if ($request->quantity >= $item->quantity) {
+        if ($cantidad >= $item->quantity) {
             $item->delete();
         } else {
-            $item->quantity -= $request->quantity;
+            $item->quantity -= $cantidad;
             $item->save();
         }
 
-        // Si el carrito queda vacío, marcarlo como abandonado (DSD-5 paso 6)
+        /*
+         * Si el carrito queda vacío, marcarlo como abandonado (DSD-5 paso 6).
+         *
+         * Se vuelve al carrito y no a `cart.index`: desde el checkout, si se
+         * quita el ultimo articulo, el carrito vacio no tiene nada que
+         * confirmar. Ademas `cart.index` para el rol Cliente redirige a
+         * /mi-carrito, y el usuario terminaba en otra pantalla.
+         */
         if ($cart->items()->count() === 0) {
             $cart->status = 'abandoned';
             $cart->save();
-            return redirect()->route('cart.index')
+            return redirect()->route('cart.show', $cart->id_cart)
                              ->with('success', 'Carrito vaciado.');
         }
 
         return back()->with('success', 'Artículo eliminado del carrito.');
+    }
+
+    /**
+     * Cambia el producto o la cantidad de un renglon del carrito.
+     *
+     * Lo usa el checkout, para poder corregir el pedido sin volver al
+     * carrito: se elige otro articulo en el desplegable o se cambia la
+     * cantidad, y la pantalla se recarga ya con el total nuevo.
+     *
+     * Si el articulo elegido ya esta en OTRO renglon del carrito, los dos se
+     * fusionan en uno solo (no tiene sentido tener el mismo producto dos
+     * veces).
+     */
+    public function updateItem(Request $request, Cart $cart, CartItem $item)
+    {
+        abort_unless((int) $item->id_cart === (int) $cart->id_cart, 404);
+
+        $datos = $request->validate([
+            'id_article' => 'required|exists:articles,id_article',
+            'quantity'   => 'required|integer|min:1',
+        ]);
+
+        $article = Article::with('stock')->findOrFail($datos['id_article']);
+        $stock   = $article->stock;
+
+        // ¿El articulo elegido ya esta en otro renglon del mismo carrito?
+        $repetido = CartItem::where('id_cart', $cart->id_cart)
+            ->where('id_article', $article->id_article)
+            ->where('id_cart_item', '!=', $item->id_cart_item)
+            ->first();
+
+        // La cantidad a controlar contra el stock es la suma de los dos.
+        $cantidadTotal = (int) $datos['quantity'] + (int) ($repetido->quantity ?? 0);
+
+        if (! $stock || $stock->remaining_quantity < $cantidadTotal) {
+            return back()->with(
+                'error',
+                'Stock insuficiente para «' . $article->article_name . '». Disponible: '
+                    . ($stock->remaining_quantity ?? 0)
+            );
+        }
+
+        if ($repetido) {
+            // Se fusionan: el renglon repetido se queda con la suma y este
+            // desaparece.
+            $repetido->quantity = $cantidadTotal;
+            $repetido->save();
+            $item->delete();
+        } else {
+            /*
+             * El precio solo se actualiza cuando cambia el producto. Si solo
+             * cambia la cantidad se respeta el precio con el que entro al
+             * carrito: no se le cambia el precio al cliente por corregir
+             * una cantidad.
+             */
+            if ((int) $item->id_article !== (int) $article->id_article) {
+                $item->unit_price = $article->unit_price;
+            }
+
+            $item->id_article = $article->id_article;
+            $item->quantity   = $datos['quantity'];
+            $item->save();
+        }
+
+        return back()->with('success', 'Artículo actualizado.');
     }
 
     // PASO 6 — Muestra el formulario de confirmación de venta
@@ -233,11 +312,21 @@ class CartController extends Controller
         $cart->load('items.article', 'customer.user');
         $subtotal = $cart->items->sum(fn($item) => $item->unit_price * $item->quantity);
 
+        // Sin articulos no hay nada que confirmar: se vuelve al carrito.
+        if ($cart->items->isEmpty()) {
+            return redirect()->route('cart.show', $cart->id_cart)
+                ->with('error', 'El carrito está vacío.');
+        }
+
         // Para el Cliente, una venta es su COMPRA: cambian el titulo y los
         // textos del checkout.
         $esCliente = request()->user()?->hasRole('Cliente') ?? false;
 
-        return view('cart.checkout', compact('cart', 'subtotal', 'esCliente'));
+        // El catalogo va a la vista para poder cambiar el producto de un
+        // renglon sin volver al carrito.
+        $articles = Article::with('stock')->get();
+
+        return view('cart.checkout', compact('cart', 'subtotal', 'esCliente', 'articles'));
     }
 
     // PASO 7 — Confirma la venta, descuenta stock, genera Sale y Receipt

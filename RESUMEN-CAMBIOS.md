@@ -3,20 +3,76 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 22 de octubre de 2026
 
-**10 tandas de trabajo · 24 archivos tocados en esta última (cobro y comprobante)**
+**11 tandas de trabajo · 5 archivos tocados en esta última (editar el pedido desde el checkout)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
-> El resumen de abajo arranca con la primera tanda (corrección de roles,
-> seguridad y tests). La **sección 0** documenta la última tanda: el pago
-> combinado, el IVA y la numeración de los comprobantes. La sección 1
-> documenta la separación entre clientes y personal, y el cierre de las
-> fugas de información. La sección 2, el rediseño de la interfaz con paleta
-> industrial y modo oscuro.
+> El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
+> documenta la última tanda: corregir el pedido desde el checkout (cambiar de
+> producto, cambiar la cantidad, quitar un renglón) sin volver al carrito. La
+> **sección 0.1**, el pago combinado, el IVA y la numeración de los
+> comprobantes. La sección 1 documenta la separación entre clientes y
+> personal, y el cierre de las fugas de información. La sección 2, el
+> rediseño de la interfaz con paleta industrial y modo oscuro.
 
 ---
 
-## 0. Cobro: pago combinado, IVA y numeración del comprobante
+## 0. Editar el pedido desde el checkout
+
+Antes, si el cliente o el vendedor se daba cuenta en la pantalla de
+confirmación de que se había equivocado de producto (o de cantidad), tenía que
+volver al carrito, corregir y entrar de nuevo a confirmar. En el mostrador eso
+es perder el pedido que se estaba armando.
+
+Ahora el **checkout es editable**: cada renglón tiene
+
+- un **desplegable** con todo el catálogo, para cambiar de producto;
+- un campo de **cantidad**;
+- un botón **Quitar**;
+- y abajo, un **“+ Agregar”** para sumar otro producto sin salir.
+
+Todo se resuelve en la misma pantalla: cada acción recarga el checkout ya con
+el total nuevo, el IVA y la primera fila de pago actualizadas.
+
+### Cómo se guarda
+
+| Acción | Qué hace el servidor |
+| --- | --- |
+| Elegir otro producto | `PATCH /cart/{carrito}/items/{item}` (`CartController@updateItem`). Cambia el artículo **y toma el precio del catálogo del producto nuevo**. |
+| Cambiar la cantidad | El mismo `updateItem`. **No toca el precio**: se respeta el precio con el que el artículo entró al carrito (si el catálogo subió después, la venta no se re-precifica sola). |
+| Elegir un producto que ya está en el pedido | Los dos renglones se **fusionan** en uno, sumando las cantidades. No queda el mismo producto dos veces. |
+| Quitar | `DELETE /cart/{carrito}/items/{item}` (el `removeItem` de siempre). Si era el último artículo, vuelve al carrito: un checkout vacío no tiene nada que confirmar. |
+
+Reglas que se mantienen: el **stock** se controla contra la cantidad final
+(incluida la suma al fusionar), y el artículo tiene que pertenecer **a ese
+carrito** — si no, 404 (no se puede editar el renglón de otro cambiando el id
+de la URL).
+
+### Detalles de la pantalla
+
+- La cantidad se guarda **al salir del campo** (`change`), no solo con el
+  botón ↻: así no se puede escribir una cantidad nueva y apretar “Finalizar
+  compra” perdiendo el cambio.
+- Los productos **sin stock** aparecen deshabilitados en los desplegables (el
+  que ya está en el pedido sigue seleccionable, para poder corregirlo).
+- Cada renglón muestra el **precio unitario** y el **stock disponible**.
+
+### Tests
+
+`tests/Feature/CheckoutEdicionTest.php`, 12 casos: cambiar cantidad, que el
+precio no se mueva al cambiar solo la cantidad, cambiar producto (toma el
+precio nuevo), fusión de renglones repetidos, tope de stock, cantidad mínima
+1, quitar un renglón (queda en el checkout), quitar el último (vuelve al
+carrito), ítem de otro carrito (404), el Cliente puede editar el suyo, la
+pantalla tiene los controles, y el checkout vacío redirige al carrito.
+
+De paso, `scripts/testear-flujo-venta.php` ya no usa el artículo 1 fijo: elige
+el primero **con stock** leyendo el desplegable. Cada corrida registra una
+venta y descuenta stock, así que antes fallaba por datos y no por código.
+
+---
+
+## 0.1 Cobro: pago combinado, IVA y numeración del comprobante
 
 Tres cosas del circuito de venta que no cerraban con la realidad:
 

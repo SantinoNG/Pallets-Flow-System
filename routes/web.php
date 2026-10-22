@@ -145,6 +145,7 @@ Route::middleware(['auth', 'carrito.propio'])->group(function () {
     Route::post('/cart', [CartController::class, 'createOrGetCart'])->name('cart.create');
     Route::get('/cart/{cart}', [CartController::class, 'show'])->name('cart.show');
     Route::post('/cart/{cart}/items', [CartController::class, 'addItem'])->name('cart.addItem');
+    Route::patch('/cart/{cart}/items/{item}', [CartController::class, 'updateItem'])->name('cart.updateItem');
     Route::delete('/cart/{cart}/items/{item}', [CartController::class, 'removeItem'])->name('cart.removeItem');
     Route::get('/cart/{cart}/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
     Route::post('/cart/{cart}/confirm', [CartController::class, 'confirmSale'])->name('cart.confirm');
