@@ -107,6 +107,66 @@ class FugasTest extends TestCase
     }
 
     #[Test]
+    public function el_cliente_no_ve_el_filtro_por_empleado_en_sus_compras(): void
+    {
+        $this->como('cliente@gmail.com', 'Cliente');
+
+        $html = $this->get('/sales')->assertOk()->getContent();
+
+        // El filtro por empleado es del personal: sus opciones son los
+        // nombres de los empleados, que no son informacion del Cliente.
+        $this->assertStringNotContainsString('name="empleado"', $html);
+        $this->assertStringNotContainsString('>Empleado<', $html);
+        $this->assertStringNotContainsString('Carlos Gómez', $html);
+    }
+
+    #[Test]
+    public function el_comprobante_html_no_filtra_el_email_del_cliente_al_personal_de_ventas(): void
+    {
+        $this->como('vendedor@ecommerce.com', 'Vendedor');
+
+        $venta = Sale::with(['customer.user', 'cart'])
+            ->whereHas('customer.user')
+            ->firstOrFail();
+        $email = $venta->customer->user->email;
+
+        $html = $this->get(route('cart.receipt', $venta->id_sale))
+            ->assertOk()
+            ->getContent();
+
+        // El Vendedor ve el telefono para atender al cliente, pero no su
+        // email: ese dato queda para Jefe/Administrador.
+        $this->assertStringNotContainsString($email, $html);
+
+        $this->como('admin@ecommerce.com', 'Administrador');
+
+        $html = $this->get(route('cart.receipt', $venta->id_sale))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString($email, $html);
+    }
+
+    #[Test]
+    public function el_deposito_no_entra_al_circuito_de_ventas(): void
+    {
+        $this->como('deposito@ecommerce.com', 'Deposito');
+
+        $venta = Sale::whereHas('cart')->firstOrFail();
+
+        $this->get('/sales')->assertForbidden();
+        $this->get('/sales/' . $venta->id_sale)->assertForbidden();
+        $this->get('/sales/' . $venta->id_sale . '/pdf')->assertForbidden();
+        $this->get('/sales/' . $venta->id_sale . '/receipt')->assertForbidden();
+        $this->get('/cart')->assertForbidden();
+        $this->get('/cart/' . $venta->cart->id_cart)->assertForbidden();
+
+        // Tampoco se le ofrece el acceso en el menu.
+        $html = $this->get('/dashboard')->assertOk()->getContent();
+        $this->assertStringNotContainsString('>Carrito<', $html);
+    }
+
+    #[Test]
     public function el_comprobante_en_pdf_del_cliente_no_trae_al_personal(): void
     {
         $cliente = $this->como('carla.mendez@ecommerce.com', 'Cliente');

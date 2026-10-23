@@ -34,7 +34,7 @@ $paginas = [
     '/employees', '/employees/1/edit', '/employees/create', '/employees/1/report',
     '/roles', '/roles/1/edit', '/roles/create',
     '/usuarios', '/usuarios/1/roles',
-    '/cart', '/sales', '/sales/1', '/profile', '/tutorial',
+    '/cart', '/sales', '/sales/1', '/sales/1/receipt', '/profile', '/tutorial',
     '/articles/pdf', '/employees/pdf', '/proveedores/pdf', '/materias-primas/pdf', '/usuarios/pdf', '/sales/1/pdf',
 ];
 

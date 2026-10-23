@@ -171,16 +171,36 @@ Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function
 // El middleware `carrito.propio` va DENTRO del grupo: si se encadena
 // después del ->group(), Laravel ya registró las rutas con los atributos
 // anteriores y el middleware no se aplica (se ve en route:list -v).
-Route::middleware(['auth', 'carrito.propio'])->group(function () {
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart', [CartController::class, 'createOrGetCart'])->name('cart.create');
-    Route::get('/cart/{cart}', [CartController::class, 'show'])->name('cart.show');
-    Route::post('/cart/{cart}/items', [CartController::class, 'addItem'])->name('cart.addItem');
-    Route::patch('/cart/{cart}/items/{item}', [CartController::class, 'updateItem'])->name('cart.updateItem');
-    Route::delete('/cart/{cart}/items/{item}', [CartController::class, 'removeItem'])->name('cart.removeItem');
-    Route::get('/cart/{cart}/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
-    Route::post('/cart/{cart}/confirm', [CartController::class, 'confirmSale'])->name('cart.confirm');
-    Route::get('/sales/{sale}/receipt', [CartController::class, 'showReceipt'])->name('cart.receipt');
+//
+// El circuito de ventas es de los roles que atienden el mostrador o compran:
+// Jefe, Administrador, Encargado, Vendedor y Cliente. El Depósito no entra:
+// su tarea es el stock y el pedido de reposición, y el menú no le muestra
+// "Ventas" ni "Carrito". La ruta también lo bloquea para que no llegue por URL.
+$rolesVentas = 'role:Jefe|Administrador|Encargado|Vendedor|Cliente';
+$rolesMostrador = 'role:Jefe|Administrador|Encargado|Vendedor';
+
+Route::middleware(['auth', 'carrito.propio'])->group(function () use ($rolesVentas, $rolesMostrador) {
+    // El Cliente entra y el controlador lo redirige a /mi-carrito. El
+    // Depósito, en cambio, no tiene nada que hacer en el mostrador.
+    Route::get('/cart', [CartController::class, 'index'])
+        ->middleware($rolesVentas)
+        ->name('cart.index');
+
+    // Crear el carrito del mostrador elige a un cliente: no lo puede hacer
+    // el Cliente (su carrito se resuelve en /mi-carrito) ni el Depósito.
+    Route::post('/cart', [CartController::class, 'createOrGetCart'])
+        ->middleware($rolesMostrador)
+        ->name('cart.create');
+
+    Route::middleware($rolesVentas)->group(function () {
+        Route::get('/cart/{cart}', [CartController::class, 'show'])->name('cart.show');
+        Route::post('/cart/{cart}/items', [CartController::class, 'addItem'])->name('cart.addItem');
+        Route::patch('/cart/{cart}/items/{item}', [CartController::class, 'updateItem'])->name('cart.updateItem');
+        Route::delete('/cart/{cart}/items/{item}', [CartController::class, 'removeItem'])->name('cart.removeItem');
+        Route::get('/cart/{cart}/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+        Route::post('/cart/{cart}/confirm', [CartController::class, 'confirmSale'])->name('cart.confirm');
+        Route::get('/sales/{sale}/receipt', [CartController::class, 'showReceipt'])->name('cart.receipt');
+    });
 });
 
 // -----------------------------------------------------------------------------
@@ -204,7 +224,10 @@ Route::middleware(['auth', 'role:Cliente'])->group(function () {
 //
 // Antes solo se llegaba a una venta por el flujo del carrito, y el import de
 // SaleController en este archivo no correspondía a ningún archivo existente.
-Route::middleware(['auth'])->group(function () {
+//
+// El Cliente entra, pero el controlador le muestra solo sus compras. El
+// Depósito no: su reporte es de reposición, no de ventas.
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Vendedor|Cliente'])->group(function () {
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
     Route::get('/sales/{sale}/pdf', [SaleController::class, 'pdf'])->name('sales.pdf');

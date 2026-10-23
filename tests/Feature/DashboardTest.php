@@ -78,6 +78,10 @@ class DashboardTest extends TestCase
     #[Test]
     public function cada_periodo_muestra_datos_distintos(): void
     {
+        // El componente es del personal: se entra como Administrador para
+        // que el chequeo de rol no lo bloquee.
+        $this->comoAdmin();
+
         $componente = new \App\Livewire\Dashboard();
 
         // 30 días

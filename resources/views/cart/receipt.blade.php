@@ -80,11 +80,11 @@
                         {{ $sale->customer->first_name }} {{ $sale->customer->last_name }}
                     </p>
                     {{-- El email del cliente solo lo ve quien gestiona las
-                         fichas. Para el Cliente es su propio comprobante y
-                         ya sabe cual es su email. --}}
-                    @unless ($esCliente)
+                         fichas (Jefe y Administrador). Para el Cliente es su
+                         propio comprobante y ya sabe cuál es su email. --}}
+                    @if ($veEmails)
                         <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->user->email ?? '' }}</p>
-                    @endunless
+                    @endif
                     <p class="text-sm text-gray-600 dark:text-zinc-300">{{ $sale->customer->phone ?? '' }}</p>
                 </div>
 

@@ -109,12 +109,15 @@
                           @endrole
 
                         <!-- Carrito -->
-                        {{-- El Cliente va a su propio carrito; el personal, al
-                             mostrador donde elige a quién le vende. --}}
+                        {{-- El Cliente va a su propio carrito; el personal de
+                             ventas, al mostrador donde elige a quién le vende.
+                             El Depósito no entra al circuito de ventas. --}}
+                        @role('Jefe|Administrador|Encargado|Vendedor|Cliente')
                         <a href="{{ auth()->user()->hasRole('Cliente') ? route('cart.mine') : route('cart.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('cart.*') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
                             <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                             <span>Carrito</span>
                         </a>
+                        @endrole
                         <!-- Ventas -->
                         {{-- El Cliente tambien entra, pero son sus compras:
                              la etiqueta cambia para que no lo confunda con

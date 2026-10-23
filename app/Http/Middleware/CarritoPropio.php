@@ -11,9 +11,9 @@ use Symfony\Component\HttpFoundation\Response;
  * Impide que el rol Cliente toque el carrito de otro.
  *
  * Las rutas del carrito (/cart/{cart}...) son de `auth`, porque las usa el
- * personal en el mostrador: el vendedor abre el carrito del cliente que
- * tiene enfrente. Para el Cliente eso no sirve: su carrito es el suyo y no
- * tiene por que ver el de los demas.
+ * personal de ventas en el mostrador: el vendedor abre el carrito del
+ * cliente que tiene enfrente. Para el Cliente eso no sirve: su carrito es el
+ * suyo y no tiene por que ver el de los demas.
  *
  * Sin este middleware, un Cliente con el id de otro carrito en la URL
  * podria ver sus productos, sacar items y hasta confirmar la venta.

@@ -121,11 +121,16 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                                 </td>
                                 <td class="px-6 py-4 text-center font-mono tabular-nums">
                                     <div class="inline-flex items-center space-x-3">
-                                        <a href="{{ route('employees.report', $employee->id_employee) }}"
-                                           class="bg-gray-100 dark:bg-zinc-950 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-800 text-xs font-semibold px-2.5 py-1 rounded transition"
-                                           title="Reporte interno según el rol">
-                                            Reporte
-                                        </a>
+                                        {{-- El reporte general de un Jefe o Administrador
+                                             no lo puede bajar un Encargado: ver el
+                                             control en EmployeeController@report. --}}
+                                        @if (auth()->user()->isAdmin() || ! in_array($employee->role?->role_name, ['Jefe', 'Administrador'], true))
+                                            <a href="{{ route('employees.report', $employee->id_employee) }}"
+                                               class="bg-gray-100 dark:bg-zinc-950 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-800 text-xs font-semibold px-2.5 py-1 rounded transition"
+                                               title="Reporte interno según el rol">
+                                                Reporte
+                                            </a>
+                                        @endif
                                         <a href="{{ route('employees.edit', $employee->id_employee) }}"
                                            class="bg-hazard-50 text-hazard-600 hover:bg-hazard-100 text-xs font-semibold px-2.5 py-1 rounded transition">
                                             Editar

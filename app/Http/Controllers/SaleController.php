@@ -34,8 +34,9 @@ class SaleController extends Controller
     /**
      * Las ventas que el usuario puede ver.
      *
-     * El Cliente solo ve las SUYAS. El personal (Jefe, Administrador,
-     * Vendedor, Encargado, Depósito) ve todas.
+     * El Cliente solo ve las SUYAS. El personal de ventas (Jefe,
+     * Administrador, Encargado y Vendedor) ve todas. El Depósito no entra a
+     * este módulo: las rutas lo bloquean y su tarea es el stock.
      *
      * Antes estas rutas solo tenían middleware('auth'), así que el Cliente
      * veía las ventas de todos los clientes.
@@ -82,6 +83,14 @@ class SaleController extends Controller
         $user = $request->user();
 
         /*
+         * Para el Cliente, el listado es el de SUS compras: la vista cambia
+         * el título y las etiquetas. El flag se calcula acá y no en la
+         * vista: un bloque @php dentro del slot de un componente
+         * <x-app-layout> no define variables para el resto de la vista.
+         */
+        $esCliente = $user?->hasRole('Cliente') ?? false;
+
+        /*
          * `items` va en el eager load a propósito: la vista llama
          * $venta->total() y $venta->unidades(), que usan la relación
          * items() (hasManyThrough). Sin cargarla, Eloquent la resuelve con
@@ -91,7 +100,7 @@ class SaleController extends Controller
         /*
          * El email del cliente es un dato personal. Solo lo ve quien
          * gestiona las fichas (Jefe y Administrador); el resto del personal
-         * (vendedor, encargado, deposito) ve nombre y telefono, que alcanza
+         * de ventas (vendedor y encargado) ve nombre y telefono, que alcanza
          * para saber a quien hay que atender.
          */
         $veEmails = $user->isAdmin();
@@ -113,7 +122,7 @@ class SaleController extends Controller
                     ->orWhereHas('payments', fn ($p) => $p->where('payment_method', $request->pago));
             }))
             // Filtro por empleado que procesó la venta
-            ->when($request->filled('empleado'), fn ($q) => $q->where('id_employee', $request->empleado))
+            ->when(! $esCliente && $request->filled('empleado'), fn ($q) => $q->where('id_employee', $request->empleado))
             // Filtro por rango de fechas
             ->when($request->filled('desde'), fn ($q) => $q->where('created_at', '>=', $request->desde))
             ->when($request->filled('hasta'), fn ($q) => $q->where('created_at', '<=', Carbon::parse($request->hasta)->endOfDay()))
@@ -134,7 +143,12 @@ class SaleController extends Controller
             ->unique()
             ->values();
 
-        $empleados = Employee::with('user')->get();
+        /*
+         * El filtro por empleado es del personal. Al Cliente no se le
+         * muestran los nombres del personal: su compra ya está filtrada por
+         * su propia ficha y el empleado que lo atendió no es dato suyo.
+         */
+        $empleados = $esCliente ? collect() : Employee::with('user')->get();
 
         // Total del conjunto filtrado (no solo de la pagina)
         $totalFiltrado = $this->scopeVisibles(
@@ -145,21 +159,11 @@ class SaleController extends Controller
                 $sub->where('payment_method', $request->pago)
                     ->orWhereHas('payments', fn ($p) => $p->where('payment_method', $request->pago));
             }))
-            ->when($request->filled('empleado'), fn ($q) => $q->where('id_employee', $request->empleado))
+            ->when(! $esCliente && $request->filled('empleado'), fn ($q) => $q->where('id_employee', $request->empleado))
             ->when($request->filled('desde'), fn ($q) => $q->where('created_at', '>=', $request->desde))
             ->when($request->filled('hasta'), fn ($q) => $q->where('created_at', '<=', Carbon::parse($request->hasta)->endOfDay()))
             ->get()
             ->sum(fn ($s) => $s->total());
-
-        /*
-         * Para el Cliente, el listado es el de SUS compras: la vista cambia
-         * el titulo y las etiquetas.
-         *
-         * El flag lo pasa el controlador y no se calcula en la vista: un
-         * bloque @php dentro del slot de un componente <x-app-layout> no
-         * define variables para el resto de la vista.
-         */
-        $esCliente = $request->user()?->hasRole('Cliente') ?? false;
 
         return view('sales.index', compact(
             'ventas',

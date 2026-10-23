@@ -25,14 +25,18 @@ class CartTest extends TestCase
     }
 
     #[Test]
-    public function un_usuario_autenticado_puede_agregar_un_articulo_al_carrito()
+    public function un_vendedor_puede_agregar_un_articulo_al_carrito()
     {
-        $user = User::factory()->create();
+        // El circuito del mostrador es para el personal de ventas. El
+        // Cliente usa /mi-carrito y su carrito propio.
+        $vendedor = User::factory()->create();
+        $vendedor->asignarRol('Vendedor');
 
         // El carrito cuelga de un customer, no del user directo:
         // la tabla `cart` tiene id_customer, no id_user.
+        $cliente = User::factory()->create();
         $customer = Customer::create([
-            'id_user'     => $user->id_user,
+            'id_user'     => $cliente->id_user,
             'first_name' => 'Ana',
             'last_name'  => 'Torres',
         ]);
@@ -51,7 +55,7 @@ class CartTest extends TestCase
 
         // Paso 1: crear (o recuperar) el carrito activo del cliente.
         // La ruta se llama 'cart.create' (POST /cart), no 'cart.add'.
-        $response = $this->actingAs($user)->post(route('cart.create'), [
+        $response = $this->actingAs($vendedor)->post(route('cart.create'), [
             'id_customer' => $customer->id_customer,
         ]);
 
@@ -65,7 +69,7 @@ class CartTest extends TestCase
 
         // Paso 2: agregar el articulo al carrito.
         // La ruta se llama 'cart.addItem' (POST /cart/{cart}/items).
-        $response = $this->actingAs($user)->post(route('cart.addItem', $cart->id_cart), [
+        $response = $this->actingAs($vendedor)->post(route('cart.addItem', $cart->id_cart), [
             'id_article' => $article->id_article,
             'quantity'   => 2,
         ]);
@@ -81,11 +85,12 @@ class CartTest extends TestCase
     }
 
     #[Test]
-    public function un_usuario_puede_ver_el_contenido_de_su_carrito()
+    public function un_vendedor_puede_ver_el_mostrador()
     {
-        $user = User::factory()->create();
+        $vendedor = User::factory()->create();
+        $vendedor->asignarRol('Vendedor');
 
-        $response = $this->actingAs($user)->get(route('cart.index'));
+        $response = $this->actingAs($vendedor)->get(route('cart.index'));
 
         $response->assertStatus(200);
     }

@@ -135,12 +135,27 @@ class EmployeeController extends Controller
      *
      * No es el listado de empleados: es una hoja que se le manda a la
      * persona. Al Depósito le llega el pedido de reposición, al Vendedor
-     * el resumen de ventas y disponibilidad, y al Encargado/Jefe la foto
-     * operativa o general.
+     * el resumen de ventas y disponibilidad, al Encargado el resumen
+     * operativo y al Jefe/Administrador la foto general.
      */
-    public function report(Employee $employee)
+    public function report(Request $request, Employee $employee)
     {
         $employee->load(['user', 'role']);
+
+        /*
+         * El resumen general (Jefe/Administrador) incluye facturación
+         * histórica, clientes y estructura del equipo. El Encargado puede
+         * generar los reportes operativos (Depósito, Vendedor, Encargado),
+         * pero no el general de un Jefe/Administrador: serían datos que no
+         * le corresponden. La ruta ya deja afuera al Vendedor, Depósito y
+         * Cliente; acá se cierra el caso del Encargado.
+         */
+        $rolDestino = $employee->role?->role_name;
+        $esGeneral  = in_array($rolDestino, ['Jefe', 'Administrador'], true);
+
+        if ($esGeneral && ! ($request->user()?->isAdmin() ?? false)) {
+            abort(403, 'El reporte general es solo para Jefe o Administrador.');
+        }
 
         $datos = ReporteEmpleado::para($employee);
 

@@ -26,6 +26,9 @@ class CartController extends Controller
          * Si lo dejamos en la pagina de "seleccionar cliente", un cliente
          * veria un formulario para elegir a quien le compra, que no tiene
          * sentido. Se lo manda a su propio carrito.
+         *
+         * El Depósito tampoco entra al mostrador: la ruta lo bloquea antes
+         * de llegar acá y el menú no le muestra el acceso.
          */
         if ($this->esCliente($request)) {
             return redirect()->route('cart.mine');
@@ -533,6 +536,12 @@ class CartController extends Controller
         // distinto.
         $esCliente = $user->hasRole('Cliente');
 
-        return view('cart.receipt', compact('sale', 'subtotal', 'desglose', 'esCliente'));
+        // El email del cliente es un dato personal: solo lo ve quien
+        // gestiona las fichas (Jefe y Administrador). El Vendedor o el
+        // Encargado ven nombre y teléfono, que alcanza para atenderlo. El
+        // Cliente ve su propio comprobante, así que no necesita el email.
+        $veEmails = $user->isAdmin();
+
+        return view('cart.receipt', compact('sale', 'subtotal', 'desglose', 'esCliente', 'veEmails'));
     }
 }

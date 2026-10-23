@@ -41,6 +41,20 @@ class ReportesEmpleadoTest extends TestCase
             ->firstOrFail();
     }
 
+    /**
+     * Un usuario con rol Encargado, sin ficha de empleado: alcanza para
+     * probar el permiso de la ruta de reportes.
+     */
+    private function encargado(): User
+    {
+        $rol = Role::where('role_name', 'Encargado')->firstOrFail();
+
+        $user = User::factory()->create(['id_role' => $rol->id_role]);
+        $user->asignarRol('Encargado');
+
+        return $user;
+    }
+
     #[Test]
     public function el_reporte_cambia_segun_el_rol(): void
     {
@@ -185,5 +199,36 @@ class ReportesEmpleadoTest extends TestCase
             ->assertOk()
             ->assertSee('Reporte')
             ->assertSee(route('employees.report', $deposito->id_employee), false);
+    }
+
+    #[Test]
+    public function el_encargado_no_puede_bajar_el_reporte_general_de_un_jefe(): void
+    {
+        $admin = $this->empleado('admin@ecommerce.com');
+
+        $this->actingAs($this->encargado())
+            ->get(route('employees.report', $admin->id_employee))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function el_encargado_si_puede_bajar_el_reporte_de_un_vendedor(): void
+    {
+        $vendedor = $this->empleado('vendedor@ecommerce.com');
+
+        $this->actingAs($this->encargado())
+            ->get(route('employees.report', $vendedor->id_employee))
+            ->assertOk();
+    }
+
+    #[Test]
+    public function el_listado_del_encargado_no_ofrece_el_reporte_general(): void
+    {
+        $admin = $this->empleado('admin@ecommerce.com');
+
+        $this->actingAs($this->encargado())
+            ->get('/employees')
+            ->assertOk()
+            ->assertDontSee(route('employees.report', $admin->id_employee), false);
     }
 }

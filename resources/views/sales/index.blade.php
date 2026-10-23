@@ -34,18 +34,24 @@
                     </select>
                 </div>
 
-                <div>
-                    <label for="empleado" class="block text-xs font-semibold text-gray-600 dark:text-zinc-300 mb-1">Empleado</label>
-                    <select name="empleado" id="empleado"
-                            class="w-full rounded border-gray-300 dark:border-zinc-700 text-sm shadow-sm focus:border-hazard-500 focus:ring-hazard-500">
-                        <option value="">Todos</option>
-                        @foreach($empleados as $emp)
-                            <option value="{{ $emp->id_employee }}" @selected((string) request('empleado') === (string) $emp->id_employee)>
-                                {{ $emp->first_name }} {{ $emp->last_name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+                {{-- El filtro por empleado es del personal: al Cliente le
+                     mostraría los nombres de los empleados, que no son
+                     información suya. Su listado ya viene filtrado por su
+                     propia ficha. --}}
+                @unless ($esCliente)
+                    <div>
+                        <label for="empleado" class="block text-xs font-semibold text-gray-600 dark:text-zinc-300 mb-1">Empleado</label>
+                        <select name="empleado" id="empleado"
+                                class="w-full rounded border-gray-300 dark:border-zinc-700 text-sm shadow-sm focus:border-hazard-500 focus:ring-hazard-500">
+                            <option value="">Todos</option>
+                            @foreach($empleados as $emp)
+                                <option value="{{ $emp->id_employee }}" @selected((string) request('empleado') === (string) $emp->id_employee)>
+                                    {{ $emp->first_name }} {{ $emp->last_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endunless
 
                 <div>
                     <label for="desde" class="block text-xs font-semibold text-gray-600 dark:text-zinc-300 mb-1">Desde</label>

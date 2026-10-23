@@ -3,12 +3,12 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 23 de octubre de 2026
 
-**17 tandas de trabajo · reporte interno por empleado, ajustes de columnas y testeo general**
+**18 tandas de trabajo · reporte interno por empleado, ajustes de columnas, testeo general y cierre de fugas entre roles**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
-> documenta la última tanda: el **reporte interno por empleado**, un PDF que
+> documenta la tanda del **reporte interno por empleado**, un PDF que
 > cambia según el rol (al Depósito le llega el pedido de reposición, al
 > Vendedor las ventas y la disponibilidad, y al Encargado/Jefe el resumen
 > operativo o general). Dentro de la sección 0 quedan los **ajustes
@@ -21,7 +21,9 @@ Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 > **cálculo de materias primas por producto**. La **sección 0.3**, el recuadro
 > del cobro, el cálculo automático de lo que falta y las cuotas. La **sección
 > 0.4**, la edición del pedido desde el checkout. La **sección 0.5**, el pago
-> combinado, el IVA y la numeración de los comprobantes. La sección 1 documenta
+> combinado, el IVA y la numeración de los comprobantes. La **sección 0.6**, el cierre de las fugas que quedaban entre roles: el Cliente
+> en ventas, el email del comprobante, el reporte general del Encargado y el
+> Depósito fuera del circuito de ventas. La sección 1 documenta
 > la separación entre clientes y personal, y el cierre de las fugas de
 > información. La sección 2, el rediseño de la interfaz con paleta industrial y
 > modo oscuro.
@@ -70,7 +72,7 @@ descarga del PDF con el nombre correcto, ventas y disponibilidad del Vendedor,
 resumen del Encargado, resumen general del Jefe/Administrador, generación de
 los tres PDF, 403 para Cliente y Vendedor, y el botón en el listado.
 
-**Total: 204 pruebas, 1939 aserciones, todas pasando.**
+**Total: 210 pruebas, 1959 aserciones, todas pasando.**
 
 ### Ajustes posteriores
 
@@ -91,7 +93,7 @@ los tres PDF, 403 para Cliente y Vendedor, y el botón en el listado.
   aislamiento entre clientes, registro con nombre/apellido, validaciones de
   email repetido y contraseñas distintas, y la creación de la ficha del cliente
   nuevo. Se limpió el usuario de prueba y se restauró el stock.
-- **Verificación automática**: **204 pruebas, 1939 aserciones**; `revisar-links`
+- **Verificación automática**: **210 pruebas, 1959 aserciones**; `revisar-links`
   con **138 links, 0 problemas**; auditoría de modo oscuro con **0 clases sin
   equivalente oscuro**; `buscar-fugas` con **0 fugas** para Cliente, Vendedor y
   Depósito (el Administrador sí ve datos de terceros, como corresponde).
@@ -637,6 +639,53 @@ para que el pago combinado se vea en la demo.
 | `resources/views/dashboard/cliente.blade.php` | columna "Compra" con el número |
 | `database/seeders/SaleSeeder.php` | numeración, IVA y venta combinada |
 | `scripts/testear-flujo-venta.php` | prueba el cobro combinado por HTTP real |
+
+---
+
+## 0.6 Cierre de fugas entre roles: ventas, comprobantes y reportes
+
+La revisión posterior a la separación de roles encontró cuatro datos que
+seguían visibles para quien no los necesitaba. Las pantallas abrían, pero
+mostraban de más.
+
+| Dónde | Qué pasaba | Qué se hizo |
+|---|---|---|
+| `/sales` como Cliente | El filtro **Empleado** listaba a Carlos Gómez, Lucía Ramírez y Martín López | El filtro se oculta al Cliente (la columna de empleado ya no se mostraba); el controlador solo carga empleados para el personal. El Cliente sigue viendo sus compras. |
+| `/sales/{venta}/receipt` como Vendedor o Encargado | El comprobante HTML mostraba el **email del cliente** | El email queda para Jefe y Administrador. Vendedor y Encargado ven nombre y teléfono; el Cliente ve su propio comprobante sin ese dato. |
+| `/employees` y `/employees/{id}/report` como Encargado | El Encargado podía descargar el **resumen general** de un Jefe o Administrador | `EmployeeController@report` devuelve 403 si quien pide no es Jefe/Administrador y el empleado destino tiene rol Jefe/Administrador. El listado tampoco ofrece ese botón. El Encargado conserva los reportes operativos (Vendedor, Depósito y su propio resumen). |
+| `/sales`, `/cart`, comprobantes y PDF como Depósito | El Depósito entraba al circuito de ventas por URL y veía clientes y teléfonos | Las rutas de ventas y mostrador quedan para Jefe, Administrador, Encargado, Vendedor y Cliente. El Depósito recibe 403. El menú ya no le muestra **Carrito**. |
+
+También se ajustó:
+
+- El carrito de mostrador (`POST /cart`, elegir cliente) queda solo para el
+  personal de ventas; el Cliente usa `/mi-carrito`.
+- El panel Livewire (`Dashboard`) bloquea a invitados y a Cliente. Se quitó un
+  `Log::info` de depuración que escribía datos de sesión en cada render.
+- `scripts/buscar-fugas.php` ahora incluye `/sales/1/receipt`, para que la
+  auditoría no vuelva a dejar el comprobante fuera.
+
+### Pruebas
+
+- `FugasTest`: filtro del Cliente, email del comprobante (Vendedor no,
+  Administrador sí) y Depósito con 403 en todo el circuito.
+- `ReportesEmpleadoTest`: Encargado con 403 en el reporte de un Jefe, 200 en el
+  de un Vendedor y listado sin el botón general.
+- `CartTest`: los usuarios de prueba ahora son Vendedor; el carrito de
+  mostrador dejó de ser una ruta de "cualquier autenticado".
+- `DashboardTest`: el chequeo de rol se prueba con un Administrador autenticado.
+
+### Verificación
+
+- **Suite completa: 210 tests, 1959 assertions, 0 fallos.**
+- HTTP real: Cliente `/sales` sin nombres de empleados ni filtro; Vendedor
+  `/sales/1/receipt` sin email del cliente; Depósito con 403 en `/sales`,
+  `/sales/1`, `/sales/1/receipt`, `/sales/1/pdf`, `/cart` y `/cart/1`;
+  Encargado con 403 en el reporte del Administrador y sin el enlace en
+  `/employees`.
+- `buscar-fugas`: 0 fugas para Vendedor, Depósito y Cliente. El Administrador
+  sigue viendo emails porque es su trabajo.
+- `revisar-links`: 138 enlaces, 0 rojos. `auditar-modo-oscuro`: 0 clases claras
+  sin equivalente.
 
 ---
 

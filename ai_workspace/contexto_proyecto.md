@@ -28,9 +28,9 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 | Auth | Laravel Breeze (rutas en `routes/auth.php`, controladores en `app/Http/Controllers/Auth`) |
 | Roles/permisos | `spatie/laravel-permission ^8.0` (alias de middleware `role`, `permission`, `role_or_permission` en `bootstrap/app.php`) |
 | Auditoría | `owen-it/laravel-auditing ^14.0` (`config/audit.php`); hoy solo `User` implementa `Auditable` |
-| Livewire | `livewire/livewire ^4.4` instalado, **pero no hay componentes Livewire** en `app/` |
+| Livewire | `livewire/livewire ^4.4`; el panel de negocio es el componente `App\Livewire\Dashboard` + `views/livewire/dashboard.blade.php` |
 | Localización | `laravel-lang/common` (dev); carpetas `lang/en` y `lang/es` |
-| Tests | PHPUnit `^11.5` (solo tests por defecto de Breeze + ejemplos) |
+| Tests | PHPUnit `^11.5`; **210 tests, 1959 aserciones** (suite completa en verde) |
 | Calidad | Laravel Pint |
 | Entorno | Laragon (Windows) |
 
@@ -104,13 +104,13 @@ Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ven
 | Autenticación / Perfil (Breeze) | Funcional | `routes/auth.php`, `Auth/*`, `ProfileController` |
 | Usuarios y asignación de roles | Funcional. **Dos capas sincronizadas**: `users.id_role` (rol de negocio, FK simple) y `model_has_roles` (Spatie, capa de autorización). Se asignan siempre juntas con `User::asignarRol()`. `spatie_roles` es el espejo de `roles`. | `UserController`, `RoleController`, vistas `users/*`, `roles/*` |
 | Roles | CRUD completo. Al crear/editar/borrar un rol se mantiene el espejo en `spatie_roles` | `RoleController`, vistas `roles/*` |
-| Empleados | CRUD + **reporte interno por rol** (PDF para enviar al empleado: reposición para Depósito, ventas/disponibilidad para Vendedor, resumen para Encargado/Jefe) | `EmployeeController`, `App\Support\ReporteEmpleado`, vistas `employees/*` |
+| Empleados | CRUD + **reporte interno por rol** (PDF para enviar al empleado: reposición para Depósito, ventas/disponibilidad para Vendedor, resumen operativo para Encargado y general para Jefe/Administrador). El Encargado no baja el reporte general de un Jefe/Administrador. | `EmployeeController`, `App\Support\ReporteEmpleado`, vistas `employees/*` |
 | Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. El catálogo lo ve todo usuario autenticado: el **Cliente** compra desde la tarjeta y el **Vendedor** lo ve en modo lectura, sin alta/edición/planos, pero con el **PDF del catálogo** habilitado. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | **Materias primas** | **CRUD propio**, separado de Proveedores. Lista con presentación (caja, bolsa, unidad, metro...), stock, mínimo, costo, proveedor y en cuántos planos se usa. Filtros, KPIs y PDF. El Depósito solo consulta. | `RawMaterialController`, vistas `raw-materials/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
-| **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas). El cobro acepta **varios medios de pago** (`payments[]`) y valida que sumen el total. | `CartController`, `App\Support\MediosPago`, vistas `cart/*` |
-| **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. El comprobante muestra **numero fiscal por cliente**, **neto + IVA 21% + total** y el **detalle de pagos**. | `SaleController`, vistas `sales/*`, `Sale`, `Receipt`, `App\Support\Iva` |
+| **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas). El cobro acepta **varios medios de pago** (`payments[]`) y valida que sumen el total. El mostrador (`POST /cart`) es solo para el personal de ventas; el Cliente usa `/mi-carrito`; el Depósito no entra. | `CartController`, `App\Support\MediosPago`, vistas `cart/*` |
+| **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. El comprobante muestra **numero fiscal por cliente**, **neto + IVA 21% + total** y el **detalle de pagos**. El Cliente solo ve sus compras; el Depósito queda fuera de `/sales`, `/cart` y comprobantes. | `SaleController`, vistas `sales/*`, `Sale`, `Receipt`, `App\Support\Iva` |
 | Dashboard | **Funcional con datos reales.** Componente Livewire con 5 consultas agregadas a la base y selector de periodo (30 días / 90 días / 6 meses / año / todo). Charts de Chart.js se re-inicializan en cada morph de Livewire. | `app/Livewire/Dashboard.php`, `views/livewire/dashboard.blade.php` |
 
 ### 6.1 Sistema visual (interfaz)
@@ -149,12 +149,12 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 204 tests, 1939 aserciones, todas en verde.
+**Pruebas:** 210 tests, 1959 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
 oscura, la paleta vieja no sobrevive y el acento sigue siendo `hazard`.
-`tests/Feature/FugasTest.php` (9 casos) y `tests/Feature/UsuariosTest.php`
+`tests/Feature/FugasTest.php` (12 casos) y `tests/Feature/UsuariosTest.php`
 (17 casos) fijan la separacion entre clientes y personal.
 `tests/Feature/PagoCombinadoTest.php` (18 casos) fija el cobro combinado, el
 IVA y la numeracion del comprobante.
@@ -245,8 +245,8 @@ que se le manda al empleado para que actúe.
 | Pedido | `cantidad sugerida = max(ceil(mínimo - stock), 1)`; subtotal = sugerida × `unit_cost`; total = suma de los insumos bajo mínimo. La cantidad sugerida se usa para el subtotal, no se muestra como columna. | `ReporteEmpleado::insumos()`, `reposicion()` |
 | Columnas | La tabla de insumos no muestra **Estado** ni **Sugerido**: el insumo a reponer se reconoce por la fila resaltada y el subtotal es el costo estimado de la cantidad sugerida. La tabla de artículos no muestra **Estado**: quedan stock, mínimo y faltante. | `views/employees/report-pdf.blade.php` |
 | PDF | DomPDF con tablas (sin flex/grid), logo `logo-pdf.jpg`, destinatario, secciones del rol y línea "Recibí conforme". Archivo `reporte-{rol}-{nombre-apellido}.pdf`. | `views/employees/report-pdf.blade.php`, `EmployeeController@report` |
-| Permisos | Dentro del módulo de Empleados: Jefe, Administrador y Encargado. Cliente y Vendedor reciben 403 (el PDF muestra costos y números del negocio). | `routes/web.php` |
-| Pruebas | `tests/Feature/ReportesEmpleadoTest.php` (9 casos). | tests |
+| Permisos | Dentro del módulo de Empleados: Jefe, Administrador y Encargado. Cliente y Vendedor reciben 403 (el PDF muestra costos y números del negocio). El **Encargado no puede bajar el resumen general** de un Jefe/Administrador: `EmployeeController@report` devuelve 403 y el listado no le muestra el botón. | `routes/web.php`, `EmployeeController@report` |
+| Pruebas | `tests/Feature/ReportesEmpleadoTest.php` (12 casos), incluido el Encargado frente al reporte general. | tests |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
@@ -327,6 +327,13 @@ que se le manda al empleado para que actúe.
 60. **PENDIENTE** — La numeracion del comprobante calcula `max(receipt_number) + 1` **sin lock**. Hoy hay una sola caja, asi que no hay carrera. Si algun dia hay varias cajas cobrando al mismo cliente en el mismo instante, dos ventas podrian llevarse el mismo numero: ahi hace falta bloquear por cliente (o una tabla de contadores).
 61. **PENDIENTE** — **No hay CAE ni integracion con AFIP.** El sistema arma la numeracion y el desglose de IVA, pero no autoriza el comprobante electronicamente. Es alcance de otro sistema; si el profesor lo pide, hay que integrar un web service de facturacion.
 62. **RESUELTO** — **Para corregir el pedido habia que volver al carrito.** En la pantalla de confirmacion el detalle era de solo lectura: si el vendedor o el cliente se equivocaba de producto o de cantidad, tenia que salir a `/cart`, corregir y entrar de nuevo a confirmar (perdiendo el armado del pedido). Ahora el checkout tiene, por renglon, un desplegable con el catalogo, un campo de cantidad y un boton **Quitar**, mas un **"+ Agregar"** abajo. Cambiar de producto toma el precio nuevo; cambiar solo la cantidad **no** cambia el precio con el que entro la venta; si el producto elegido ya estaba, los renglones se fusionan; el stock se controla contra la cantidad final y quitar el ultimo articulo vuelve al carrito. La cantidad se guarda al salir del campo, para que no se pueda confirmar la compra con una cantidad que quedo escrita sin guardar.
+63. **RESUELTO** — **Cierre de fugas entre roles.** La separación de roles tenía cuatro bordes:
+    - El Cliente veía el filtro **Empleado** en `/sales` (con Carlos Gómez, Lucía Ramírez y Martín López). Ahora `SaleController@index` carga los empleados solo para el personal y la vista oculta el filtro con `@unless ($esCliente)`.
+    - El comprobante HTML (`/sales/{venta}/receipt`) mostraba el email del cliente al Vendedor/Encargado. Ahora `$veEmails = $user->isAdmin()`: Jefe/Administrador ven el email; Vendedor/Encargado, nombre y teléfono; el Cliente ve su propio comprobante sin ese dato.
+    - El Encargado podía bajar el reporte general de un Jefe/Administrador. `EmployeeController@report` devuelve 403 cuando el solicitante no es admin y el empleado destino es Jefe/Administrador; `employees/index` tampoco muestra ese botón. Los reportes operativos siguen disponibles.
+    - El Depósito entraba a `/sales`, `/cart`, comprobantes y PDF. Las rutas de ventas y mostrador quedan en `role:Jefe|Administrador|Encargado|Vendedor|Cliente`; el Depósito recibe 403 y el menú no le muestra **Carrito**.
+    - El componente `App\Livewire\Dashboard` ahora bloquea invitados y Cliente (antes solo Cliente); se quitó un `Log::info` de depuración que escribía datos de sesión en cada render.
+    - `scripts/buscar-fugas.php` incluye `/sales/1/receipt`. `FugasTest`, `ReportesEmpleadoTest`, `CartTest` y `DashboardTest` cubren las reglas. Suite: **210 tests, 1959 aserciones**; HTTP real y `revisar-links`/modo oscuro sin fallos.
 
 ## 8. Convenciones para cambios futuros
 
@@ -347,6 +354,9 @@ que se le manda al empleado para que actúe.
 - **Catalogo**: el Cliente ve `/articles` en modo lectura. Los controles de gestion (alta, edicion, borrado, PDF) van detras de `role:Jefe|Administrador|Encargado|Deposito` en las RUTAS, y la vista los oculta con el flag `$esCliente` que pasa el controlador. Las dos capas: la ruta es la seguridad, la vista es la usanza.
 - **Cliente o personal, segun el ROL**: `User::scopeEsCliente()` y `User::scopeEsPersonal()` son el filtro oficial. No usar "tiene ficha de `customers`" como criterio de si alguien es cliente: son dos cosas distintas y se mezclan.
 - **Datos personales**: el email de un cliente solo se muestra a quien gestiona las fichas (`$user->isAdmin()`: Jefe o Administrador). Para el resto del personal, nombre y telefono alcanzan. Para el Cliente, ademas, no se muestra el personal en su compra: ni la columna "Empleado", ni el campo "Empleado", ni el "Atendido por" del comprobante. Al agregar una pantalla que muestre clientes o ventas, usar los flags `$esCliente` y `$veEmails` que pasan los controladores.
+- **Circuito de ventas**: `/sales`, `/cart` y los comprobantes son de `Jefe|Administrador|Encargado|Vendedor|Cliente`; el Deposito queda afuera y recibe 403. El carrito de mostrador (`POST /cart`) es solo para el personal de ventas; el Cliente usa `/mi-carrito`.
+- **Reporte general**: solo Jefe/Administrador. `EmployeeController@report` devuelve 403 si el empleado destino es Jefe/Administrador y quien pide no es admin; el listado oculta ese boton. Los reportes operativos (Deposito, Vendedor, Encargado) siguen disponibles.
+- **Panel Livewire**: `App\Livewire\Dashboard` exige usuario autenticado y rol distinto de Cliente. No dejar `Log::info` de depuracion en `render()`.
 - **Alta de cuentas**: hay dos caminos. **Publico**: cualquiera se registra solo en `/register` (el login tiene el boton "Crear una Cuenta") y queda como Cliente. **Interno**: `Usuarios y Roles -> Nuevo usuario` (`/usuarios/create`), donde el Administrador elige el rol. Los dos caminos crean la ficha de `customers` cuando el rol es Cliente. Para eso usar siempre `User::asegurarFichaCliente()`, que crea la ficha si falta: sin ella el cliente no puede comprar y el carrito entra en un bucle de redirecciones.
 - **Verificar fugas**: despues de tocar algo que muestre datos de terceros, correr `php scripts/buscar-fugas.php`. Cliente, Vendedor y Deposito tienen que dar 0 fugas.
 - Registrar cada cambio nuevo en este archivo (sección 4, 5, 6) y crear el plan siguiente en `ai_workspace/NNN_plan_<tema>.md` siguiendo `PLANtemplate.md`.

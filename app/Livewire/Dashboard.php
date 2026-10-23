@@ -62,9 +62,8 @@ class Dashboard extends Component
          * Cliente podria pedir los KPIs de la empresa: la venta total, el
          * stock, los proveedores y los medios de pago.
          */
-        \Illuminate\Support\Facades\Log::info('DBG auth=' . var_export(auth()->user()?->id_user, true) . ' req=' . var_export(request()->user()?->id_user, true) . ' check=' . var_export(auth()->check(), true) . ' guard=' . var_export(auth()->guard()->id(), true) . ' hasRoleCliente=' . var_export(auth()->user()?->hasRole('Cliente'), true) . ' roles=' . json_encode(auth()->user()?->roles?->pluck('name')));
-        abort_if(
-            auth()->user()?->hasRole('Cliente') ?? false,
+        abort_unless(
+            auth()->check() && ! auth()->user()->hasRole('Cliente'),
             403,
             'El panel de la empresa es del personal.'
         );
