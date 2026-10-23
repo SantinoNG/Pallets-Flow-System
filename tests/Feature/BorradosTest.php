@@ -126,9 +126,9 @@ class BorradosTest extends TestCase
     #[Test]
     public function un_proveedor_cuyas_materias_estan_en_recetas_no_se_borra_y_avisa(): void
     {
-        // El proveedor de "Tela algodón 100%", que está en la receta del
-        // sillón individual.
-        $materia = RawMaterial::where('description', 'Tela algodón 100%')->firstOrFail();
+        // El proveedor de "Tabla de pallet reciclada", que está en la receta
+        // del sillón individual.
+        $materia = RawMaterial::where('description', 'Tabla de pallet reciclada')->firstOrFail();
         $supplier = $materia->supplier;
 
         $this->delete('/suppliers/' . $supplier->id_supplier)

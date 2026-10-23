@@ -58,7 +58,7 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 | `Employee` | `employees` | `id_employee` | `belongsTo User`, `belongsTo Role`, `hasMany Sale` |
 | `Customer` | `customers` | `id_customer` | `belongsTo User`, `hasMany Cart` (`carts`), `hasMany Sale` |
 | `Supplier` | `suppliers` | `id_supplier` | `hasMany RawMaterial` |
-| `RawMaterial` | `raw_materials` | `id_raw_material` | `belongsTo Supplier`, `hasOne RawMaterialStock`, `belongsToMany Article` (pivote `article_materials`, `quantity_required`) |
+| `RawMaterial` | `raw_materials` | `id_raw_material` | `belongsTo Supplier`, `hasOne RawMaterialStock`, `belongsToMany Article` (pivote `article_materials`, `quantity_required`). Tiene `unit` (metro, bolsa, caja, litro, pliego, rollo, plancha, unidad, kg) y `unit_cost` (costo por unidad). `UNIDADES` guarda el par singular/plural y `cantidad($n)` arma "3 metros" / "1 bolsa" / "1.50 litros". |
 | `RawMaterialStock` | `raw_material_stock` | `id_raw_material` | `belongsTo RawMaterial` |
 | `Article` | `articles` | `id_article` | `hasOne ProductStock`, `belongsToMany RawMaterial` (pivote `article_materials`), `hasMany CartItem` |
 | `ProductStock` | `product_stock` | `id_article` | `belongsTo Article` |
@@ -78,13 +78,14 @@ Notas:
 - Las migraciones de dominio están fechadas `2024_01_01_*` (convención manual de orden), las de paquetes `2026_06_21_*`.
 - `config/permission.php` mapea la tabla de roles de Spatie a `spatie_roles` para no chocar con la tabla propia `roles`. Además la clave `'permissions'` aparece duplicada dentro de `table_names` (la segunda sobreescribe a la primera → tabla `permissions`).
 - `cart_items` no tiene restricción única `(id_cart, id_article)`; `cart` no tiene índice `(id_customer, status)`.
-- Seeders: `RoleSeeder`, `UserSeeder`, `CustomerSeeder`, `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder`, `ImagenesArticuloSeeder`, `SaleSeeder`. Usuarios semilla: admin, vendedor, depósito, cliente.
+- Seeders: `RoleSeeder`, `UserSeeder`, `CustomerSeeder`, `SupplierSeeder` (**10 proveedores**), `RawMaterialSeeder` (**16 materias primas** con unidad y costo), `ArticleSeeder` (**8 articulos con su receta** en `article_materials`), `ImagenesArticuloSeeder`, `SaleSeeder`. Usuarios semilla: admin, vendedor, depósito, cliente. `SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` son **idempotentes** (`updateOrInsert` / busqueda por nombre): se pueden correr de nuevo sin duplicar y ademas limpian los insumos que salieron del catalogo. `ArticleSeeder` resetea el stock de demo de los articulos. `SaleSeeder` sigue con `insert()`: las ventas historicas no se re-siembran.
 - `2026_10_15_000001_add_email_verified_at_and_remember_token_to_users_table.php`, `2026_10_15_000002_create_infrastructure_tables.php` (sessions, jobs, job_batches, failed_jobs, password_reset_tokens), `2026_10_15_000003_create_audits_table.php` (stub de owen-it).
 - `2026_10_20_000001_add_image_to_articles_table.php`: agrega `articles.image` (string nullable) para la foto del producto. Guarda la **ruta relativa** dentro del disco `public` (por ejemplo `articles/sillon.jpg`), no la URL completa: si el dominio cambia, la ruta sigue sirviendo.
 - `2026_10_20_000002_rename_deposito_role.php`: renombra el rol "Depósito" a "Deposito" (ver deuda técnica 34).
 - `2026_10_22_000001_create_sale_payments_table.php`: detalle del cobro. Una fila por medio usado (`id_sale`, `payment_method`, `amount`). Permite el **pago combinado**. `sales.payment_method` queda como resumen para listados y filtros.
 - `2026_10_22_000002_add_fiscal_fields_to_receipts_table.php`: agrega al comprobante el **numero correlativo por cliente** (`receipt_number`), el punto de venta (`point_of_sale`, default `0001`) y el **desglose de IVA** (`tax_rate`, `net_amount`, `tax_amount`, `total_amount`). La migracion tambien **numera y desglosa los comprobantes existentes** y crea la fila de pago que falte en las ventas viejas, usando el query builder (no los modelos: una migracion no puede depender de codigo de la aplicacion).
 - `2026_10_22_000003_add_installments_to_sale_payments_table.php`: agrega `sale_payments.installments` (entero, default 1) para las **cuotas de la tarjeta de credito**. El importe sigue siendo el total cobrado; las cuotas son la forma de pago.
+- `2026_10_22_000004_add_unit_and_cost_to_raw_materials_table.php`: agrega `raw_materials.unit` (string 20, default `unidad`) y `raw_materials.unit_cost` (decimal 12,2, default 0). Con eso una materia prima deja de ser solo un texto: dice **en que se mide** y **cuanto cuesta la unidad**, y se puede calcular el costo de materiales de cada producto.
 
 ### Seeders de clientes y movimiento
 
@@ -147,7 +148,7 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 153 tests, 1131 aserciones, todas en verde.
+**Pruebas:** 182 tests, 1525 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
@@ -160,6 +161,10 @@ IVA y la numeracion del comprobante.
 desde el checkout: cambiar producto, cambiar cantidad sin re-preciar, fusionar
 renglones repetidos, tope de stock, quitar (y volver al carrito si era el
 ultimo) y que no se pueda tocar el item de otro carrito.
+`tests/Feature/RecetasTest.php` (8 casos) fija los 10 proveedores, las 16
+materias primas con unidad y costo, la receta de los 8 articulos, el
+singular/plural ("1 bolsa" / "3 bolsas"), el costo de materiales, el alcance
+limitado por stock y que el Cliente reciba 403 en la receta.
 
 ### 6.2 Cobro, IVA y comprobante
 
@@ -192,6 +197,21 @@ ultimo) y que no se pueda tocar el item de otro carrito.
 | Stock | Se controla contra la **cantidad final** (incluida la suma al fusionar). En el desplegable, los productos sin stock salen deshabilitados. | `updateItem`, vista |
 | Seguridad | El `CartItem` tiene que pertenecer al `Cart` de la URL: si no, 404 (no se edita el renglon de otro cambiando el id). | `updateItem`, `removeItem` |
 | Cuando se guarda | La cantidad se guarda en `change` (al salir del campo), no solo con el boton: asi no se puede escribir una cantidad nueva y confirmar la compra con la vieja. | vista |
+
+### 6.4 Proveedores, materias primas y recetas
+
+| Elemento | Decision | Donde se define |
+|---|---|---|
+| Proveedores | **10** en total: los 2 originales (Distribuidora Norte, Materiales del Sur) y 8 nuevos (maderas, aserradero, tornillos, clavos, pinturas, telas, espumas, herrajes). | `SupplierSeeder` |
+| Unidad de medida | Cada insumo dice en que se mide: `unidad`, `metro`, `bolsa`, `caja`, `litro`, `pliego`, `rollo`, `plancha`, `kg`. Se guarda en singular y la vista pluraliza. | `raw_materials.unit`, `RawMaterial::UNIDADES` |
+| Costo del insumo | `unit_cost` es el costo de **una** unidad del insumo. El costo de materiales de un producto es la suma de `cantidad_required * unit_cost`. | `raw_materials.unit_cost`, `ArticleController@show` |
+| Receta | `article_materials` (articulo + materia prima + `quantity_required`) dice que lleva cada producto. Las 8 recetas tienen entre 5 y 8 insumos. | `ArticleSeeder` |
+| Pantalla de receta | `GET /articles/{article}` (solo personal): variedad, costo de materiales, margen bruto, alcance con stock y la tabla de insumos con cantidad, proveedor, stock actual, costo unitario y subtotal. | `ArticleController@show`, `views/articles/show.blade.php` |
+| Alcance con stock | Para cada insumo se calcula `floor(stock / cantidad_requerida)` y se toma el minimo. El insumo que da ese minimo se muestra como **limitante**. | `ArticleController@show` |
+| Listado | Debajo del nombre del articulo aparece "N insumo(s) en la receta" y el boton **Receta**. El Cliente no ve ninguna de las dos cosas. | `views/articles/index.blade.php` |
+| Proveedores en pantalla | Cada fila muestra cuantas materias primas tiene y cada chip muestra la unidad (`Tabla de pallet reciclada · unidades`). | `views/suppliers/index.blade.php` |
+| Alta de proveedor | Por cada materia prima se pide descripcion + unidad (desplegable). El servidor valida contra `RawMaterial::UNIDADES` y usa `unidad` si no se elige. | `views/suppliers/create.blade.php`, `SupplierController@store` |
+| Idempotencia | `SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` actualizan por nombre. `RawMaterialSeeder` borra los insumos viejos con su stock y su renglon de receta; `ArticleSeeder` rehace la receta de cada articulo. | seeders |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 

@@ -6,6 +6,7 @@ use App\Models\Supplier;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialStock;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class SupplierController extends Controller
@@ -69,6 +70,8 @@ class SupplierController extends Controller
             'supplier_phone' => 'required|string|max:20',
             'materials'      => 'required|array|min:1',
             'materials.*'    => 'required|string|max:255',
+            'units'          => 'nullable|array',
+            'units.*'        => ['nullable', Rule::in(RawMaterial::unidadesValidas())],
         ]);
 
         $supplier = new Supplier();
@@ -77,17 +80,21 @@ class SupplierController extends Controller
         $supplier->supplier_phone = $request->supplier_phone;
         $supplier->save();
 
-        foreach ($request->materials as $description) {
+        foreach ($request->materials as $indice => $description) {
             if (empty(trim($description))) continue;
+
+            $unidad = $request->input('units.' . $indice) ?: 'unidad';
 
             $rawMaterial = RawMaterial::where('description', trim($description))->first();
 
             if ($rawMaterial) {
                 $rawMaterial->id_supplier = $supplier->id_supplier;
+                $rawMaterial->unit        = $unidad;
                 $rawMaterial->save();
             } else {
                 $rawMaterial = new RawMaterial();
                 $rawMaterial->description  = trim($description);
+                $rawMaterial->unit         = $unidad;
                 $rawMaterial->id_supplier  = $supplier->id_supplier;
                 $rawMaterial->save();
 

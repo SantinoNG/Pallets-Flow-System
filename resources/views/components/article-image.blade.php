@@ -18,6 +18,7 @@
         'sm' => ['caja' => 'h-12 w-12 min-w-12', 'fuente' => 'text-lg', 'glifo' => 'h-6 w-6'],
         'md' => ['caja' => 'h-20 w-20 min-w-20', 'fuente' => 'text-2xl', 'glifo' => 'h-10 w-10'],
         'lg' => ['caja' => 'h-40 w-full min-w-40', 'fuente' => 'text-5xl', 'glifo' => 'h-20 w-20'],
+        'xl' => ['caja' => 'h-40 w-40 min-w-40', 'fuente' => 'text-5xl', 'glifo' => 'h-20 w-20'],
     ];
 
     $t = $tamanos[$size] ?? $tamanos['sm'];

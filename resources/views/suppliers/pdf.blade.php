@@ -41,7 +41,7 @@
                     <td>{{ $supplier->company_name }}</td>
                     <td>{{ $supplier->supplier_email }}</td>
                     <td>{{ $supplier->supplier_phone }}</td>
-                    <td>{{ $supplier->rawMaterials->pluck('description')->join(', ') ?: 'Sin registrar' }}</td>
+                    <td>{{ $supplier->rawMaterials->map(fn ($material) => $material->description . ' (' . $material->etiquetaUnidad(2) . ')')->join(', ') ?: 'Sin registrar' }}</td>
                 </tr>
             @empty
                 <tr>

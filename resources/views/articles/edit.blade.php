@@ -96,6 +96,9 @@
                                 <label for="mat_{{ $material->id_raw_material }}"
                                        class="flex-1 text-sm text-gray-700 dark:text-zinc-200">
                                     {{ $material->description }}
+                                    <span class="text-xs text-gray-400 dark:text-zinc-500">
+                                        ({{ $material->etiquetaUnidad(2) }})
+                                    </span>
                                 </label>
                                 <input type="number"
                                        name="raw_materials[{{ $material->id_raw_material }}][quantity]"

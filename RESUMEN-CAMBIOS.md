@@ -3,22 +3,137 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 22 de octubre de 2026
 
-**12 tandas de trabajo · 13 archivos tocados en esta última (recuadro del cobro y cuotas)**
+**13 tandas de trabajo · 14 archivos tocados en esta última (proveedores y recetas)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
-> documenta la última tanda: el recuadro del cobro, el cálculo automático de lo
-> que falta y las **cuotas** con tarjeta de crédito. La **sección 0.1**, la
-> edición del pedido desde el checkout (cambiar de producto, cantidad o quitar
-> un renglón sin volver al carrito). La **sección 0.2**, el pago combinado, el
-> IVA y la numeración de los comprobantes. La sección 1 documenta la separación
-> entre clientes y personal, y el cierre de las fugas de información. La
-> sección 2, el rediseño de la interfaz con paleta industrial y modo oscuro.
+> documenta la última tanda: los **8 proveedores nuevos** y el **cálculo de
+> materias primas por producto** (unidad de medida, costo, variedad y alcance
+> con stock). La **sección 0.1**, el recuadro del cobro, el cálculo automático
+> de lo que falta y las cuotas. La **sección 0.2**, la edición del pedido desde
+> el checkout. La **sección 0.3**, el pago combinado, el IVA y la numeración de
+> los comprobantes. La sección 1 documenta la separación entre clientes y
+> personal, y el cierre de las fugas de información. La sección 2, el rediseño
+> de la interfaz con paleta industrial y modo oscuro.
 
 ---
 
-## 0. Cobro: recuadro, lo que falta automático y cuotas
+## 0. Proveedores y recetas: materias primas con cantidad y variedad
+
+El módulo de proveedores tenía **dos** proveedores y cuatro materias primas de
+textil (tela, hilo, botones, cierre) que no tenían nada que ver con los muebles
+de pallet. Además, una materia prima era solo un texto: no decía **en qué se
+mide** ni **cuánto cuesta**, así que no se podía calcular cuánto material lleva
+un producto.
+
+Ahora hay **10 proveedores** y **16 materias primas** con unidad de medida y
+costo, y cada artículo tiene su **receta**: qué insumos lleva y en qué
+cantidad.
+
+### Los 8 proveedores nuevos
+
+| Proveedor | Qué provee |
+|---|---|
+| Maderas del Litoral S.A. | Madera de pino 2x4 |
+| Aserradero San José | Listones de madera 1x2 |
+| Ferretería Industrial Tornillos del Norte | Tornillos autoperforantes y lijas |
+| Clavos y Tachuelas SRL | Clavos para pallet y tachuelas |
+| Pinturas y Barnices Delta | Barniz, sellador y cola de carpintero |
+| Textiles Andinos | Tela de tapicería e hilo de coser |
+| Espumas y Rellenos NOA | Espuma de alta densidad |
+| Herrajes y Accesorios Centro | Bisagras y escuadras metálicas |
+
+Se suman a los dos que ya estaban (Distribuidora Norte y Materiales del Sur).
+
+### Unidad de medida y costo
+
+La migración `2026_10_22_000004_...` agrega a `raw_materials`:
+
+| Columna | Para qué |
+|---|---|
+| `unit` | En qué se mide: metro, bolsa, caja, litro, pliego, rollo, plancha, unidad, kg |
+| `unit_cost` | Cuánto sale una unidad del insumo |
+
+`RawMaterial::UNIDADES` guarda el par singular/plural y
+`RawMaterial::cantidad()` arma el texto: **"1 bolsa"**, **"3 metros"**,
+**"1.50 litros"**.
+
+### La receta de cada producto
+
+`article_materials` ya existía (artículo + materia prima + cantidad). Ahora se
+puebla con recetas reales. Por ejemplo, el sillón individual lleva:
+
+| Insumo | Cantidad |
+|---|---|
+| Tabla de pallet reciclada | 2 unidades |
+| Madera de pino 2x4 | 3 metros |
+| Clavos para pallet (bolsa 1 kg) | 1 bolsa |
+| Tela de tapicería | 1.50 metros |
+| Espuma de alta densidad | 1 plancha |
+| Hilo de coser | 1 rollo |
+| Barniz poliuretánico | 0.50 litros |
+
+### La pantalla de la receta
+
+`GET /articles/{id}` (**Receta**, solo para el personal) muestra:
+
+- **Variedad**: cuántas materias primas distintas lleva y de cuántos
+  proveedores.
+- **Costo de materiales**: cantidad × costo unitario, por unidad fabricada.
+- **Margen bruto**: precio de venta menos costo de materiales, en pesos y en
+  porcentaje.
+- **Alcance con stock**: cuántas unidades se pueden armar con las materias
+  primas que hay hoy. Se divide el stock de cada insumo por lo que pide la
+  receta y se toma el mínimo; el insumo que da ese mínimo se muestra como
+  **limitante**.
+
+La tabla de la receta lista, por insumo: cantidad con su unidad, proveedor,
+**stock actual**, costo unitario y subtotal.
+
+En el listado de artículos, debajo del nombre, aparece **"7 insumo(s) en la
+receta"** y el botón **Receta**. En proveedores, cada fila dice cuántas
+materias primas tiene y cada insumo muestra su unidad
+(`Tabla de pallet reciclada · unidades`).
+
+### Alta de proveedores con unidad
+
+El formulario de proveedor ahora pide, por cada materia prima, **descripción +
+unidad de medida** (desplegable). El servidor valida que la unidad exista y
+usa `unidad` por defecto si no se elige.
+
+### Seeders idempotentes
+
+`SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` pasaron de `insert()`
+plano a `updateOrInsert` / búsqueda por nombre. Correrlos de nuevo:
+
+- no duplica proveedores, materias primas ni artículos;
+- actualiza precios, unidades y recetas;
+- borra los insumos viejos que ya no están en el catálogo, junto con su stock y
+  su renglón de receta.
+
+`ArticleSeeder` además **resetea el stock de demo** de los artículos (8, 5, 12,
+4, 10, 6, 3 y 15 unidades), que es útil después de correr el script de humo.
+
+### Tests
+
+`tests/Feature/RecetasTest.php` (8 casos):
+
+- hay 10 proveedores y los dos originales siguen;
+- las 16 materias primas tienen unidad válida, costo > 0 y proveedor;
+- hay al menos 5 unidades de medida distintas (no todo "unidad");
+- cada uno de los 8 artículos tiene receta con al menos 5 insumos y cantidades > 0;
+- singular/plural ("1 bolsa", "3 bolsas", "1.50 metros");
+- la receta muestra cantidad, variedad y costo ($24,100.00 en el sillón);
+- el alcance lo limita la espuma (30 planchas → 30 unidades);
+- el listado muestra los insumos y el Cliente recibe 403.
+
+`BorradosTest` se actualizó para usar "Tabla de pallet reciclada" (antes "Tela
+algodón 100%", que ya no existe).
+
+---
+
+## 0.1 Cobro: recuadro, lo que falta automático y cuotas
 
 La pantalla de confirmación tenía los medios de pago sueltos: el botón
 “+ Agregar otro medio” quedaba perdido entre el total y el formulario, y no
@@ -76,7 +191,7 @@ queda en **174 tests y 1.201 assertions**.
 
 ---
 
-## 0.1 Editar el pedido desde el checkout
+## 0.2 Editar el pedido desde el checkout
 
 Antes, si el cliente o el vendedor se daba cuenta en la pantalla de
 confirmación de que se había equivocado de producto (o de cantidad), tenía que
@@ -155,7 +270,7 @@ miraba los grises, por eso el hueco pasó desapercibido: hoy la auditoría da
 
 ---
 
-## 0.2 Cobro: pago combinado, IVA y numeración del comprobante
+## 0.3 Cobro: pago combinado, IVA y numeración del comprobante
 
 Tres cosas del circuito de venta que no cerraban con la realidad:
 
@@ -618,7 +733,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **174 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **182 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |
@@ -1079,11 +1194,17 @@ modelo.
 6 métodos de `UserController`. Es andamiaje del profesor, sin rutas ni vistas
 asociadas. Borrarlo sería destructivo sin saber la intención.
 
-**Los seeders `SupplierSeeder`, `RawMaterialSeeder`, `ArticleSeeder` y
-`SaleSeeder` siguen usando `insert()` plano**, que no es idempotente: si se corre
-`php artisan db:seed` dos veces sobre la misma base, falla con `Duplicate entry`.
+**`SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` ya son idempotentes**:
+usan `updateOrInsert` o búsqueda por nombre, así que se pueden correr de nuevo
+sin duplicar filas ni romper claves foráneas. Los tres actualizan precios,
+unidades y recetas, y `RawMaterialSeeder` limpia los insumos que salieron del
+catálogo.
 
-Se dejó así a propósito porque la forma correcta de reiniciar la base es:
+**`SaleSeeder` sigue usando `insert()` plano**, que no es idempotente: si se
+corre dos veces sobre la misma base, falla con `Duplicate entry`. Se dejó así
+porque las ventas de demo son un hecho histórico: volver a sembrarlas
+duplicaría compras y comprobantes. Para reiniciar la base, la forma correcta
+sigue siendo:
 
 ```cmd
 php artisan migrate:fresh --seed
@@ -1091,8 +1212,8 @@ php artisan migrate:fresh --seed
 
 que dropea todo y vuelve a crearlo, y **sí funciona** (verificado).
 
-La alternativa era cambiar esos cuatro por `insertOrIgnore`, pero eso silencia
-también errores de Foreign Key reales, que es peor.
+La alternativa era `insertOrIgnore`, pero eso silencia también errores de
+Foreign Key reales, que es peor.
 
 ---
 
@@ -1127,7 +1248,7 @@ Si el profesor prefiere otro catálogo (por ejemplo, cambiar "Jefe" por
 ```cmd
 cd /d C:\laragon\www\Pallets-Flow-System
 
-REM 1. Tests (debe dar 153 passed)
+REM 1. Tests (debe dar 182 passed)
 php artisan test
 
 REM 2. La base completa desde cero

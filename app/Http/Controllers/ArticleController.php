@@ -14,7 +14,7 @@ class ArticleController extends Controller
     // READ — Lista con filtros
     public function index(Request $request)
     {
-        $query = Article::with('stock');
+        $query = Article::with('stock')->withCount('rawMaterials');
 
         // Filtro por nombre
         if ($request->filled('search')) {
@@ -77,6 +77,69 @@ class ArticleController extends Controller
                   ->setPaper('a4', 'portrait');
 
         return $pdf->download('articulos-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // READ — Detalle con la receta: cantidad y variedad de materias primas
+    public function show(Article $article)
+    {
+        $article->load(['stock', 'rawMaterials.supplier', 'rawMaterials.stock']);
+
+        $materiales = $article->rawMaterials;
+
+        $proveedores = $materiales
+            ->pluck('supplier.company_name')
+            ->filter()
+            ->unique()
+            ->count();
+
+        /*
+         * Costo de materiales por unidad: cantidad de la receta x costo de
+         * la unidad del insumo. Es el costo directo, sin mano de obra ni
+         * gastos generales.
+         */
+        $costoMateriales = round($materiales->sum(
+            fn ($material) => (float) $material->pivot->quantity_required * (float) $material->unit_cost
+        ), 2);
+
+        $precio    = (float) $article->unit_price;
+        $margen    = round($precio - $costoMateriales, 2);
+        $margenPct = $precio > 0 ? round($margen / $precio * 100, 1) : 0.0;
+
+        /*
+         * Alcance con el stock actual de materias primas: para cada insumo
+         * se calcula cuantas unidades del producto se pueden armar y se
+         * toma el minimo. El insumo que da ese minimo es el limitante (el
+         * primero que se queda sin stock).
+         */
+        $alcance   = null;
+        $limitante = null;
+
+        foreach ($materiales as $material) {
+            $requerido = (float) $material->pivot->quantity_required;
+
+            if ($requerido <= 0) {
+                continue;
+            }
+
+            $disponible = (float) ($material->stock->remaining_quantity ?? 0);
+            $posibles   = (int) floor($disponible / $requerido);
+
+            if ($alcance === null || $posibles < $alcance) {
+                $alcance   = $posibles;
+                $limitante = $material;
+            }
+        }
+
+        return view('articles.show', compact(
+            'article',
+            'materiales',
+            'proveedores',
+            'costoMateriales',
+            'margen',
+            'margenPct',
+            'alcance',
+            'limitante'
+        ));
     }
 
     // CREATE paso 1

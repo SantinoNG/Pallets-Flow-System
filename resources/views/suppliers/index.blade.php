@@ -101,6 +101,9 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                             <tr class="bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 transition">
                                 <td class="px-6 py-4 font-semibold text-gray-900 dark:text-zinc-100">
                                     {{ $supplier->company_name }}
+                                    <span class="block text-[11px] font-normal text-gray-400 dark:text-zinc-500">
+                                        {{ $supplier->rawMaterials->count() }} materia(s) prima(s)
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 text-gray-500 dark:text-zinc-400">{{ $supplier->supplier_email }}</td>
                                 <td class="px-6 py-4 text-gray-500 dark:text-zinc-400">{{ $supplier->supplier_phone }}</td>
@@ -108,6 +111,7 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                                     @forelse($supplier->rawMaterials as $material)
                                         <span class="inline-block bg-hazard-100 text-hazard-800 text-[10px] font-semibold px-2 py-0.5 rounded-full mr-1 mb-0.5">
                                             {{ $material->description }}
+                                            <span class="font-normal opacity-75">· {{ $material->etiquetaUnidad(2) }}</span>
                                         </span>
                                     @empty
                                         <span class="text-gray-400 dark:text-zinc-500 italic">Sin materias primas</span>

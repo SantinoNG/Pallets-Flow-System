@@ -119,7 +119,17 @@
                                     <x-article-image :article="$article" size="sm" />
                                 </td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-zinc-100">
-                                    {{ $article->article_name }}
+                                    @unless ($esCliente)
+                                        <a href="{{ route('articles.show', $article->id_article) }}"
+                                           class="hover:text-hazard-600 dark:hover:text-hazard-400 transition">
+                                            {{ $article->article_name }}
+                                        </a>
+                                        <span class="block text-[11px] text-gray-400 dark:text-zinc-500 font-normal">
+                                            {{ $article->raw_materials_count }} insumo(s) en la receta
+                                        </span>
+                                    @else
+                                        {{ $article->article_name }}
+                                    @endunless
                                 </td>
                                 <td class="px-6 py-4 font-mono tabular-nums">
                                     ${{ number_format($article->unit_price, 2) }}
@@ -143,21 +153,27 @@
                                     <td class="px-6 py-4 font-mono tabular-nums">
                                         {{ $article->stock->minimum_stock ?? '—' }}
                                     </td>
-                                    <td class="px-6 py-4 text-center space-x-4 font-mono tabular-nums">
-                                        <a href="{{ route('articles.edit', $article->id_article) }}"
-                                           class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">
-                                            Editar
-                                        </a>
-                                        <form action="{{ route('articles.destroy', $article->id_article) }}"
-                                              method="POST" style="display:inline-block;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                    class="font-medium text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/40 px-3 py-2 rounded-md transition"
-                                                    onclick="return confirm('¿Estás seguro?')">
-                                                Eliminar
-                                            </button>
-                                        </form>
+                                    <td class="px-6 py-4 text-center font-mono tabular-nums">
+                                        <div class="inline-flex flex-wrap justify-center items-center gap-2">
+                                            <a href="{{ route('articles.show', $article->id_article) }}"
+                                               class="font-medium text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 px-3 py-2 rounded-md transition">
+                                                Receta
+                                            </a>
+                                            <a href="{{ route('articles.edit', $article->id_article) }}"
+                                               class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">
+                                                Editar
+                                            </a>
+                                            <form action="{{ route('articles.destroy', $article->id_article) }}"
+                                                  method="POST" style="display:inline-block;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                        class="font-medium text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/40 px-3 py-2 rounded-md transition"
+                                                        onclick="return confirm('¿Estás seguro?')">
+                                                    Eliminar
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 @else
                                     {{-- El Cliente compra: el carrito se resuelve

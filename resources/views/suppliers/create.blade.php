@@ -66,6 +66,12 @@
                                 <input type="text" name="materials[]"
                                        placeholder="Ej: Pallets de madera"
                                        class="flex-1 border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                                <select name="units[]" title="Unidad de medida"
+                                        class="w-32 border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                                    @foreach(\App\Models\RawMaterial::UNIDADES as $clave => [$singular, $plural])
+                                        <option value="{{ $clave }}" @selected($clave === 'unidad')>{{ ucfirst($plural) }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         @error('materials')
@@ -105,6 +111,12 @@
                 <input type="text" name="materials[]"
                        placeholder="Ej: Tornillos"
                        class="flex-1 border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                <select name="units[]" title="Unidad de medida"
+                        class="w-32 border-gray-300 dark:border-zinc-700 rounded-md shadow-sm text-sm">
+                    @foreach(\App\Models\RawMaterial::UNIDADES as $clave => [$singular, $plural])
+                        <option value="{{ $clave }}">{{ ucfirst($plural) }}</option>
+                    @endforeach
+                </select>
                 <button type="button" onclick="this.parentElement.remove()"
                         class="text-red-500 hover:text-red-700 text-sm font-medium px-2">
                     ✕
