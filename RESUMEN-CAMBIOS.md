@@ -27,9 +27,15 @@ es perder el pedido que se estaba armando.
 Ahora el **checkout es editable**: cada renglón tiene
 
 - un **desplegable** con todo el catálogo, para cambiar de producto;
-- un campo de **cantidad**;
-- un botón **Quitar**;
+- **− / +** para sacar o agregar **de a una unidad**, y un campo de
+  **cantidad** para escribir un número;
+- un botón **Quitar** (saca el renglón completo);
 - y abajo, un **“+ Agregar”** para sumar otro producto sin salir.
+
+El **carrito** (`/cart/{id}`, `/mi-carrito`) tiene los mismos **− / +** en la
+columna Cantidad, así que corregir el pedido no obliga a ir al checkout.
+El “−” se deshabilita cuando queda **1 unidad** (para sacar el renglón está
+“Quitar”) y el “+” se deshabilita al llegar al **stock disponible**.
 
 Todo se resuelve en la misma pantalla: cada acción recarga el checkout ya con
 el total nuevo, el IVA y la primera fila de pago actualizadas.

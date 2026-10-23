@@ -83,13 +83,33 @@
                                     </select>
 
                                     <div class="flex items-center gap-1">
+                                        {{-- Restar una unidad (en 1 se deshabilita: para
+                                             sacar el renglon esta "Quitar") --}}
+                                        <button type="button"
+                                                title="Quitar una unidad"
+                                                @disabled($item->quantity <= 1)
+                                                onclick="ajustarCantidad(this, -1)"
+                                                class="w-8 h-9 text-sm rounded-md text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                                            −
+                                        </button>
+
                                         <input type="number"
                                                name="quantity"
                                                value="{{ $item->quantity }}"
                                                min="1"
                                                title="Cantidad"
                                                onchange="this.form.submit()"
-                                               class="w-20 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
+                                               class="w-16 text-center border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
+
+                                        {{-- Sumar una unidad (se deshabilita al llegar al stock) --}}
+                                        <button type="button"
+                                                title="Agregar una unidad"
+                                                @disabled($item->quantity >= ($item->article->stock->remaining_quantity ?? 0))
+                                                onclick="ajustarCantidad(this, 1)"
+                                                class="w-8 h-9 text-sm rounded-md text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                                            +
+                                        </button>
+
                                         <button type="submit"
                                                 title="Actualizar cantidad"
                                                 class="px-3 py-2 text-sm rounded-md text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition">
@@ -295,6 +315,28 @@
     </div>
 
     <script>
+        /*
+         * Botones − / + de la cantidad de cada renglon.
+         *
+         * Tiene que estar fuera del IIFE porque el onclick de los botones
+         * busca la funcion en window. Cambia el valor y manda el formulario
+         * del renglon, que es el mismo que usa el desplegable de producto.
+         */
+        function ajustarCantidad(boton, delta) {
+            const form  = boton.form;
+            const input = form.querySelector('input[name="quantity"]');
+
+            const actual = parseInt(input.value || '1', 10) || 1;
+            const nueva  = Math.max(1, actual + delta);
+
+            if (nueva === actual) {
+                return;
+            }
+
+            input.value = nueva;
+            form.submit();
+        }
+
         (function () {
             const TOTAL = {{ (float) $subtotal }};
             const contenedor = document.getElementById('pagos');

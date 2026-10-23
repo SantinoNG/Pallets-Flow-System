@@ -90,7 +90,41 @@
                                         <td class="px-6 py-4 font-mono tabular-nums">
                                             ${{ number_format($item->unit_price, 2) }}
                                         </td>
-                                        <td class="px-6 py-4 font-mono tabular-nums">{{ $item->quantity }}</td>
+                                        <td class="px-6 py-4">
+                                            {{--
+                                                La cantidad se cambia de a una unidad con
+                                                − / +, sin salir de la pantalla. Cada boton
+                                                manda su propio valor de `quantity` en el
+                                                submit, asi que no hace falta otro campo.
+                                            --}}
+                                            <form action="{{ route('cart.updateItem', [$cart->id_cart, $item->id_cart_item]) }}"
+                                                  method="POST"
+                                                  class="inline-flex items-center gap-1">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="id_article" value="{{ $item->id_article }}">
+
+                                                <button type="submit"
+                                                        name="quantity"
+                                                        value="{{ $item->quantity - 1 }}"
+                                                        title="Quitar una unidad"
+                                                        @disabled($item->quantity <= 1)
+                                                        class="w-7 h-7 rounded-md text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    −
+                                                </button>
+
+                                                <span class="w-8 text-center font-mono tabular-nums">{{ $item->quantity }}</span>
+
+                                                <button type="submit"
+                                                        name="quantity"
+                                                        value="{{ $item->quantity + 1 }}"
+                                                        title="Agregar una unidad"
+                                                        @disabled($item->quantity >= ($item->article->stock->remaining_quantity ?? 0))
+                                                        class="w-7 h-7 rounded-md text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    +
+                                                </button>
+                                            </form>
+                                        </td>
                                         <td class="px-6 py-4 font-semibold text-gray-900 dark:text-zinc-100 font-mono tabular-nums">
                                             ${{ number_format($item->unit_price * $item->quantity, 2) }}
                                         </td>

@@ -271,6 +271,90 @@ class CheckoutEdicionTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    //  Sumar / restar de a una unidad (carrito y checkout)
+    // ------------------------------------------------------------------
+
+    #[Test]
+    public function el_carrito_tiene_los_botones_de_mas_y_menos(): void
+    {
+        [$cart, $items] = $this->carritoCon([['precio' => 1000.00, 'cantidad' => 2]]);
+
+        $html = $this->actingAs($this->vendedor())
+            ->get(route('cart.show', $cart->id_cart))
+            ->assertOk()
+            ->getContent();
+
+        // Los dos botones pertenecen al formulario que actualiza el renglon
+        // y mandan la cantidad resultante en el propio submit.
+        $this->assertStringContainsString(
+            route('cart.updateItem', [$cart->id_cart, $items[0]->id_cart_item]),
+            $html
+        );
+        $this->assertMatchesRegularExpression('/name="quantity"\s+value="3"/', $html, 'Falta el boton +');
+        $this->assertMatchesRegularExpression('/name="quantity"\s+value="1"/', $html, 'Falta el boton −');
+    }
+
+    #[Test]
+    public function desde_el_carrito_se_suma_y_se_resta_de_a_una_unidad(): void
+    {
+        [$cart, $items] = $this->carritoCon([['precio' => 1000.00, 'cantidad' => 2]]);
+
+        $url = route('cart.updateItem', [$cart->id_cart, $items[0]->id_cart_item]);
+
+        // "+" manda la cantidad siguiente.
+        $this->from(route('cart.show', $cart->id_cart))
+            ->actingAs($this->vendedor())
+            ->patch($url, ['id_article' => $items[0]->id_article, 'quantity' => 3])
+            ->assertRedirect(route('cart.show', $cart->id_cart));
+
+        $this->assertSame(3, $items[0]->fresh()->quantity);
+
+        // "−" manda la anterior y sigue en el carrito.
+        $this->from(route('cart.show', $cart->id_cart))
+            ->actingAs($this->vendedor())
+            ->patch($url, ['id_article' => $items[0]->id_article, 'quantity' => 2])
+            ->assertRedirect(route('cart.show', $cart->id_cart));
+
+        $this->assertSame(2, $items[0]->fresh()->quantity);
+    }
+
+    #[Test]
+    public function el_boton_de_restar_se_deshabilita_en_uno(): void
+    {
+        [$cart] = $this->carritoCon([['precio' => 1000.00, 'cantidad' => 1]]);
+
+        $html = $this->actingAs($this->vendedor())
+            ->get(route('cart.show', $cart->id_cart))
+            ->assertOk()
+            ->getContent();
+
+        // Con una sola unidad, "−" mandaria 0: tiene que estar deshabilitado.
+        $this->assertMatchesRegularExpression(
+            '/value="0"[\s\S]{0,200}?disabled/',
+            $html,
+            'Con una unidad el boton − tiene que estar deshabilitado'
+        );
+    }
+
+    #[Test]
+    public function el_boton_de_sumar_se_deshabilita_al_llegar_al_stock(): void
+    {
+        [$cart, $items] = $this->carritoCon([['precio' => 1000.00, 'cantidad' => 4, 'stock' => 4]]);
+
+        $html = $this->actingAs($this->vendedor())
+            ->get(route('cart.show', $cart->id_cart))
+            ->assertOk()
+            ->getContent();
+
+        // Ya tiene las 4 que hay: "+" no puede ofrecer una quinta.
+        $this->assertMatchesRegularExpression(
+            '/value="5"[\s\S]{0,200}?disabled/',
+            $html,
+            'Con el stock agotado el boton + tiene que estar deshabilitado'
+        );
+    }
+
+    // ------------------------------------------------------------------
     //  Seguridad y pantalla
     // ------------------------------------------------------------------
 
