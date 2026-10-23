@@ -19,7 +19,7 @@ curl_setopt_array($ch, [
 curl_exec($ch); curl_close($ch);
 
 $paginas = [
-    '/login', '/register', '/dashboard', '/articles', '/articles/create',
+    '/login', '/register', '/dashboard', '/articles', '/articles/create', '/articles/1/edit',
     '/suppliers', '/materias-primas', '/employees', '/roles', '/roles/create', '/users',
     '/usuarios/1/roles', '/cart', '/sales', '/profile', '/tutorial',
 ];

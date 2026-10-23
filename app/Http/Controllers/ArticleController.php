@@ -7,6 +7,7 @@ use App\Models\ProductStock;
 use App\Models\RawMaterial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ArticleController extends Controller
@@ -159,6 +160,8 @@ class ArticleController extends Controller
             'remaining_quantity' => 'required|integer|min:0',
             'minimum_stock'      => 'required|integer|min:0',
             'image'              => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'raw_materials.*.quantity' => 'nullable|numeric|min:0',
+            'raw_materials.*.unit'     => ['nullable', Rule::in(RawMaterial::unidadesValidas())],
         ]);
 
         $article = new Article();
@@ -176,6 +179,10 @@ class ArticleController extends Controller
 
         if ($request->has('raw_materials')) {
             foreach ($request->raw_materials as $id => $data) {
+                // La presentación se guarda aunque el insumo no esté tildado:
+                // es una propiedad de la materia prima, no del plano.
+                $this->guardarPresentacion($id, $data['unit'] ?? null);
+
                 if (!empty($data['selected'])) {
                     $article->rawMaterials()->attach($id, [
                         'quantity_required' => $data['quantity'] ?? 0
@@ -206,6 +213,8 @@ class ArticleController extends Controller
             'remaining_quantity' => 'required|integer|min:0',
             'minimum_stock'      => 'required|integer|min:0',
             'image'              => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'raw_materials.*.quantity' => 'nullable|numeric|min:0',
+            'raw_materials.*.unit'     => ['nullable', Rule::in(RawMaterial::unidadesValidas())],
         ]);
 
         $article->article_name = $request->article_name;
@@ -228,6 +237,9 @@ class ArticleController extends Controller
         $syncData = [];
         if ($request->has('raw_materials')) {
             foreach ($request->raw_materials as $id => $data) {
+                // Igual que en el alta: la presentación es de la materia prima.
+                $this->guardarPresentacion($id, $data['unit'] ?? null);
+
                 if (!empty($data['selected'])) {
                     $syncData[$id] = ['quantity_required' => $data['quantity'] ?? 0];
                 }
@@ -237,6 +249,25 @@ class ArticleController extends Controller
 
         return redirect()->route('articles.index')
                          ->with('success', 'Artículo actualizado exitosamente.');
+    }
+
+    /**
+     * Guarda la presentación elegida dentro de los planos.
+     *
+     * La unidad vive en la materia prima, no en el renglón del plano: si el
+     * taller pasa a comprar la espuma por rollo en vez de por plancha, el
+     * cambio vale para todos los productos que la usan. La cantidad del plano
+     * se interpreta en esa presentación.
+     */
+    private function guardarPresentacion($idMaterial, ?string $unidad): void
+    {
+        if (! $unidad || ! in_array($unidad, RawMaterial::unidadesValidas(), true)) {
+            return;
+        }
+
+        RawMaterial::where('id_raw_material', $idMaterial)
+            ->where('unit', '!=', $unidad)
+            ->update(['unit' => $unidad]);
     }
 
     // DELETE

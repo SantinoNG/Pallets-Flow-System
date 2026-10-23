@@ -3,14 +3,15 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 22 de octubre de 2026
 
-**14 tandas de trabajo · 21 archivos tocados en esta última (materias primas y planos)**
+**15 tandas de trabajo · 23 archivos tocados en esta última (materias primas y planos)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
 > documenta la última tanda: el **apartado propio de materias primas** (con
-> presentación, stock y proveedor) y el cambio de **"receta" a "planos"**. La
-> **sección 0.1**, los **8 proveedores nuevos** y el **cálculo de materias
+> presentación, stock y proveedor), el cambio de **"receta" a "planos"** y la
+> **presentación editable dentro de los planos** (unidad, rollo, metro, kg...).
+> La **sección 0.1**, los **8 proveedores nuevos** y el **cálculo de materias
 > primas por producto**. La **sección 0.2**, el recuadro del cobro, el cálculo
 > automático de lo que falta y las cuotas. La **sección 0.3**, la edición del
 > pedido desde el checkout. La **sección 0.4**, el pago combinado, el IVA y la
@@ -68,6 +69,25 @@ Las opciones son las mismas de `RawMaterial::UNIDADES`: unidad, metro, bolsa,
 caja, litro, pliego, rollo, plancha y kg. Así "Bisagras metálicas" se muestra
 en **unidades** y "Tornillos autoperforantes (caja x100)" en **cajas**.
 
+### Cambiar la presentación desde los planos
+
+En **Editar planos** cada insumo tiene su propio desplegable de **Presentación**
+al lado de la cantidad. Por ejemplo, "Espuma de alta densidad" puede quedar en
+**unidades**, **rollos**, **metros**, **planchas** o **kg**, según cómo se
+compre. Al elegir otra presentación:
+
+- La cantidad se adapta: los insumos que se miden en **metros, litros o kg**
+  aceptan decimales (`step 0.01`); los que se compran por **unidad, bolsa,
+  caja, rollo, pliego o plancha** van de a uno (`step 1`).
+- El sufijo de al lado de la cantidad cambia en el momento (planchas →
+  rollos → metros).
+- Al guardar, la presentación se guarda en la **materia prima** y vale para
+  todos los planos que la usan. El servidor valida contra
+  `RawMaterial::UNIDADES` y rechaza cualquier valor inventado.
+
+La cantidad del plano se interpreta en esa presentación, y el costo de
+materiales se sigue calculando con `quantity_required * unit_cost`.
+
 ### Alta, edición y borrado
 
 El formulario carga:
@@ -111,10 +131,13 @@ por empresa.
 Se agregó `tests/Feature/MateriasPrimasTest.php` con **10 casos**: listado,
 permisos del Depósito, opciones de presentación, alta con stock, presentación
 inválida, edición, borrado bloqueado por planos, borrado permitido, filtros y
-PDF. También se actualizaron las pruebas de recetas, exportaciones, fugas,
-interfaz y los scripts de auditoría.
+PDF. En `RecetasTest` se sumaron **3 casos** para la presentación dentro de los
+planos: el desplegable con las opciones, el cambio de plancha a metro guardado
+en la materia prima y el rechazo de una presentación inventada. También se
+actualizaron las pruebas de exportaciones, fugas, interfaz y los scripts de
+auditoría.
 
-**Total: 192 pruebas, 1741 aserciones, todas pasando.**
+**Total: 195 pruebas, 1882 aserciones, todas pasando.**
 
 > Al verificar el demo, el artículo 1 tenía cantidades raras (999.999 metros y
 > 0 listones) de una prueba manual anterior. Se volvió a correr

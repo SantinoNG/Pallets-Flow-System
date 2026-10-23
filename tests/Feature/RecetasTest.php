@@ -149,6 +149,80 @@ class RecetasTest extends TestCase
     }
 
     #[Test]
+    public function la_pantalla_de_planos_deja_elegir_la_presentacion(): void
+    {
+        $articulo = Article::where('article_name', 'Sillón individual de pallet')->firstOrFail();
+
+        $this->actingAs($this->admin())
+            ->get(route('articles.edit', $articulo->id_article))
+            ->assertOk()
+            ->assertSee('Presentación')
+            ->assertSee('Rollos')
+            ->assertSee('Metros')
+            ->assertSee('Kg');
+    }
+
+    #[Test]
+    public function la_presentacion_se_cambia_desde_los_planos(): void
+    {
+        $articulo = Article::where('article_name', 'Sillón individual de pallet')->firstOrFail();
+        $espuma   = RawMaterial::where('description', 'Espuma de alta densidad')->firstOrFail();
+
+        $this->assertSame('plancha', $espuma->unit);
+
+        $this->actingAs($this->admin())
+            ->put(route('articles.update', $articulo->id_article), [
+                'article_name'       => $articulo->article_name,
+                'unit_price'         => $articulo->unit_price,
+                'remaining_quantity' => 8,
+                'minimum_stock'      => 2,
+                'raw_materials'      => [
+                    $espuma->id_raw_material => [
+                        'selected' => 1,
+                        'quantity' => 2,
+                        'unit'     => 'rollo',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('articles.index'));
+
+        // La presentación se guarda en la materia prima y la cantidad del
+        // plano queda expresada en esa presentación.
+        $this->assertSame('rollo', $espuma->fresh()->unit);
+
+        $this->assertDatabaseHas('article_materials', [
+            'id_article'      => $articulo->id_article,
+            'id_raw_material' => $espuma->id_raw_material,
+        ]);
+    }
+
+    #[Test]
+    public function no_se_acepta_una_presentacion_invalida_en_los_planos(): void
+    {
+        $articulo = Article::where('article_name', 'Sillón individual de pallet')->firstOrFail();
+        $espuma   = RawMaterial::where('description', 'Espuma de alta densidad')->firstOrFail();
+
+        $this->actingAs($this->admin())
+            ->from(route('articles.edit', $articulo->id_article))
+            ->put(route('articles.update', $articulo->id_article), [
+                'article_name'       => $articulo->article_name,
+                'unit_price'         => $articulo->unit_price,
+                'remaining_quantity' => 8,
+                'minimum_stock'      => 2,
+                'raw_materials'      => [
+                    $espuma->id_raw_material => [
+                        'selected' => 1,
+                        'quantity' => 2,
+                        'unit'     => 'docena',
+                    ],
+                ],
+            ])
+            ->assertSessionHasErrors('raw_materials.' . $espuma->id_raw_material . '.unit');
+
+        $this->assertSame('plancha', $espuma->fresh()->unit);
+    }
+
+    #[Test]
     public function el_cliente_no_puede_ver_la_receta(): void
     {
         $articulo = Article::firstOrFail();

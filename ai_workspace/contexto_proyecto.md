@@ -149,7 +149,7 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 192 tests, 1741 aserciones, todas en verde.
+**Pruebas:** 195 tests, 1882 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
@@ -162,10 +162,11 @@ IVA y la numeracion del comprobante.
 desde el checkout: cambiar producto, cambiar cantidad sin re-preciar, fusionar
 renglones repetidos, tope de stock, quitar (y volver al carrito si era el
 ultimo) y que no se pueda tocar el item de otro carrito.
-`tests/Feature/RecetasTest.php` (8 casos) fija los 10 proveedores, las 16
+`tests/Feature/RecetasTest.php` (11 casos) fija los 10 proveedores, las 16
 materias primas con unidad y costo, los planos de los 8 articulos, el
 singular/plural ("1 bolsa" / "3 bolsas"), el costo de materiales, el alcance
-limitado por stock y que el Cliente reciba 403 en los planos.
+limitado por stock, la presentación editable dentro de los planos (plancha →
+metro guardado en la materia prima) y que el Cliente reciba 403 en los planos.
 `tests/Feature/MateriasPrimasTest.php` (10 casos) fija el apartado propio:
 listado con presentación y proveedor, permisos del Depósito (consulta pero no
 gestiona), alta con stock, presentación inválida, edición, borrado bloqueado
@@ -217,6 +218,7 @@ si el insumo está en los planos, filtros y PDF.
 | Enlace con Proveedores | El conteo de materias primas del proveedor lleva a `/materias-primas?supplier=ID`; el nombre del proveedor en la tabla de insumos lleva a Proveedores filtrado por empresa. | `views/suppliers/index.blade.php`, `views/raw-materials/index.blade.php` |
 | Planos | `article_materials` (articulo + materia prima + `quantity_required`) dice que lleva cada producto. Las 8 recetas tienen entre 5 y 8 insumos. En la interfaz se llama **planos**, no "receta". | `ArticleSeeder` |
 | Pantalla de planos | `GET /articles/{article}` (solo personal): variedad, costo de materiales, margen bruto, alcance con stock y la tabla de insumos con cantidad, proveedor, stock actual, costo unitario y subtotal. | `ArticleController@show`, `views/articles/show.blade.php` |
+| Presentación en los planos | Cada insumo tiene un desplegable de **presentación** al lado de la cantidad (unidad, rollo, metro, kg, litro...). Al cambiarlo, la cantidad se adapta: decimales en metro/litro/kg, enteros en unidad/bolsa/caja/rollo/pliego/plancha; el sufijo se actualiza en el momento. Al guardar, la unidad se guarda en la **materia prima** y vale para todos los planos; el servidor valida contra `RawMaterial::UNIDADES`. | `views/articles/edit.blade.php`, `ArticleController@update`, `guardarPresentacion()` |
 | Alcance con stock | Para cada insumo se calcula `floor(stock / cantidad_requerida)` y se toma el minimo. El insumo que da ese minimo se muestra como **limitante**. | `ArticleController@show` |
 | Listado | Debajo del nombre del articulo aparece "N insumo(s) en los planos" y el boton **Planos**. El Cliente no ve ninguna de las dos cosas. | `views/articles/index.blade.php` |
 | Proveedores en pantalla | Cada fila muestra cuantas materias primas tiene y cada chip muestra la unidad (`Tabla de pallet reciclada · unidades`). | `views/suppliers/index.blade.php` |
