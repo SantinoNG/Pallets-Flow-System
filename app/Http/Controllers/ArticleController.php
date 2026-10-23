@@ -48,7 +48,16 @@ class ArticleController extends Controller
          */
         $esCliente = $request->user()?->hasRole('Cliente') ?? false;
 
-        return view('articles.index', compact('articles', 'esCliente'));
+        /*
+         * El Vendedor también ve el catálogo en modo lectura, pero no
+         * gestiona el inventario: los botones de alta, edición y planos
+         * son solo para los roles que tienen esas rutas habilitadas.
+         */
+        $puedeGestionar = $request->user()?->hasAnyRole([
+            'Jefe', 'Administrador', 'Encargado', 'Deposito',
+        ]) ?? false;
+
+        return view('articles.index', compact('articles', 'esCliente', 'puedeGestionar'));
     }
 
     // EXPORTAR PDF con los mismos filtros

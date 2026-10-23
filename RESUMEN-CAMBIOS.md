@@ -3,7 +3,7 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 23 de octubre de 2026
 
-**16 tandas de trabajo · 29 archivos tocados en esta última (reporte interno por empleado)**
+**17 tandas de trabajo · reporte interno por empleado, ajustes de columnas y testeo general**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
@@ -11,7 +11,10 @@ Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 > documenta la última tanda: el **reporte interno por empleado**, un PDF que
 > cambia según el rol (al Depósito le llega el pedido de reposición, al
 > Vendedor las ventas y la disponibilidad, y al Encargado/Jefe el resumen
-> operativo o general). La **sección 0.1**, el **apartado propio de materias
+> operativo o general). Dentro de la sección 0 quedan los **ajustes
+> posteriores**: el reporte sin las columnas Estado/Sugerido y el Vendedor en
+> modo lectura en Artículos, con el PDF del catálogo habilitado. La **sección
+> 0.1**, el **apartado propio de materias
 > primas** (con presentación, stock y proveedor), el cambio de **"receta" a
 > "planos"** y la **presentación editable dentro de los planos** (unidad,
 > rollo, metro, kg...). La **sección 0.2**, los **8 proveedores nuevos** y el
@@ -33,8 +36,8 @@ una hoja que se le manda al empleado para que actúe.
 
 | Rol | Qué recibe |
 |---|---|
-| **Depósito** | **Pedido de reposición**: todas las materias primas con stock, mínimo, estado, cantidad sugerida, proveedor, costo unitario y subtotal. Los insumos bajo mínimo quedan resaltados y se suma el **total estimado del pedido**. También ve los artículos con stock bajo. |
-| **Vendedor** | **Ventas de los últimos 30 días** (operaciones, total y ticket promedio), sus ventas propias si registró alguna, los **productos más vendidos** y la **disponibilidad del catálogo** (sin stock / bajo mínimo / disponible). |
+| **Depósito** | **Pedido de reposición**: todas las materias primas con stock, mínimo, proveedor, costo unitario y subtotal. Los insumos bajo mínimo quedan resaltados (sin columnas de estado ni cantidad sugerida) y se suma el **total estimado del pedido**. También ve los artículos con stock, mínimo y faltante, con las filas bajas resaltadas. |
+| **Vendedor** | **Ventas de los últimos 30 días** (operaciones, total y ticket promedio), sus ventas propias si registró alguna, los **productos más vendidos** y la **disponibilidad del catálogo** (stock, mínimo y faltante; filas resaltadas). |
 | **Encargado** | **Resumen operativo**: pedido de reposición + ventas + disponibilidad. |
 | **Jefe / Administrador** | **Resumen general**: ventas, facturado histórico, artículos, insumos, proveedores, empleados, clientes, empleados por rol y estado del stock. |
 
@@ -43,8 +46,10 @@ una hoja que se le manda al empleado para que actúe.
 - `App\Support\ReporteEmpleado` centraliza los datos: `tipo($rol)` decide la
   variante y `para($empleado)` devuelve todo lo que necesita la vista.
 - La ventana de ventas es de **30 días** (`ReporteEmpleado::DIAS`).
-- El **total del pedido** se calcula con `cantidad sugerida × unit_cost`; la
-  cantidad sugerida es lo que falta para llegar al mínimo, con un piso de 1.
+- El **subtotal de un insumo a reponer** se calcula con `cantidad sugerida ×
+  unit_cost`; la cantidad sugerida es lo que falta para llegar al mínimo, con
+  un piso de 1. No se muestra como columna: el subtotal de la fila resaltada es
+  el costo estimado de esa reposición, y el total suma los subtotales.
 - La vista `employees/report-pdf.blade.php` es un PDF de DomPDF (tablas, sin
   flex/grid) con el logo de la marca, el destinatario, las secciones del rol y
   una línea de "Recibí conforme".
@@ -65,7 +70,31 @@ descarga del PDF con el nombre correcto, ventas y disponibilidad del Vendedor,
 resumen del Encargado, resumen general del Jefe/Administrador, generación de
 los tres PDF, 403 para Cliente y Vendedor, y el botón en el listado.
 
-**Total: 204 pruebas, 1938 aserciones, todas pasando.**
+**Total: 204 pruebas, 1939 aserciones, todas pasando.**
+
+### Ajustes posteriores
+
+- **Reporte más limpio**: la tabla de materias primas ya no muestra las
+  columnas **Estado** ni **Sugerido**. Los insumos a reponer se reconocen por la
+  fila resaltada; el subtotal de esa fila es el costo estimado de la cantidad
+  sugerida. La tabla de artículos tampoco muestra **Estado**: quedan stock,
+  mínimo y faltante, y las filas bajas se resaltan.
+- **Artículos y Vendedor**: el Vendedor ve el catálogo en modo lectura, con
+  precios y stock, pero sin los botones de alta, edición, planos o eliminación
+  (antes aparecían y llevaban a un 403). El **PDF del catálogo** sí lo puede
+  descargar; la ruta `articles.pdf` ahora incluye `Vendedor`. El controlador
+  pasa `$puedeGestionar` para separar la vista del Cliente, la del Vendedor y
+  la de los roles que administran el inventario.
+- **Testeo general**: pasada HTTP por Administrador, Vendedor, Depósito, Cliente
+  existente y Cliente nuevo (**157 verificaciones, 0 fallas**). Se probaron
+  altas, catálogo, carrito, checkout, comprobante, PDF, reporte, permisos (403),
+  aislamiento entre clientes, registro con nombre/apellido, validaciones de
+  email repetido y contraseñas distintas, y la creación de la ficha del cliente
+  nuevo. Se limpió el usuario de prueba y se restauró el stock.
+- **Verificación automática**: **204 pruebas, 1939 aserciones**; `revisar-links`
+  con **138 links, 0 problemas**; auditoría de modo oscuro con **0 clases sin
+  equivalente oscuro**; `buscar-fugas` con **0 fugas** para Cliente, Vendedor y
+  Depósito (el Administrador sí ve datos de terceros, como corresponde).
 
 ---
 

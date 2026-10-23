@@ -22,9 +22,6 @@
         tr.bajo td { background: #fef2f2; }
         .ok { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px; margin-bottom: 8px; }
         .alerta { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 8px; margin-bottom: 8px; }
-        .tag-rojo { color: #991b1b; font-weight: bold; }
-        .tag-ambar { color: #92400e; font-weight: bold; }
-        .tag-verde { color: #166534; font-weight: bold; }
         .resumen { width: 330px; }
         .totales { width: 280px; margin-left: auto; }
         .totales td { border: none; padding: 3px 6px; }
@@ -89,8 +86,8 @@
             </div>
         @else
             <div class="alerta">
-                <strong>{{ $reposicion['cantidad'] }}</strong> insumo(s) necesitan reposición.
-                Total estimado del pedido:
+                <strong>{{ $reposicion['cantidad'] }}</strong> insumo(s) necesitan reposición
+                (filas resaltadas). Total estimado del pedido:
                 <strong>$ {{ number_format($reposicion['total'], 2, ',', '.') }}</strong>.
             </div>
         @endif
@@ -98,15 +95,13 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 24%;">Insumo</th>
-                    <th style="width: 11%;">Presentación</th>
-                    <th style="width: 7%;" class="center">Stock</th>
-                    <th style="width: 7%;" class="center">Mínimo</th>
-                    <th style="width: 9%;" class="center">Estado</th>
-                    <th style="width: 8%;" class="center">Sugerido</th>
-                    <th style="width: 18%;">Proveedor</th>
-                    <th style="width: 8%;" class="right">Costo unit.</th>
-                    <th style="width: 8%;" class="right">Subtotal</th>
+                    <th style="width: 30%;">Insumo</th>
+                    <th style="width: 13%;">Presentación</th>
+                    <th style="width: 8%;" class="center">Stock</th>
+                    <th style="width: 8%;" class="center">Mínimo</th>
+                    <th style="width: 23%;">Proveedor</th>
+                    <th style="width: 9%;" class="right">Costo unit.</th>
+                    <th style="width: 9%;" class="right">Subtotal</th>
                 </tr>
             </thead>
             <tbody>
@@ -116,14 +111,6 @@
                         <td>{{ $fila['material']->etiquetaUnidad(2) }}</td>
                         <td class="center">{{ number_format($fila['stock'], 0) }}</td>
                         <td class="center">{{ number_format($fila['minimo'], 0) }}</td>
-                        <td class="center">
-                            @if($fila['bajo'])
-                                <span class="tag-rojo">Reponer</span>
-                            @else
-                                <span class="tag-verde">OK</span>
-                            @endif
-                        </td>
-                        <td class="center">{{ $fila['bajo'] ? $fila['sugerida'] : '—' }}</td>
                         <td>{{ $fila['material']->supplier->company_name ?? '—' }}</td>
                         <td class="right">$ {{ number_format($fila['material']->unit_cost, 2, ',', '.') }}</td>
                         <td class="right">
@@ -146,8 +133,10 @@
                 </tr>
             </table>
             <p class="muted">
-                El total es estimado con el costo unitario cargado en cada materia prima.
-                Confirmá el precio con el proveedor antes de comprar.
+                En las filas resaltadas, el subtotal es el costo estimado de la cantidad
+                sugerida para volver por encima del mínimo. El total es estimado con el
+                costo unitario cargado en cada materia prima; confirmá el precio con el
+                proveedor antes de comprar.
             </p>
         @endif
     @endif
@@ -211,11 +200,10 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 46%;">Artículo</th>
-                    <th style="width: 10%;" class="center">Stock</th>
-                    <th style="width: 10%;" class="center">Mínimo</th>
-                    <th style="width: 17%;" class="center">Estado</th>
-                    <th style="width: 17%;" class="center">Faltan</th>
+                    <th style="width: 50%;">Artículo</th>
+                    <th style="width: 15%;" class="center">Stock</th>
+                    <th style="width: 15%;" class="center">Mínimo</th>
+                    <th style="width: 20%;" class="center">Faltan</th>
                 </tr>
             </thead>
             <tbody>
@@ -225,18 +213,7 @@
                         <td class="center">{{ $fila['stock'] }}</td>
                         <td class="center">{{ $fila['minimo'] }}</td>
                         <td class="center">
-                            @if($fila['sinStock'])
-                                <span class="tag-rojo">Sin stock</span>
-                            @elseif($fila['enMinimo'])
-                                <span class="tag-ambar">En el mínimo</span>
-                            @elseif($fila['bajo'])
-                                <span class="tag-ambar">Bajo mínimo</span>
-                            @else
-                                <span class="tag-verde">Disponible</span>
-                            @endif
-                        </td>
-                        <td class="center">
-                            {{ $fila['bajo'] && $fila['faltante'] > 0 ? $fila['faltante'] : '—' }}
+                            {{ $fila['bajo'] ? $fila['faltante'] : '—' }}
                         </td>
                     </tr>
                 @endforeach

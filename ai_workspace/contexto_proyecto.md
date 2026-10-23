@@ -105,7 +105,7 @@ Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ven
 | Usuarios y asignación de roles | Funcional. **Dos capas sincronizadas**: `users.id_role` (rol de negocio, FK simple) y `model_has_roles` (Spatie, capa de autorización). Se asignan siempre juntas con `User::asignarRol()`. `spatie_roles` es el espejo de `roles`. | `UserController`, `RoleController`, vistas `users/*`, `roles/*` |
 | Roles | CRUD completo. Al crear/editar/borrar un rol se mantiene el espejo en `spatie_roles` | `RoleController`, vistas `roles/*` |
 | Empleados | CRUD + **reporte interno por rol** (PDF para enviar al empleado: reposición para Depósito, ventas/disponibilidad para Vendedor, resumen para Encargado/Jefe) | `EmployeeController`, `App\Support\ReporteEmpleado`, vistas `employees/*` |
-| Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
+| Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. El catálogo lo ve todo usuario autenticado: el **Cliente** compra desde la tarjeta y el **Vendedor** lo ve en modo lectura, sin alta/edición/planos, pero con el **PDF del catálogo** habilitado. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | **Materias primas** | **CRUD propio**, separado de Proveedores. Lista con presentación (caja, bolsa, unidad, metro...), stock, mínimo, costo, proveedor y en cuántos planos se usa. Filtros, KPIs y PDF. El Depósito solo consulta. | `RawMaterialController`, vistas `raw-materials/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
@@ -149,7 +149,7 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 204 tests, 1938 aserciones, todas en verde.
+**Pruebas:** 204 tests, 1939 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
@@ -233,8 +233,8 @@ que se le manda al empleado para que actúe.
 
 | Rol | Contenido |
 |---|---|
-| **Depósito** | **Pedido de reposición**: todas las materias primas con stock, mínimo, estado, cantidad sugerida, proveedor, costo unitario y subtotal; los insumos bajo mínimo resaltados y el **total estimado**. Más los artículos con stock bajo. |
-| **Vendedor** | **Ventas de los últimos 30 días** (operaciones, total, ticket promedio), ventas propias, **productos más vendidos** y **disponibilidad del catálogo** (sin stock / bajo mínimo / disponible). |
+| **Depósito** | **Pedido de reposición**: todas las materias primas con stock, mínimo, proveedor, costo unitario y subtotal; los insumos bajo mínimo resaltados y el **total estimado**. Más los artículos con stock, mínimo y faltante, con las filas bajas resaltadas. |
+| **Vendedor** | **Ventas de los últimos 30 días** (operaciones, total, ticket promedio), ventas propias, **productos más vendidos** y **disponibilidad del catálogo** (stock, mínimo y faltante; filas resaltadas). |
 | **Encargado** | Resumen operativo: reposición + ventas + disponibilidad. |
 | **Jefe / Administrador** | Resumen general: ventas, facturado histórico, artículos, insumos, proveedores, empleados, clientes, empleados por rol y estado del stock. |
 
@@ -242,7 +242,8 @@ que se le manda al empleado para que actúe.
 |---|---|---|
 | Datos | `ReporteEmpleado::tipo($rol)` decide la variante; `para($empleado)` arma todo (insumos, artículos, reposición, ventas, top productos, totales, empleados por rol). | `app/Support/ReporteEmpleado.php` |
 | Ventana | Ventas de los **últimos 30 días** (`ReporteEmpleado::DIAS`). | `ReporteEmpleado` |
-| Pedido | `cantidad sugerida = max(ceil(mínimo - stock), 1)`; subtotal = sugerida × `unit_cost`; total = suma de los insumos bajo mínimo. | `ReporteEmpleado::insumos()`, `reposicion()` |
+| Pedido | `cantidad sugerida = max(ceil(mínimo - stock), 1)`; subtotal = sugerida × `unit_cost`; total = suma de los insumos bajo mínimo. La cantidad sugerida se usa para el subtotal, no se muestra como columna. | `ReporteEmpleado::insumos()`, `reposicion()` |
+| Columnas | La tabla de insumos no muestra **Estado** ni **Sugerido**: el insumo a reponer se reconoce por la fila resaltada y el subtotal es el costo estimado de la cantidad sugerida. La tabla de artículos no muestra **Estado**: quedan stock, mínimo y faltante. | `views/employees/report-pdf.blade.php` |
 | PDF | DomPDF con tablas (sin flex/grid), logo `logo-pdf.jpg`, destinatario, secciones del rol y línea "Recibí conforme". Archivo `reporte-{rol}-{nombre-apellido}.pdf`. | `views/employees/report-pdf.blade.php`, `EmployeeController@report` |
 | Permisos | Dentro del módulo de Empleados: Jefe, Administrador y Encargado. Cliente y Vendedor reciben 403 (el PDF muestra costos y números del negocio). | `routes/web.php` |
 | Pruebas | `tests/Feature/ReportesEmpleadoTest.php` (9 casos). | tests |
@@ -281,7 +282,7 @@ que se le manda al empleado para que actúe.
 30. **RESUELTO** — Los artículos no tenian forma de guardar una foto: la tabla `articles` no tenia ninguna columna de imagen. Ahora hay `articles.image` (nullable), subida desde el formulario, con reemplazo automatico de la imagen vieja y borrado del archivo al borrar el artículo.
 31. **RESUELTO** — El logo era un SVG inline duplicado en el sidebar y en el login. Ahora es un archivo (`public/images/logo.svg`) mostrado con `<x-app-logo>`: se reemplaza por el logo propio sin tocar codigo.
 32. **PENDIENTE** — El reporte PDF de artículos **no incluye la foto**. dompdf genera el PDF sin error pero no renderiza los SVG (0 objetos de imagen en el archivo resultante). Se decidio dejar el reporte como tabla: una columna de imágenes vacías se ve peor que ninguna. Si se quieren fotos en el PDF, hay que convertir las imagenes a PNG antes de pasarlas.
-33. **PENDIENTE** — El modulo de artículos sigue cerrado para el rol Cliente (`role:Jefe|Administrador|Encargado|Deposito`): un cliente no puede ver el catalogo, solo el carrito. Es decision del profesor, escrita en el comentario de las rutas, pero como usuario final es raro: el cliente no ve los productos que puede comprar. Mismo tema con `/cart`, que muestra el flujo de caja ("seleccionar cliente") en vez de un carrito de compra.
+33. **RESUELTO** — El catálogo de artículos está abierto a todos los usuarios autenticados: el **Cliente** ve los productos con su precio y stock y compra desde la tarjeta; el **Vendedor** lo ve en modo lectura, sin los botones de alta/edición/planos (que antes aparecían y daban 403) y con el **PDF del catálogo** habilitado; el Jefe, Administrador, Encargado y Depósito mantienen el CRUD. El flujo de mostrador `/cart` redirige al Cliente a `/mi-carrito`, que resuelve su carrito por la ficha del cliente. El controlador pasa `$esCliente` y `$puedeGestionar` para separar las tres vistas. La ruta `articles.pdf` incluye al Vendedor y no al Cliente.
 34. **RESUELTO** — El rol de deposito se llamaba **"Depósito" (con tilde)** en `RoleSeeder` y `UserSeeder`, pero el codigo del profesor lo escribe **"Deposito" (sin tilde)**: `routes/web.php` (`role:Jefe|Administrador|Encargado|Deposito`) y `layouts/app.blade.php` (`@role('Jefe|Administrador|Encargado|Deposito')`). MySQL no distingue tildes al comparar (collation `*_ci`), asi que la base de datos SI encontraba el rol y no habia error visible; pero Spatie compara los nombres como cadenas de PHP, donde `'Depósito' === 'Deposito'` es **false**. Resultado: el usuario de deposito caia en **HTTP 403** en todo el modulo de articulos (su trabajo) y el link del sidebar tampoco le aparecia. Se unifico la grafia en "Deposito" (la que usa el codigo del profesor) y se agrego `tests/Feature/RolesTest.php` para que no vuelva: el test lee los roles de las rutas, de las directivas de Blade y de los seeders, y exige que existan **exactamente** en el catalogo.
 35. **RESUELTO** — El usuario de deposito no podia ver el modulo de articulos por el bug 34. Verificado con barrido HTTP: antes 403, ahora **200**, y el link "Articulos" le aparece en el sidebar.
 36. **RESUELTO** — Las descargas en PDF no se veian funcionar. Eran dos cosas juntas:

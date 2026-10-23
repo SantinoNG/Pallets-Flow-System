@@ -162,7 +162,6 @@ class ReporteEmpleado
                     'minimo'   => $minimo,
                     'bajo'     => $stock <= $minimo,
                     'sinStock' => $stock <= 0,
-                    'enMinimo' => $stock > 0 && $stock === $minimo,
                     'faltante' => max($minimo - $stock, 0),
                 ];
             });

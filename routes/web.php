@@ -110,11 +110,19 @@ Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function
 // espejo del catálogo de `roles` (ver RoleSeeder y User::asignarRol()).
 Route::middleware(['auth'])->group(function () {
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
+
+    /*
+     * El PDF del catálogo lo puede bajar también el Vendedor: muestra
+     * precios y stock, no los costos de los planos. El Cliente no: su
+     * catálogo es la pantalla y el carrito.
+     */
+    Route::get('/articles/pdf', [ArticleController::class, 'exportPdf'])
+        ->middleware('role:Jefe|Administrador|Encargado|Deposito|Vendedor')
+        ->name('articles.pdf');
 });
 
 Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Deposito'])->group(function () {
     Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create');
-    Route::get('/articles/pdf', [ArticleController::class, 'exportPdf'])->name('articles.pdf');
     Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store');
     Route::get('/articles/{article}', [ArticleController::class, 'show'])->name('articles.show');
     Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');

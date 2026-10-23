@@ -1,11 +1,12 @@
 <x-app-layout>
     {{-- El Cliente ve el catálogo en modo lectura: puede buscar y
-         comprar, pero no gestionar el inventario. El flag $esCliente lo
-         pasa el controlador. --}}
+         comprar, pero no gestionar el inventario. El Vendedor también
+         lo ve en lectura, pero sin el carrito del cliente: su venta la
+         arma desde el mostrador. Los flags los pasa el controlador. --}}
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-            {{ $esCliente ? __('Catálogo de productos') : __('Gestión de Artículos') }}
+            {{ $puedeGestionar ? __('Gestión de Artículos') : __('Catálogo de productos') }}
         </h2>
     </x-slot>
 
@@ -16,14 +17,14 @@
                 {{-- Encabezado --}}
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-zinc-100">
-                        {{ $esCliente ? 'Productos disponibles' : 'Inventario de artículos' }}
+                        {{ $puedeGestionar ? 'Inventario de artículos' : 'Productos disponibles' }}
                     </h3>
-                    @unless ($esCliente)
+                    @if ($puedeGestionar)
                         <a href="{{ route('articles.create') }}"
                            class="bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
                             + Nuevo Artículo
                         </a>
-                    @endunless
+                    @endif
                 </div>
 
                 @if(session('success'))
@@ -106,10 +107,12 @@
                                 <th class="px-6 py-3">Stock actual</th>
                                 @unless ($esCliente)
                                     <th class="px-6 py-3">Stock mínimo</th>
-                                    <th class="px-6 py-3 text-center">Acciones</th>
-                                @else
-                                    <th class="px-6 py-3 text-center">Comprar</th>
                                 @endunless
+                                @if ($puedeGestionar)
+                                    <th class="px-6 py-3 text-center">Acciones</th>
+                                @elseif ($esCliente)
+                                    <th class="px-6 py-3 text-center">Comprar</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -119,7 +122,7 @@
                                     <x-article-image :article="$article" size="sm" />
                                 </td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-zinc-100">
-                                    @unless ($esCliente)
+                                    @if ($puedeGestionar)
                                         <a href="{{ route('articles.show', $article->id_article) }}"
                                            class="hover:text-hazard-600 dark:hover:text-hazard-400 transition">
                                             {{ $article->article_name }}
@@ -129,7 +132,7 @@
                                         </span>
                                     @else
                                         {{ $article->article_name }}
-                                    @endunless
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 font-mono tabular-nums">
                                     ${{ number_format($article->unit_price, 2) }}
@@ -153,6 +156,8 @@
                                     <td class="px-6 py-4 font-mono tabular-nums">
                                         {{ $article->stock->minimum_stock ?? '—' }}
                                     </td>
+                                @endunless
+                                @if ($puedeGestionar)
                                     <td class="px-6 py-4 text-center font-mono tabular-nums">
                                         <div class="inline-flex flex-wrap justify-center items-center gap-2">
                                             <a href="{{ route('articles.show', $article->id_article) }}"
@@ -175,7 +180,7 @@
                                             </form>
                                         </div>
                                     </td>
-                                @else
+                                @elseif ($esCliente)
                                     {{-- El Cliente compra: el carrito se resuelve
                                          desde su propia ficha, asi que no
                                          puede meter cosas en el de otro. --}}
@@ -196,11 +201,11 @@
                                             <span class="text-gray-400 dark:text-zinc-500 italic text-xs">Sin stock</span>
                                         @endif
                                     </td>
-                                @endunless
+                                @endif
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="{{ $esCliente ? 5 : 7 }}" class="px-6 py-8 text-center text-gray-400 dark:text-zinc-500 italic">
+                                <td colspan="{{ $puedeGestionar ? 6 : 5 }}" class="px-6 py-8 text-center text-gray-400 dark:text-zinc-500 italic">
                                     No se encontraron artículos con esos filtros.
                                 </td>
                             </tr>
