@@ -440,6 +440,89 @@ class PagoCombinadoTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    //  Cuotas con tarjeta de credito
+    // ------------------------------------------------------------------
+
+    #[Test]
+    public function la_tarjeta_de_credito_guarda_las_cuotas(): void
+    {
+        $cart = $this->carritoDe($this->clienteNuevo(), 120000.00, 1);
+
+        $this->confirmar($cart, [
+            ['method' => MediosPago::TARJETA_CREDITO, 'amount' => 120000.00, 'installments' => 6],
+        ])->assertRedirect();
+
+        $pago = Sale::where('id_cart', $cart->id_cart)->firstOrFail()->payments()->firstOrFail();
+
+        $this->assertSame(6, $pago->installments);
+        $this->assertTrue($pago->enCuotas());
+    }
+
+    #[Test]
+    public function un_medio_que_no_es_tarjeta_queda_en_una_cuota(): void
+    {
+        $cart = $this->carritoDe($this->clienteNuevo(), 1000.00, 1);
+
+        // Aunque el formulario mande cuotas, el efectivo no se paga en
+        // cuotas: el servidor lo normaliza a 1.
+        $this->confirmar($cart, [
+            ['method' => MediosPago::EFECTIVO, 'amount' => 1000.00, 'installments' => 6],
+        ])->assertRedirect();
+
+        $pago = Sale::where('id_cart', $cart->id_cart)->firstOrFail()->payments()->firstOrFail();
+
+        $this->assertSame(1, $pago->installments);
+        $this->assertFalse($pago->enCuotas());
+    }
+
+    #[Test]
+    public function una_cantidad_de_cuotas_invalida_se_rechaza(): void
+    {
+        $cart = $this->carritoDe($this->clienteNuevo(), 1000.00, 1);
+
+        $this->confirmar($cart, [
+            ['method' => MediosPago::TARJETA_CREDITO, 'amount' => 1000.00, 'installments' => 5],
+        ])->assertSessionHasErrors('payments.0.installments');
+
+        $this->assertSame(0, Sale::where('id_cart', $cart->id_cart)->count());
+    }
+
+    #[Test]
+    public function el_comprobante_muestra_las_cuotas(): void
+    {
+        $cart = $this->carritoDe($this->clienteNuevo(), 120000.00, 1);
+
+        $this->confirmar($cart, [
+            ['method' => MediosPago::TARJETA_CREDITO, 'amount' => 120000.00, 'installments' => 6],
+        ])->assertRedirect();
+
+        $venta = Sale::where('id_cart', $cart->id_cart)->firstOrFail();
+
+        $this->actingAs($this->vendedor())
+            ->get(route('cart.receipt', $venta->id_sale))
+            ->assertOk()
+            ->assertSee('6 cuotas de $20,000.00', false);
+    }
+
+    #[Test]
+    public function el_medio_de_pago_muestra_las_cuotas(): void
+    {
+        $pago = new SalePayment([
+            'payment_method' => MediosPago::TARJETA_CREDITO,
+            'amount'         => 120000.00,
+            'installments'   => 6,
+        ]);
+
+        $this->assertSame('Tarjeta de crédito (6 cuotas de $20,000.00)', $pago->etiqueta());
+        $this->assertTrue($pago->enCuotas());
+
+        // Sin cuotas, la etiqueta es solo el medio.
+        $pago->installments = 1;
+        $this->assertSame('Tarjeta de crédito', $pago->etiqueta());
+        $this->assertFalse($pago->enCuotas());
+    }
+
+    // ------------------------------------------------------------------
     //  Las piezas sueltas
     // ------------------------------------------------------------------
 

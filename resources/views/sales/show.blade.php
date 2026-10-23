@@ -36,13 +36,13 @@
                     <div>
                         <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase mb-1">Forma de pago</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $sale->payment_method }}</p>
-                        {{-- Si se pago con varios medios, el detalle con
-                             importes va debajo del resumen. --}}
-                        @if($sale->payments->count() > 1)
+                        {{-- Si se pago con varios medios, o en cuotas, el
+                             detalle con importes va debajo del resumen. --}}
+                        @if($sale->payments->count() > 1 || $sale->payments->contains(fn ($p) => $p->enCuotas()))
                             <ul class="mt-1 space-y-0.5">
                                 @foreach($sale->payments as $pago)
                                     <li class="text-xs text-gray-500 dark:text-zinc-400">
-                                        {{ $pago->payment_method }}: ${{ number_format($pago->amount, 2, ',', '.') }}
+                                        {{ $pago->etiqueta() }}: ${{ number_format($pago->amount, 2, ',', '.') }}
                                     </li>
                                 @endforeach
                             </ul>

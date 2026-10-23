@@ -110,7 +110,7 @@
                     @endunless
                     <div class="label" style="margin-top:8px;">Forma de pago</div>
                     @forelse($sale->payments as $pago)
-                        <div>{{ $pago->payment_method }}: <strong>$ {{ number_format($pago->amount, 2, ',', '.') }}</strong></div>
+                        <div>{{ $pago->etiqueta() }}: <strong>$ {{ number_format($pago->amount, 2, ',', '.') }}</strong></div>
                     @empty
                         <strong>{{ $sale->payment_method }}</strong>
                     @endforelse

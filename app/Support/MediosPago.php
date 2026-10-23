@@ -22,6 +22,15 @@ class MediosPago
     public const MERCADO_PAGO      = 'Mercado Pago';
 
     /**
+     * Cuotas que se ofrecen con tarjeta de credito.
+     *
+     * No se guarda interes: el importe del pago es lo que se cobra y las
+     * cuotas son la forma de pago ("6 cuotas de $X"). Si algun dia se
+     * agrega interes, va como un recargo en el importe.
+     */
+    public const CUOTAS = [1, 3, 6, 9, 12, 18, 24];
+
+    /**
      * Todos los medios, en el orden en que se muestran.
      *
      * @return list<string>
@@ -82,5 +91,33 @@ class MediosPago
     public static function esCombinado(string $resumen): bool
     {
         return str_starts_with($resumen, 'Pago combinado');
+    }
+
+    /**
+     * ¿Este medio se puede pagar en cuotas?
+     *
+     * Solo la tarjeta de credito. El debito, la transferencia y el efectivo
+     * se cobran en un pago.
+     */
+    public static function permiteCuotas(string $medio): bool
+    {
+        return $medio === self::TARJETA_CREDITO;
+    }
+
+    /**
+     * Cuotas normalizadas para un medio.
+     *
+     * La tarjeta de credito usa las cuotas que vienen (si son validas);
+     * cualquier otro medio queda en 1, aunque el formulario mande otra cosa.
+     */
+    public static function cuotas(string $medio, mixed $cuotas): int
+    {
+        if (! self::permiteCuotas($medio)) {
+            return 1;
+        }
+
+        $cuotas = (int) $cuotas;
+
+        return in_array($cuotas, self::CUOTAS, true) ? $cuotas : 1;
     }
 }

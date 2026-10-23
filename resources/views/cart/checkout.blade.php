@@ -202,99 +202,56 @@
                 <form action="{{ route('cart.confirm', $cart->id_cart) }}" method="POST">
                     @csrf
 
-                    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200">
-                            Forma de pago <span class="text-red-500">*</span>
-                        </label>
-                        <button type="button" id="agregar-pago"
-                                class="text-xs font-semibold uppercase tracking-wider text-hazard-600 dark:text-hazard-400 hover:text-hazard-700 dark:hover:text-hazard-300 transition">
-                            + Agregar otro medio
-                        </button>
-                    </div>
+                    {{-- Recuadro del cobro: medios, cuotas y resumen en vivo.
+                         Va todo junto para que se lea como un solo bloque. --}}
+                    <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950/40 p-4 mb-6">
 
-                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
-                        Podés combinar medios: por ejemplo, una parte en efectivo y el resto con transferencia.
-                        Los importes tienen que sumar el total.
-                    </p>
-
-                    {{-- Filas de pago --}}
-                    <div id="pagos" class="space-y-2 mb-4">
-                        @foreach($pagosViejos as $i => $pago)
-                            <div class="fila-pago flex flex-col sm:flex-row gap-2 sm:items-center" data-fila>
-                                <select name="payments[{{ $i }}][method]"
-                                        class="w-full sm:w-1/2 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm">
-                                    @foreach($medios as $medio)
-                                        <option value="{{ $medio }}" @selected(($pago['method'] ?? '') === $medio)>{{ $medio }}</option>
-                                    @endforeach
-                                </select>
-
-                                <div class="relative w-full sm:w-1/3">
-                                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm">$</span>
-                                    <input type="number"
-                                           name="payments[{{ $i }}][amount]"
-                                           value="{{ $pago['amount'] ?? '' }}"
-                                           step="0.01"
-                                           min="0"
-                                           inputmode="decimal"
-                                           placeholder="0.00"
-                                           class="w-full pl-7 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
-                                </div>
-
-                                <button type="button"
-                                        class="quitar-pago shrink-0 px-3 py-2 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
-                                        title="Quitar este medio"
-                                        aria-label="Quitar este medio">
-                                    ✕
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    {{-- Molde para las filas que se agregan con JavaScript.
-                         El índice se reemplaza al insertar. --}}
-                    <template id="plantilla-pago">
-                        <div class="fila-pago flex flex-col sm:flex-row gap-2 sm:items-center" data-fila>
-                            <select name="payments[__i__][method]"
-                                    class="w-full sm:w-1/2 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm">
-                                @foreach($medios as $medio)
-                                    <option value="{{ $medio }}">{{ $medio }}</option>
-                                @endforeach
-                            </select>
-
-                            <div class="relative w-full sm:w-1/3">
-                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm">$</span>
-                                <input type="number"
-                                       name="payments[__i__][amount]"
-                                       value=""
-                                       step="0.01"
-                                       min="0"
-                                       inputmode="decimal"
-                                       placeholder="0.00"
-                                       class="w-full pl-7 border-gray-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 rounded-md shadow-sm text-sm font-mono tabular-nums">
-                            </div>
-
-                            <button type="button"
-                                    class="quitar-pago shrink-0 px-3 py-2 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
-                                    title="Quitar este medio"
-                                    aria-label="Quitar este medio">
-                                ✕
+                        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200">
+                                Forma de pago <span class="text-red-500">*</span>
+                            </label>
+                            <button type="button" id="agregar-pago"
+                                    class="text-xs font-semibold uppercase tracking-wider text-hazard-600 dark:text-hazard-400 hover:text-hazard-700 dark:hover:text-hazard-300 transition">
+                                + Agregar otro medio
                             </button>
                         </div>
-                    </template>
 
-                    {{-- Resumen en vivo del cobro --}}
-                    <div class="bg-gray-50 dark:bg-zinc-950 rounded-md p-4 mb-6 space-y-1 text-sm">
-                        <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-                            <span>Total a cobrar</span>
-                            <span class="font-mono tabular-nums">${{ number_format($subtotal, 2) }}</span>
+                        <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
+                            Podés combinar medios: una parte en efectivo y el resto con transferencia.
+                            Al agregar otro medio, el importe se completa solo con lo que falta.
+                            Con tarjeta de crédito podés elegir las cuotas.
+                        </p>
+
+                        {{-- Filas de pago --}}
+                        <div id="pagos" class="space-y-2">
+                            @foreach($pagosViejos as $i => $pago)
+                                @include('cart.partials.fila-pago', ['i' => $i, 'pago' => $pago])
+                            @endforeach
                         </div>
-                        <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-                            <span>Pagado</span>
-                            <span class="font-mono tabular-nums">$<span id="pagado">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between font-semibold">
-                            <span id="estado-pago" class="text-red-600 dark:text-red-400">Falta</span>
-                            <span id="diferencia" class="font-mono tabular-nums text-red-600 dark:text-red-400">$0.00</span>
+
+                        {{-- Molde para las filas que se agregan con JavaScript.
+                             El índice se reemplaza al insertar. --}}
+                        <template id="plantilla-pago">
+                            @include('cart.partials.fila-pago', [
+                                'i'    => '__i__',
+                                'pago' => ['method' => $medios[0], 'amount' => '', 'installments' => 1],
+                            ])
+                        </template>
+
+                        {{-- Resumen en vivo del cobro --}}
+                        <div class="border-t border-gray-200 dark:border-zinc-800 mt-4 pt-3 space-y-1 text-sm">
+                            <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                                <span>Total a cobrar</span>
+                                <span class="font-mono tabular-nums">${{ number_format($subtotal, 2) }}</span>
+                            </div>
+                            <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                                <span>Pagado</span>
+                                <span class="font-mono tabular-nums">$<span id="pagado">0.00</span></span>
+                            </div>
+                            <div class="flex justify-between font-semibold">
+                                <span id="estado-pago" class="text-red-600 dark:text-red-400">Falta</span>
+                                <span id="diferencia" class="font-mono tabular-nums text-red-600 dark:text-red-400">$0.00</span>
+                            </div>
                         </div>
                     </div>
 
@@ -345,7 +302,15 @@
 
             let siguienteIndice = {{ count($pagosViejos) }};
 
-            const pesos = (n) => n.toFixed(2);
+            /*
+             * Formato de los importes en pantalla, igual que number_format()
+             * del servidor: 225000 -> "225,000.00". Para el value de un
+             * <input type="number"> va toFixed(2), sin separadores.
+             */
+            const pesos = (n) => n.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
 
             /** Suma lo que hay cargado en las filas. */
             function pagadoActual() {
@@ -378,8 +343,45 @@
                 });
             }
 
-            /** Muestra Pagado / Falta / Sobra. */
+            /**
+             * Muestra u oculta las cuotas segun el medio y calcula cuanto
+             * sale cada una.
+             *
+             * Solo la tarjeta de credito se paga en cuotas: en los demas
+             * medios el select queda oculto y deshabilitado, asi no se
+             * envia (el servidor igual lo normaliza a 1).
+             */
+            function actualizarCuotas(fila) {
+                const metodo = fila.querySelector('select[name$="[method]"]');
+                const cuotas = fila.querySelector('select[name$="[installments]"]');
+                const monto  = fila.querySelector('input[name$="[amount]"]');
+                const texto  = fila.querySelector('.texto-cuotas');
+
+                if (!metodo || !cuotas || !texto) {
+                    return;
+                }
+
+                const esCredito = metodo.value === 'Tarjeta de crédito';
+
+                cuotas.classList.toggle('hidden', !esCredito);
+                cuotas.disabled = !esCredito;
+
+                const n     = parseInt(cuotas.value || '1', 10) || 1;
+                const total = parseFloat(monto ? monto.value : '') || 0;
+
+                if (esCredito && n > 1 && total > 0) {
+                    texto.textContent = n + ' cuotas de $' + pesos(total / n);
+                    texto.classList.remove('hidden');
+                } else {
+                    texto.textContent = '';
+                    texto.classList.add('hidden');
+                }
+            }
+
+            /** Muestra Pagado / Falta / Sobra y refresca las cuotas. */
             function recalcular() {
+                contenedor.querySelectorAll('[data-fila]').forEach(actualizarCuotas);
+
                 const pagado = pagadoActual();
                 const diferencia = Math.round((TOTAL - pagado) * 100) / 100;
 
@@ -423,7 +425,7 @@
                 const input = ultima.querySelector('input[name$="[amount]"]');
 
                 if (input && falta > 0) {
-                    input.value = pesos(falta);
+                    input.value = falta.toFixed(2);
                 }
 
                 recalcular();
@@ -448,6 +450,7 @@
             });
 
             contenedor.addEventListener('input', recalcular);
+            contenedor.addEventListener('change', recalcular);
 
             reindexar();
             recalcular();

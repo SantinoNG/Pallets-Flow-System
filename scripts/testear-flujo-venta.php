@@ -204,7 +204,8 @@ if ($total === null) {
     exit(1);
 }
 
-// 7. Confirmar la venta con PAGO COMBINADO: 40% efectivo + 60% transferencia
+// 7. Confirmar la venta con PAGO COMBINADO: 40% efectivo + 60% con
+//    tarjeta de credito en 6 cuotas.
 $efectivo = round($total * 0.4, 2);
 $resto    = round($total - $efectivo, 2);
 
@@ -212,7 +213,11 @@ $r = $c->pedir("$base/cart/$idCarrito/confirm", [
     '_token'   => $c->token("$base/cart/$idCarrito/checkout"),
     'payments' => [
         ['method' => 'Efectivo', 'amount' => number_format($efectivo, 2, '.', '')],
-        ['method' => 'Transferencia', 'amount' => number_format($resto, 2, '.', '')],
+        [
+            'method'       => 'Tarjeta de crédito',
+            'amount'       => number_format($resto, 2, '.', ''),
+            'installments' => 6,
+        ],
     ],
 ]);
 paso('confirmar la venta combinada', $r['codigo'] == 302, "HTTP {$r['codigo']}");
@@ -225,9 +230,21 @@ paso('el listado muestra el numero de comprobante',
     (bool) preg_match('/\d{4}-\d{8}/', (string) $r['html']),
     'formato 0001-00000001');
 
-// 9. PDF de la venta recien hecha
+// De aca sale el id para el comprobante y el PDF.
 preg_match('#/sales/(\d+)/pdf#', (string) $r['html'], $m);
 $idVenta = $m[1] ?? null;
+
+// 8.1 El comprobante muestra las cuotas de la tarjeta
+if ($idVenta) {
+    $r = $c->pedir("$base/sales/$idVenta/receipt");
+    paso('el comprobante muestra las cuotas',
+        $r['codigo'] == 200 && str_contains((string) $r['html'], '6 cuotas de'),
+        "HTTP {$r['codigo']}");
+} else {
+    paso('el comprobante muestra las cuotas', false, 'no se encontro el id de la venta');
+}
+
+// 9. PDF de la venta recien hecha
 if ($idVenta) {
     $r = $c->pedir("$base/sales/$idVenta/pdf", null, true);
     paso('el comprobante en PDF se genera',

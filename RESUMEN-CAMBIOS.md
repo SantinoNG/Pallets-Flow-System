@@ -3,21 +3,80 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 22 de octubre de 2026
 
-**11 tandas de trabajo · 5 archivos tocados en esta última (editar el pedido desde el checkout)**
+**12 tandas de trabajo · 13 archivos tocados en esta última (recuadro del cobro y cuotas)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
-> documenta la última tanda: corregir el pedido desde el checkout (cambiar de
-> producto, cambiar la cantidad, quitar un renglón) sin volver al carrito. La
-> **sección 0.1**, el pago combinado, el IVA y la numeración de los
-> comprobantes. La sección 1 documenta la separación entre clientes y
-> personal, y el cierre de las fugas de información. La sección 2, el
-> rediseño de la interfaz con paleta industrial y modo oscuro.
+> documenta la última tanda: el recuadro del cobro, el cálculo automático de lo
+> que falta y las **cuotas** con tarjeta de crédito. La **sección 0.1**, la
+> edición del pedido desde el checkout (cambiar de producto, cantidad o quitar
+> un renglón sin volver al carrito). La **sección 0.2**, el pago combinado, el
+> IVA y la numeración de los comprobantes. La sección 1 documenta la separación
+> entre clientes y personal, y el cierre de las fugas de información. La
+> sección 2, el rediseño de la interfaz con paleta industrial y modo oscuro.
 
 ---
 
-## 0. Editar el pedido desde el checkout
+## 0. Cobro: recuadro, lo que falta automático y cuotas
+
+La pantalla de confirmación tenía los medios de pago sueltos: el botón
+“+ Agregar otro medio” quedaba perdido entre el total y el formulario, y no
+había forma de registrar que una parte se pagaba con tarjeta **en cuotas**.
+
+Ahora todo el cobro vive en un **recuadro** con borde:
+
+- arriba, la etiqueta **Forma de pago** y el botón **+ Agregar otro medio**;
+- en el medio, un renglón por medio: **desplegable de medio**, **importe** y,
+  si es tarjeta de crédito, **cuotas**;
+- abajo, el resumen en vivo: **Total a cobrar**, **Pagado** y **Falta /
+  Sobra / Pago completo**.
+
+### Lo que falta se calcula solo
+
+Al agregar un medio, el importe de la fila nueva **se completa con lo que
+falta** para llegar al total. Si el pedido sale $225.000 y ya hay $100.000 en
+efectivo, la fila nueva arranca en $125.000. El resumen se recalcula mientras
+se escribe, así que también se actualiza si se cambia un importe a mano.
+
+### Cuotas con tarjeta de crédito
+
+Cuando el medio es **Tarjeta de crédito**, aparece un desplegable de cuotas
+(**1 pago**, 3, 6, 9, 12, 18 o 24). Debajo del renglón se muestra cuánto sale
+cada una: *“6 cuotas de $20,000.00”*.
+
+- El **importe del pago sigue siendo el total** cobrado con la tarjeta; las
+  cuotas son la forma de pago, no otro importe.
+- **No se calcula interés**: si algún día se agrega, va como recargo en el
+  importe.
+- En los demás medios el desplegable queda **oculto y deshabilitado**, así no
+  se envía; el servidor igual normaliza las cuotas a 1.
+
+### Cómo se guarda
+
+| Pieza | Qué hace |
+| --- | --- |
+| `sale_payments.installments` | Migración `2026_10_22_000003_...`: cuántas cuotas, por defecto 1. |
+| `MediosPago::CUOTAS` | Las cuotas ofrecidas (1, 3, 6, 9, 12, 18, 24) y `permiteCuotas()` / `cuotas()`. |
+| `CartController@confirmSale` | Valida `payments.*.installments` y guarda el valor normalizado. |
+| `SalePayment::etiqueta()` | “Tarjeta de crédito (6 cuotas de $20,000.00)”, usado en el comprobante, el PDF y el detalle. |
+
+El comprobante, el PDF y el detalle de la venta muestran las cuotas. El
+listado y el gráfico de medios no cambian: siguen mirando el importe total de
+cada medio.
+
+### Tests
+
+`tests/Feature/PagoCombinadoTest.php` suma 5 casos: guarda las cuotas, un
+medio que no es tarjeta queda en 1, una cantidad inválida se rechaza, el
+comprobante muestra las cuotas y la etiqueta del pago. El script
+`scripts/testear-flujo-venta.php` ahora cobra la parte con tarjeta **en 6
+cuotas** y verifica que el comprobante lo diga (17 pasos). La suite completa
+queda en **174 tests y 1.201 assertions**.
+
+---
+
+## 0.1 Editar el pedido desde el checkout
 
 Antes, si el cliente o el vendedor se daba cuenta en la pantalla de
 confirmación de que se había equivocado de producto (o de cantidad), tenía que
@@ -96,7 +155,7 @@ miraba los grises, por eso el hueco pasó desapercibido: hoy la auditoría da
 
 ---
 
-## 0.1 Cobro: pago combinado, IVA y numeración del comprobante
+## 0.2 Cobro: pago combinado, IVA y numeración del comprobante
 
 Tres cosas del circuito de venta que no cerraban con la realidad:
 
@@ -559,7 +618,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **135 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **174 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |

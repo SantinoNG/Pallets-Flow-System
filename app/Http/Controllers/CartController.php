@@ -346,8 +346,9 @@ class CartController extends Controller
         $pagos = collect($request->input('payments', []))
             ->filter(fn ($p) => is_array($p) && ($p['amount'] ?? '') !== '' && (float) $p['amount'] > 0)
             ->map(fn ($p) => [
-                'method' => (string) ($p['method'] ?? ''),
-                'amount' => round((float) $p['amount'], 2),
+                'method'       => (string) ($p['method'] ?? ''),
+                'amount'       => round((float) $p['amount'], 2),
+                'installments' => (int) ($p['installments'] ?? 1),
             ])
             ->values()
             ->all();
@@ -355,15 +356,17 @@ class CartController extends Controller
         $request->merge(['payments' => $pagos]);
 
         $request->validate([
-            'payments'            => ['required', 'array', 'min:1'],
-            'payments.*.method'   => ['required', 'string', Rule::in(MediosPago::todos())],
-            'payments.*.amount'   => ['required', 'numeric', 'min:0.01'],
+            'payments'               => ['required', 'array', 'min:1'],
+            'payments.*.method'      => ['required', 'string', Rule::in(MediosPago::todos())],
+            'payments.*.amount'      => ['required', 'numeric', 'min:0.01'],
+            'payments.*.installments' => ['nullable', 'integer', Rule::in(MediosPago::CUOTAS)],
         ], [
             'payments.required'          => 'Elegí al menos un medio de pago.',
             'payments.*.method.required' => 'Cada pago necesita un medio.',
             'payments.*.method.in'       => 'El medio de pago no es válido.',
             'payments.*.amount.required' => 'Cada pago necesita un importe.',
             'payments.*.amount.min'      => 'El importe de cada pago tiene que ser mayor a cero.',
+            'payments.*.installments.in' => 'La cantidad de cuotas no es válida.',
         ]);
 
         // Verificar que el carrito tenga items
@@ -437,12 +440,13 @@ class CartController extends Controller
                     'payment_method' => MediosPago::resumen(array_column($pagos, 'method')),
                 ]);
 
-                // Un renglon por medio de pago, con su importe
+                // Un renglon por medio de pago, con su importe y sus cuotas
                 foreach ($pagos as $pago) {
                     SalePayment::create([
                         'id_sale'        => $sale->id_sale,
                         'payment_method' => $pago['method'],
                         'amount'         => $pago['amount'],
+                        'installments'   => MediosPago::cuotas($pago['method'], $pago['installments']),
                     ]);
                 }
 

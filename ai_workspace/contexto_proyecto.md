@@ -65,14 +65,14 @@ El `README.md` es genérico/desactualizado (menciona `/var/www/html/sistema-gest
 | `Cart` | `cart` | `id_cart` | `belongsTo Customer`, `hasMany CartItem` (`items`), `hasOne Sale`. Declara `protected $table = 'cart'`. |
 | `CartItem` | `cart_items` | `id_cart_item` | `belongsTo Cart`, `belongsTo Article`. Con `getRouteKeyName()`. |
 | `Sale` | `sales` | `id_sale` | `belongsTo Cart`, `belongsTo Customer`, `belongsTo Employee`, `hasOne Receipt`, `hasMany SalePayment` (`payments()`). `payment_method` guarda un **resumen**: `Efectivo` o `Pago combinado (Efectivo + Transferencia)`. `esPagoCombinado()` y `numeroComprobante()`. |
-| `SalePayment` | `sale_payments` | `id_payment` | `belongsTo Sale`. Una fila por medio de pago usado, con `payment_method` y `amount`. La suma de los importes es el total de la venta. |
+| `SalePayment` | `sale_payments` | `id_payment` | `belongsTo Sale`. Una fila por medio de pago usado, con `payment_method`, `amount` e `installments` (cuotas; 1 en los medios que no son tarjeta). La suma de los importes es el total de la venta. `etiqueta()` arma "Tarjeta de crédito (6 cuotas de $X)" y `enCuotas()` dice si va en cuotas. |
 | `Receipt` | `receipts` | `id_receipt` | `belongsTo Sale`. Guarda el numero fiscal (`receipt_number` correlativo por cliente + `point_of_sale`) y el desglose de IVA (`tax_rate`, `net_amount`, `tax_amount`, `total_amount`). `numeroComprobante()` arma `0001-00000003`; `desglose()` devuelve neto/IVA/total guardados. |
 
 Diagrama lógico: `User 1─1 Employee | Customer` · `Customer 1─N Cart 1─N CartItem N─1 Article` · `Cart 1─1 Sale 1─1 Receipt` · `Sale N─1 Employee` · `Article N─M RawMaterial` · `Article 1─1 ProductStock` · `Supplier 1─N RawMaterial 1─1 RawMaterialStock`.
 
 ## 5. Migraciones (`database/migrations`)
 
-Orden actual: `roles` → `users` (con `id_role` NOT NULL) → `employees` → `customers` → `suppliers` → `raw_materials` → `raw_material_stock` → `articles` → `product_stock` → `article_materials` → **`cart`** (`id_customer`, `status` enum `active|completed|abandoned` default `active`) → **`cart_items`** (`id_cart`, `id_article`, `quantity`, `unit_price`) → `sales` (`id_cart`, `id_customer`, `id_employee` nullable, `payment_method`) → `receipts` (`id_sale`, `receipt_number`, `point_of_sale`, `issue_date`, `due_date`, `tax_rate`, `net_amount`, `tax_amount`, `total_amount`) → `sale_payments` (`id_sale`, `payment_method`, `amount`) → `2026_06_21_225300_create_permission_tables` (Spatie) → `2026_06_21_230236_create_cache_table`.
+Orden actual: `roles` → `users` (con `id_role` NOT NULL) → `employees` → `customers` → `suppliers` → `raw_materials` → `raw_material_stock` → `articles` → `product_stock` → `article_materials` → **`cart`** (`id_customer`, `status` enum `active|completed|abandoned` default `active`) → **`cart_items`** (`id_cart`, `id_article`, `quantity`, `unit_price`) → `sales` (`id_cart`, `id_customer`, `id_employee` nullable, `payment_method`) → `receipts` (`id_sale`, `receipt_number`, `point_of_sale`, `issue_date`, `due_date`, `tax_rate`, `net_amount`, `tax_amount`, `total_amount`) → `sale_payments` (`id_sale`, `payment_method`, `amount`, `installments`) → `2026_06_21_225300_create_permission_tables` (Spatie) → `2026_06_21_230236_create_cache_table`.
 
 Notas:
 - Las migraciones de dominio están fechadas `2024_01_01_*` (convención manual de orden), las de paquetes `2026_06_21_*`.
@@ -84,13 +84,14 @@ Notas:
 - `2026_10_20_000002_rename_deposito_role.php`: renombra el rol "Depósito" a "Deposito" (ver deuda técnica 34).
 - `2026_10_22_000001_create_sale_payments_table.php`: detalle del cobro. Una fila por medio usado (`id_sale`, `payment_method`, `amount`). Permite el **pago combinado**. `sales.payment_method` queda como resumen para listados y filtros.
 - `2026_10_22_000002_add_fiscal_fields_to_receipts_table.php`: agrega al comprobante el **numero correlativo por cliente** (`receipt_number`), el punto de venta (`point_of_sale`, default `0001`) y el **desglose de IVA** (`tax_rate`, `net_amount`, `tax_amount`, `total_amount`). La migracion tambien **numera y desglosa los comprobantes existentes** y crea la fila de pago que falte en las ventas viejas, usando el query builder (no los modelos: una migracion no puede depender de codigo de la aplicacion).
+- `2026_10_22_000003_add_installments_to_sale_payments_table.php`: agrega `sale_payments.installments` (entero, default 1) para las **cuotas de la tarjeta de credito**. El importe sigue siendo el total cobrado; las cuotas son la forma de pago.
 
 ### Seeders de clientes y movimiento
 
 | Seeder | Que hace |
 |---|---|
 | `CustomerSeeder` | Crea **10 clientes mas** (Bruno Ferrari, Carla Méndez, Diego Sosa, Elena Duarte, Facundo Ríos, Gabriela Paz, Hernán Cabrera, Irina López, Julián Vargas, Karen Aquino), cada uno con su usuario (rol Cliente) y su ficha en `customers`. Es idempotente (`updateOrInsert`). |
-| `SaleSeeder` | Reparte **36 ventas** entre los 11 clientes: 6 de Ana Torres (las de antes) y 3 de cada cliente nuevo, separadas 37 dias y dentro de los ultimos cuatro meses. Los precios salen del catalogo actual y los medios de pago se alternan. Cada venta escribe su **detalle en `sale_payments`**, numera el comprobante **por cliente** (1, 2, 3…) y guarda el **desglose de IVA**. La primera venta de Ana queda **combinada** (efectivo + tarjeta) para mostrar la funcion. |
+| `SaleSeeder` | Reparte **36 ventas** entre los 11 clientes: 6 de Ana Torres (las de antes) y 3 de cada cliente nuevo, separadas 37 dias y dentro de los ultimos cuatro meses. Los precios salen del catalogo actual y los medios de pago se alternan. Cada venta escribe su **detalle en `sale_payments`**, numera el comprobante **por cliente** (1, 2, 3…) y guarda el **desglose de IVA**. La primera venta de Ana queda **combinada** (efectivo + tarjeta en 6 cuotas) para mostrar la funcion. |
 | `ImagenesArticuloSeeder` | Genera una silueta SVG para cada artículo sin foto, para que el catálogo no quede vacío tras `migrate:fresh --seed`. No toca los artículos que ya tienen imagen. |
 
 Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ventas** (jul a oct) y el de "Últimos 6 meses", 7 meses. Antes había un solo cliente con 6 ventas.
@@ -169,6 +170,9 @@ ultimo) y que no se pueda tocar el item de otro carrito.
 | Resumen en la venta | `sales.payment_method` guarda `Efectivo` o `Pago combinado (Efectivo + Transferencia)`. Sirve para el listado y los filtros; el detalle real vive en `sale_payments`. | `MediosPago::resumen()` |
 | Filtro por medio | Mira **el detalle** (`sale_payments`) con un `or` sobre el resumen, asi una venta combinada aparece al filtrar por cualquiera de sus medios. | `SaleController@index` |
 | Grafico de medios | Suma `sale_payments.amount` agrupado por medio, no el resumen: cada peso cae en su medio. | `app/Livewire/Dashboard.php` |
+| Cuotas | Solo **Tarjeta de crédito**: 1, 3, 6, 9, 12, 18 o 24. El importe del pago es el **total** cobrado; las cuotas son la forma de pago y no llevan interes. En los demas medios el servidor las normaliza a 1. | `MediosPago::CUOTAS`, `MediosPago::cuotas()`, `sale_payments.installments` |
+| Recuadro del cobro | El checkout muestra los medios dentro de un **recuadro**: boton "+ Agregar otro medio", un renglon por medio (con cuotas si es credito) y el resumen **Total / Pagado / Falta**. Al agregar un medio, la fila nueva se completa con **lo que falta**. | `views/cart/checkout.blade.php`, `views/cart/partials/fila-pago.blade.php` |
+| Etiqueta del pago | `SalePayment::etiqueta()` arma "Tarjeta de crédito (6 cuotas de $20,000.00)". La usan el comprobante HTML, el PDF y el detalle de la venta. | `SalePayment` |
 | IVA | Los precios del catalogo **ya incluyen IVA**. El comprobante desglosa: `neto = round(total / 1,21)` e `iva = total - neto`, asi la suma da exacto. `TASA_GENERAL = 21.0`; `TASA_REDUCIDA = 10.5` esta declarada pero sin uso. | `App\Support\Iva` |
 | Desglose guardado | `receipts` guarda `tax_rate`, `net_amount`, `tax_amount`, `total_amount` al emitir. **No se recalcula al mostrar**: un comprobante emitido no cambia si cambia un precio. | `Receipt::desglose()` |
 | Numero de comprobante | Correlativo **por cliente**, no por venta: su primera compra es la 1. Se guarda en `receipts.receipt_number` y se muestra como `0001-00000003` (punto de venta + 8 digitos). | `Receipt::numeroComprobante()` |

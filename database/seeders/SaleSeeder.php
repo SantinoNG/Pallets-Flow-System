@@ -88,11 +88,12 @@ class SaleSeeder extends Seeder
                  * Esta venta se paga COMBINADA: $10.000 en efectivo y el
                  * resto con tarjeta. Es el ejemplo que queda sembrado para
                  * mostrar el pago combinado en el comprobante y en el
-                 * grafico de medios de pago del dashboard.
+                 * grafico de medios de pago del dashboard. La parte con
+                 * tarjeta va en 6 cuotas.
                  */
                 'pagos'    => [
                     ['method' => MediosPago::EFECTIVO,        'amount' => 10000.00],
-                    ['method' => MediosPago::TARJETA_CREDITO, 'amount' => 19500.00],
+                    ['method' => MediosPago::TARJETA_CREDITO, 'amount' => 19500.00, 'installments' => 6],
                 ],
                 'items'    => [
                     ['articulo' => 'Sillón individual de pallet', 'quantity' => 2, 'unit_price' => 5500.00],
@@ -239,7 +240,7 @@ class SaleSeeder extends Seeder
      * maneras (la lista fija de Ana Torres y las de los clientes nuevos)
      * y las dos terminan igual.
      *
-     * @param  array<int, array{method: string, amount: float}>  $pagos
+     * @param  array<int, array{method: string, amount: float, installments?: int}>  $pagos
      *         Detalle del cobro. Si viene vacio, la venta se paga entera
      *         con el medio que dice $pago.
      */
@@ -299,6 +300,7 @@ class SaleSeeder extends Seeder
                 'id_sale'        => $idVenta,
                 'payment_method' => $pagoDeLaVenta['method'],
                 'amount'         => $pagoDeLaVenta['amount'],
+                'installments'   => MediosPago::cuotas($pagoDeLaVenta['method'], $pagoDeLaVenta['installments'] ?? 1),
                 'created_at'     => $fecha,
                 'updated_at'     => $fecha,
             ]);

@@ -149,7 +149,7 @@
 
                     @forelse($sale->payments as $pago)
                         <div class="flex justify-between text-sm text-gray-600 dark:text-zinc-300">
-                            <span>{{ $pago->payment_method }}</span>
+                            <span>{{ $pago->etiqueta() }}</span>
                             <span class="font-mono tabular-nums">${{ number_format($pago->amount, 2) }}</span>
                         </div>
                     @empty
