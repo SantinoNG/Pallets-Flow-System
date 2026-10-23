@@ -31,7 +31,7 @@ $paginas = [
     '/dashboard', '/articles', '/articles/1/edit', '/articles/create',
     '/suppliers', '/suppliers/1/edit', '/suppliers/create',
     '/materias-primas', '/materias-primas/1/edit', '/materias-primas/create',
-    '/employees', '/employees/1/edit', '/employees/create',
+    '/employees', '/employees/1/edit', '/employees/create', '/employees/1/report',
     '/roles', '/roles/1/edit', '/roles/create',
     '/usuarios', '/usuarios/1/roles',
     '/cart', '/sales', '/sales/1', '/profile', '/tutorial',

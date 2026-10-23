@@ -80,6 +80,12 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                     </a>
                 </div>
 
+                <p class="text-[11px] text-gray-400 dark:text-zinc-500 mb-4">
+                    El botón <strong class="text-gray-600 dark:text-zinc-300">Reporte</strong> de cada fila
+                    genera la hoja interna según el rol: al Depósito le llega el pedido de reposición,
+                    al Vendedor las ventas y la disponibilidad.
+                </p>
+
                 @if(session('success'))
                     <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-xs rounded-md">
                         {{ session('success') }}
@@ -114,7 +120,12 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center font-mono tabular-nums">
-                                    <div class="inline-flex items-center space-x-4">
+                                    <div class="inline-flex items-center space-x-3">
+                                        <a href="{{ route('employees.report', $employee->id_employee) }}"
+                                           class="bg-gray-100 dark:bg-zinc-950 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-800 text-xs font-semibold px-2.5 py-1 rounded transition"
+                                           title="Reporte interno según el rol">
+                                            Reporte
+                                        </a>
                                         <a href="{{ route('employees.edit', $employee->id_employee) }}"
                                            class="bg-hazard-50 text-hazard-600 hover:bg-hazard-100 text-xs font-semibold px-2.5 py-1 rounded transition">
                                             Editar

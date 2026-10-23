@@ -7,7 +7,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
+use App\Support\ReporteEmpleado;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class EmployeeController extends Controller
@@ -126,5 +128,30 @@ class EmployeeController extends Controller
         $pdf = Pdf::loadView('employees.pdf', compact('employees'));
 
         return $pdf->download('reporte_empleados.pdf');
+    }
+
+    /**
+     * Reporte interno del empleado, con el contenido de su rol.
+     *
+     * No es el listado de empleados: es una hoja que se le manda a la
+     * persona. Al Depósito le llega el pedido de reposición, al Vendedor
+     * el resumen de ventas y disponibilidad, y al Encargado/Jefe la foto
+     * operativa o general.
+     */
+    public function report(Employee $employee)
+    {
+        $employee->load(['user', 'role']);
+
+        $datos = ReporteEmpleado::para($employee);
+
+        $pdf = Pdf::loadView('employees.report-pdf', $datos)
+            ->setPaper('a4', 'portrait');
+
+        $archivo = 'reporte-'
+            . Str::slug($datos['rol']) . '-'
+            . Str::slug($employee->first_name . ' ' . $employee->last_name)
+            . '.pdf';
+
+        return $pdf->download($archivo);
     }
 }

@@ -1,27 +1,75 @@
 # Resumen de modificaciones — Pallets Flow System
 
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
-Fecha: 22 de octubre de 2026
+Fecha: 23 de octubre de 2026
 
-**15 tandas de trabajo · 23 archivos tocados en esta última (materias primas y planos)**
+**16 tandas de trabajo · 29 archivos tocados en esta última (reporte interno por empleado)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
-> documenta la última tanda: el **apartado propio de materias primas** (con
-> presentación, stock y proveedor), el cambio de **"receta" a "planos"** y la
-> **presentación editable dentro de los planos** (unidad, rollo, metro, kg...).
-> La **sección 0.1**, los **8 proveedores nuevos** y el **cálculo de materias
-> primas por producto**. La **sección 0.2**, el recuadro del cobro, el cálculo
-> automático de lo que falta y las cuotas. La **sección 0.3**, la edición del
-> pedido desde el checkout. La **sección 0.4**, el pago combinado, el IVA y la
-> numeración de los comprobantes. La sección 1 documenta la separación entre
-> clientes y personal, y el cierre de las fugas de información. La sección 2, el
-> rediseño de la interfaz con paleta industrial y modo oscuro.
+> documenta la última tanda: el **reporte interno por empleado**, un PDF que
+> cambia según el rol (al Depósito le llega el pedido de reposición, al
+> Vendedor las ventas y la disponibilidad, y al Encargado/Jefe el resumen
+> operativo o general). La **sección 0.1**, el **apartado propio de materias
+> primas** (con presentación, stock y proveedor), el cambio de **"receta" a
+> "planos"** y la **presentación editable dentro de los planos** (unidad,
+> rollo, metro, kg...). La **sección 0.2**, los **8 proveedores nuevos** y el
+> **cálculo de materias primas por producto**. La **sección 0.3**, el recuadro
+> del cobro, el cálculo automático de lo que falta y las cuotas. La **sección
+> 0.4**, la edición del pedido desde el checkout. La **sección 0.5**, el pago
+> combinado, el IVA y la numeración de los comprobantes. La sección 1 documenta
+> la separación entre clientes y personal, y el cierre de las fugas de
+> información. La sección 2, el rediseño de la interfaz con paleta industrial y
+> modo oscuro.
 
 ---
 
-## 0. Materias primas: apartado propio y "planos"
+## 0. Reporte interno por empleado (según el rol)
+
+En **Empleados**, cada fila tiene un botón **Reporte** que genera un PDF
+distinto según el rol exacto de la persona. No es el listado de empleados: es
+una hoja que se le manda al empleado para que actúe.
+
+| Rol | Qué recibe |
+|---|---|
+| **Depósito** | **Pedido de reposición**: todas las materias primas con stock, mínimo, estado, cantidad sugerida, proveedor, costo unitario y subtotal. Los insumos bajo mínimo quedan resaltados y se suma el **total estimado del pedido**. También ve los artículos con stock bajo. |
+| **Vendedor** | **Ventas de los últimos 30 días** (operaciones, total y ticket promedio), sus ventas propias si registró alguna, los **productos más vendidos** y la **disponibilidad del catálogo** (sin stock / bajo mínimo / disponible). |
+| **Encargado** | **Resumen operativo**: pedido de reposición + ventas + disponibilidad. |
+| **Jefe / Administrador** | **Resumen general**: ventas, facturado histórico, artículos, insumos, proveedores, empleados, clientes, empleados por rol y estado del stock. |
+
+### Cómo se arma
+
+- `App\Support\ReporteEmpleado` centraliza los datos: `tipo($rol)` decide la
+  variante y `para($empleado)` devuelve todo lo que necesita la vista.
+- La ventana de ventas es de **30 días** (`ReporteEmpleado::DIAS`).
+- El **total del pedido** se calcula con `cantidad sugerida × unit_cost`; la
+  cantidad sugerida es lo que falta para llegar al mínimo, con un piso de 1.
+- La vista `employees/report-pdf.blade.php` es un PDF de DomPDF (tablas, sin
+  flex/grid) con el logo de la marca, el destinatario, las secciones del rol y
+  una línea de "Recibí conforme".
+- El archivo se descarga como `reporte-{rol}-{nombre-apellido}.pdf`, por
+  ejemplo `reporte-deposito-martin-lopez.pdf`.
+
+### Permisos
+
+El reporte vive dentro del módulo de Empleados (`Jefe|Administrador|Encargado`).
+El **Cliente** y el **Vendedor** reciben 403: el PDF muestra costos de materias
+primas y números del negocio.
+
+### Pruebas
+
+`tests/Feature/ReportesEmpleadoTest.php` con **9 casos**: mapeo de roles,
+pedido de reposición del Depósito (stock bajo → cantidad sugerida y subtotal),
+descarga del PDF con el nombre correcto, ventas y disponibilidad del Vendedor,
+resumen del Encargado, resumen general del Jefe/Administrador, generación de
+los tres PDF, 403 para Cliente y Vendedor, y el botón en el listado.
+
+**Total: 204 pruebas, 1938 aserciones, todas pasando.**
+
+---
+
+## 0.1 Materias primas: apartado propio y "planos"
 
 Había dos cosas mezcladas. Por un lado, los insumos solo se podían dar de alta
 desde el formulario de un proveedor: para cargar una materia prima había que
@@ -146,7 +194,7 @@ auditoría.
 
 ---
 
-## 0.1 Proveedores y recetas: materias primas con cantidad y variedad
+## 0.2 Proveedores y recetas: materias primas con cantidad y variedad
 
 El módulo de proveedores tenía **dos** proveedores y cuatro materias primas de
 textil (tela, hilo, botones, cierre) que no tenían nada que ver con los muebles
@@ -260,7 +308,7 @@ algodón 100%", que ya no existe).
 
 ---
 
-## 0.2 Cobro: recuadro, lo que falta automático y cuotas
+## 0.3 Cobro: recuadro, lo que falta automático y cuotas
 
 La pantalla de confirmación tenía los medios de pago sueltos: el botón
 “+ Agregar otro medio” quedaba perdido entre el total y el formulario, y no
@@ -318,7 +366,7 @@ queda en **174 tests y 1.201 assertions**.
 
 ---
 
-## 0.3 Editar el pedido desde el checkout
+## 0.4 Editar el pedido desde el checkout
 
 Antes, si el cliente o el vendedor se daba cuenta en la pantalla de
 confirmación de que se había equivocado de producto (o de cantidad), tenía que
@@ -397,7 +445,7 @@ miraba los grises, por eso el hueco pasó desapercibido: hoy la auditoría da
 
 ---
 
-## 0.4 Cobro: pago combinado, IVA y numeración del comprobante
+## 0.5 Cobro: pago combinado, IVA y numeración del comprobante
 
 Tres cosas del circuito de venta que no cerraban con la realidad:
 

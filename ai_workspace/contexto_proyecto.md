@@ -104,7 +104,7 @@ Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ven
 | Autenticación / Perfil (Breeze) | Funcional | `routes/auth.php`, `Auth/*`, `ProfileController` |
 | Usuarios y asignación de roles | Funcional. **Dos capas sincronizadas**: `users.id_role` (rol de negocio, FK simple) y `model_has_roles` (Spatie, capa de autorización). Se asignan siempre juntas con `User::asignarRol()`. `spatie_roles` es el espejo de `roles`. | `UserController`, `RoleController`, vistas `users/*`, `roles/*` |
 | Roles | CRUD completo. Al crear/editar/borrar un rol se mantiene el espejo en `spatie_roles` | `RoleController`, vistas `roles/*` |
-| Empleados | CRUD | `EmployeeController`, vistas `employees/*` |
+| Empleados | CRUD + **reporte interno por rol** (PDF para enviar al empleado: reposición para Depósito, ventas/disponibilidad para Vendedor, resumen para Encargado/Jefe) | `EmployeeController`, `App\Support\ReporteEmpleado`, vistas `employees/*` |
 | Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
 | **Materias primas** | **CRUD propio**, separado de Proveedores. Lista con presentación (caja, bolsa, unidad, metro...), stock, mínimo, costo, proveedor y en cuántos planos se usa. Filtros, KPIs y PDF. El Depósito solo consulta. | `RawMaterialController`, vistas `raw-materials/*` |
@@ -149,7 +149,7 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 195 tests, 1882 aserciones, todas en verde.
+**Pruebas:** 204 tests, 1938 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
@@ -224,6 +224,28 @@ si el insumo está en los planos, filtros y PDF.
 | Proveedores en pantalla | Cada fila muestra cuantas materias primas tiene y cada chip muestra la unidad (`Tabla de pallet reciclada · unidades`). | `views/suppliers/index.blade.php` |
 | Alta de proveedor | Por cada materia prima se pide descripcion + unidad (desplegable). El servidor valida contra `RawMaterial::UNIDADES` y usa `unidad` si no se elige. | `views/suppliers/create.blade.php`, `SupplierController@store` |
 | Idempotencia | `SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` actualizan por nombre. `RawMaterialSeeder` borra los insumos viejos con su stock y su renglon de planos; `ArticleSeeder` rehace los planos de cada articulo. | seeders |
+
+### 6.5 Reporte interno por empleado
+
+En **Empleados**, cada fila tiene un botón **Reporte** (`GET /employees/{employee}/report`)
+que genera un PDF distinto según el rol exacto. No es el listado: es una hoja
+que se le manda al empleado para que actúe.
+
+| Rol | Contenido |
+|---|---|
+| **Depósito** | **Pedido de reposición**: todas las materias primas con stock, mínimo, estado, cantidad sugerida, proveedor, costo unitario y subtotal; los insumos bajo mínimo resaltados y el **total estimado**. Más los artículos con stock bajo. |
+| **Vendedor** | **Ventas de los últimos 30 días** (operaciones, total, ticket promedio), ventas propias, **productos más vendidos** y **disponibilidad del catálogo** (sin stock / bajo mínimo / disponible). |
+| **Encargado** | Resumen operativo: reposición + ventas + disponibilidad. |
+| **Jefe / Administrador** | Resumen general: ventas, facturado histórico, artículos, insumos, proveedores, empleados, clientes, empleados por rol y estado del stock. |
+
+| Elemento | Decisión | Dónde |
+|---|---|---|
+| Datos | `ReporteEmpleado::tipo($rol)` decide la variante; `para($empleado)` arma todo (insumos, artículos, reposición, ventas, top productos, totales, empleados por rol). | `app/Support/ReporteEmpleado.php` |
+| Ventana | Ventas de los **últimos 30 días** (`ReporteEmpleado::DIAS`). | `ReporteEmpleado` |
+| Pedido | `cantidad sugerida = max(ceil(mínimo - stock), 1)`; subtotal = sugerida × `unit_cost`; total = suma de los insumos bajo mínimo. | `ReporteEmpleado::insumos()`, `reposicion()` |
+| PDF | DomPDF con tablas (sin flex/grid), logo `logo-pdf.jpg`, destinatario, secciones del rol y línea "Recibí conforme". Archivo `reporte-{rol}-{nombre-apellido}.pdf`. | `views/employees/report-pdf.blade.php`, `EmployeeController@report` |
+| Permisos | Dentro del módulo de Empleados: Jefe, Administrador y Encargado. Cliente y Vendedor reciben 403 (el PDF muestra costos y números del negocio). | `routes/web.php` |
+| Pruebas | `tests/Feature/ReportesEmpleadoTest.php` (9 casos). | tests |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
