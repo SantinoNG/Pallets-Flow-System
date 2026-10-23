@@ -20,7 +20,7 @@
 
                 {{-- Mensaje de éxito --}}
                 @if(session('success'))
-                    <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 text-sm rounded-md">
+                    <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-sm rounded-md">
                         {{ session('success') }}
                     </div>
                 @endif
@@ -53,7 +53,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
-                                                class="font-medium text-red-600 hover:text-red-900 bg-red-50 px-3 py-2 rounded-md transition"
+                                                class="font-medium text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/40 px-3 py-2 rounded-md transition"
                                                 onclick="return confirm('¿Estás seguro de eliminar este rol?')">
                                             Eliminar
                                         </button>

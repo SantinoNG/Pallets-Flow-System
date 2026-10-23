@@ -65,14 +65,14 @@
 
         <!-- Alerta Stock Bajo -->
         <div class="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-            <div class="p-3 bg-red-50 text-red-600 rounded-lg">
+            <div class="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-lg">
                 <svg class="w-6 h-6 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
                     <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
             </div>
             <div>
                 <p class="text-xs font-semibold text-gray-500 dark:text-zinc-100 uppercase">Alertas de Stock</p>
-                <h3 class="text-lg font-bold text-red-600">{{ $alertasStock }} Reposiciones</h3>
+                <h3 class="text-lg font-bold text-red-600 dark:text-red-400">{{ $alertasStock }} Reposiciones</h3>
             </div>
         </div>
     </div>
@@ -162,9 +162,9 @@
                             <td class="py-2 pr-4 text-right text-zinc-500 dark:text-zinc-300">{{ $minimo }}</td>
                             <td class="py-2 text-right">
                                 @if ($actual <= $minimo)
-                                    <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Reponer</span>
+                                    <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-950/40 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-300">Reponer</span>
                                 @else
-                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">OK</span>
+                                    <span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-950/40 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-300">OK</span>
                                 @endif
                             </td>
                         </tr>

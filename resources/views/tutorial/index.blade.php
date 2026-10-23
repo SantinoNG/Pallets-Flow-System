@@ -19,25 +19,25 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow border-l-4 border-hazard-500 hover:shadow-md transition">
                         <h4 class="font-bold text-lg mb-2 text-hazard-700">El Modelo (Models)</h4>
-                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 rounded">app/Models/</code></p>
+                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 dark:text-red-400 rounded">app/Models/</code></p>
                         <p class="text-sm">Representa la tabla de la base de datos. Aquí definimos las relaciones y los campos que se pueden cargar masivamente (fillable).</p>
                     </div>
 
                     <div class="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow border-l-4 border-green-500 hover:shadow-md transition">
-                        <h4 class="font-bold text-lg mb-2 text-green-700">El Controlador (Controllers)</h4>
-                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 rounded">app/Http/Controllers/</code></p>
+                        <h4 class="font-bold text-lg mb-2 text-green-700 dark:text-green-400">El Controlador (Controllers)</h4>
+                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 dark:text-red-400 rounded">app/Http/Controllers/</code></p>
                         <p class="text-sm">Contiene la lógica. Recibe la petición, pide datos al modelo y devuelve una respuesta (una vista).</p>
                     </div>
 
                     <div class="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow border-l-4 border-purple-500 hover:shadow-md transition">
                         <h4 class="font-bold text-lg mb-2 text-purple-700">La Vista (Views + Blade)</h4>
-                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 rounded">resources/views/</code></p>
+                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 dark:text-red-400 rounded">resources/views/</code></p>
                         <p class="text-sm">La interfaz de usuario. Utilizamos <strong>Blade</strong> para la lógica de visualización y <strong>Tailwind CSS</strong> para el diseño.</p>
                     </div>
 
                     <div class="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow border-l-4 border-red-500 hover:shadow-md transition">
-                        <h4 class="font-bold text-lg mb-2 text-red-700">Las Rutas (Routes)</h4>
-                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 rounded">routes/web.php</code></p>
+                        <h4 class="font-bold text-lg mb-2 text-red-700 dark:text-red-400">Las Rutas (Routes)</h4>
+                        <p class="text-gray-600 dark:text-zinc-300 text-sm mb-4">Ubicación: <code class="bg-gray-100 dark:bg-zinc-950 p-1 text-red-600 dark:text-red-400 rounded">routes/web.php</code></p>
                         <p class="text-sm">Define las URLs del sistema y las protege usando middlewares de autenticación o roles.</p>
                     </div>
                 </div>
@@ -132,7 +132,7 @@
                                 <tr class="hover:bg-gray-50 dark:hover:bg-zinc-800"><td class="px-4 py-3 text-green-600 font-bold">GET</td><td class="px-4 py-3 text-gray-600 dark:text-zinc-300">/estudiantes/{id}</td><td class="px-2 py-3 text-center">➡️</td><td class="px-4 py-3 text-hazard-600 font-bold">show()</td><td class="px-4 py-3 font-sans text-gray-500 dark:text-zinc-400">Muestra un solo registro.</td></tr>
                                 <tr class="hover:bg-gray-50 dark:hover:bg-zinc-800"><td class="px-4 py-3 text-green-600 font-bold">GET</td><td class="px-4 py-3 text-gray-600 dark:text-zinc-300">/estudiantes/{id}/edit</td><td class="px-2 py-3 text-center">➡️</td><td class="px-4 py-3 text-hazard-600 font-bold">edit()</td><td class="px-4 py-3 font-sans text-gray-500 dark:text-zinc-400">Formulario para editar.</td></tr>
                                 <tr class="hover:bg-gray-50 dark:hover:bg-zinc-800"><td class="px-4 py-3 text-purple-600 font-bold">PUT/PATCH</td><td class="px-4 py-3 text-gray-600 dark:text-zinc-300">/estudiantes/{id}</td><td class="px-2 py-3 text-center">➡️</td><td class="px-4 py-3 text-hazard-600 font-bold">update()</td><td class="px-4 py-3 font-sans text-gray-500 dark:text-zinc-400">Actualiza en la Base de Datos.</td></tr>
-                                <tr class="hover:bg-gray-50 dark:hover:bg-zinc-800"><td class="px-4 py-3 text-red-600 font-bold">DELETE</td><td class="px-4 py-3 text-gray-600 dark:text-zinc-300">/estudiantes/{id}</td><td class="px-2 py-3 text-center">➡️</td><td class="px-4 py-3 text-hazard-600 font-bold">destroy()</td><td class="px-4 py-3 font-sans text-gray-500 dark:text-zinc-400">Elimina el registro.</td></tr>
+                                <tr class="hover:bg-gray-50 dark:hover:bg-zinc-800"><td class="px-4 py-3 text-red-600 dark:text-red-400 font-bold">DELETE</td><td class="px-4 py-3 text-gray-600 dark:text-zinc-300">/estudiantes/{id}</td><td class="px-2 py-3 text-center">➡️</td><td class="px-4 py-3 text-hazard-600 font-bold">destroy()</td><td class="px-4 py-3 font-sans text-gray-500 dark:text-zinc-400">Elimina el registro.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -164,15 +164,15 @@
                         </div>
                     </div>
 
-                    <div class="bg-red-50 p-5 rounded border border-red-200 mt-4">
-                        <h4 class="font-bold text-red-700 mb-3 flex items-center gap-2">
+                    <div class="bg-red-50 dark:bg-red-950/40 p-5 rounded border border-red-200 dark:border-red-900 mt-4">
+                        <h4 class="font-bold text-red-700 dark:text-red-400 mb-3 flex items-center gap-2">
                             <span>🔥</span> Comandos de Destrucción y Reconstrucción
                         </h4>
                         <p class="text-xs text-gray-600 dark:text-zinc-300 mb-4">Cuando modificas una migración o un seeder viejo, necesitas resetear la base de datos. <strong>¡Ojo! Estos comandos borran los datos actuales.</strong></p>
                         
                         <ul class="space-y-4 text-sm">
                             <li class="flex flex-col sm:flex-row sm:items-start gap-3">
-                                <code class="font-mono text-xs bg-white dark:bg-zinc-900 text-red-600 px-3 py-2 rounded border border-red-200 shadow-sm whitespace-nowrap">php artisan migrate:fresh --seed</code>
+                                <code class="font-mono text-xs bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 px-3 py-2 rounded border border-red-200 dark:border-red-900 shadow-sm whitespace-nowrap">php artisan migrate:fresh --seed</code>
                                 <div>
                                     <span class="font-bold text-gray-800 dark:text-zinc-100 block">El más usado en Desarrollo.</span>
                                     <span class="text-gray-600 dark:text-zinc-300 text-xs">Elimina TODAS las tablas de golpe, las vuelve a crear vacías y ejecuta los Seeders. Es el más rápido y limpio.</span>

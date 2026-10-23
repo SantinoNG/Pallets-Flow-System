@@ -14,7 +14,7 @@
                 </h3>
 
                 @if(session('error'))
-                    <div class="mb-4 px-4 py-3 bg-red-100 text-red-800 text-sm rounded-md">
+                    <div class="mb-4 px-4 py-3 bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 text-sm rounded-md">
                         {{ session('error') }}
                     </div>
                 @endif

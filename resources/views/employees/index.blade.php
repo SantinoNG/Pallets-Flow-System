@@ -81,7 +81,7 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                 </div>
 
                 @if(session('success'))
-                    <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 text-xs rounded-md">
+                    <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-xs rounded-md">
                         {{ session('success') }}
                     </div>
                 @endif
@@ -125,7 +125,7 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
-                                                    class="bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold px-2.5 py-1 rounded transition"
+                                                    class="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 text-xs font-semibold px-2.5 py-1 rounded transition"
                                                     onclick="return confirm('¿Estás seguro de eliminar este empleado?')">
                                                 Eliminar
                                             </button>

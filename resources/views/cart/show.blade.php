@@ -23,12 +23,12 @@
                         <h3 class="text-base font-semibold text-gray-900 dark:text-zinc-100 mb-4">Agregar artículo</h3>
 
                         @if(session('success'))
-                            <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 text-sm rounded-md">
+                            <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-sm rounded-md">
                                 {{ session('success') }}
                             </div>
                         @endif
                         @if(session('error'))
-                            <div class="mb-4 px-4 py-3 bg-red-100 text-red-800 text-sm rounded-md">
+                            <div class="mb-4 px-4 py-3 bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 text-sm rounded-md">
                                 {{ session('error') }}
                             </div>
                         @endif
@@ -101,7 +101,7 @@
                                                 @method('DELETE')
                                                 <input type="hidden" name="quantity" value="{{ $item->quantity }}">
                                                 <button type="submit"
-                                                        class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-3 py-1 rounded-md"
+                                                        class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium text-xs bg-red-50 dark:bg-red-950/40 px-3 py-1 rounded-md"
                                                         onclick="return confirm('¿Quitar este artículo?')">
                                                     Quitar
                                                 </button>

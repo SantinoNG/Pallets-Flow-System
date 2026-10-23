@@ -183,7 +183,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase">Estado</p>
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                            <span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-950/40 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-300">
                                 Emitido
                             </span>
                         </div>

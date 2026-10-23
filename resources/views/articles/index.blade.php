@@ -27,7 +27,7 @@
                 </div>
 
                 @if(session('success'))
-                    <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 text-sm rounded-md">
+                    <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-sm rounded-md">
                         {{ session('success') }}
                     </div>
                 @endif
@@ -127,11 +127,11 @@
                                 <td class="px-6 py-4 font-mono tabular-nums">
                                     @if($article->stock)
                                         @if($article->stock->remaining_quantity <= $article->stock->minimum_stock)
-                                            <span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                            <span class="bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 text-xs font-semibold px-2.5 py-0.5 rounded">
                                                 {{ $article->stock->remaining_quantity }} ⚠️
                                             </span>
                                         @else
-                                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                            <span class="bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-xs font-semibold px-2.5 py-0.5 rounded">
                                                 {{ $article->stock->remaining_quantity }}
                                             </span>
                                         @endif
@@ -153,7 +153,7 @@
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
-                                                    class="font-medium text-red-600 hover:text-red-900 bg-red-50 px-3 py-2 rounded-md transition"
+                                                    class="font-medium text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/40 px-3 py-2 rounded-md transition"
                                                     onclick="return confirm('¿Estás seguro?')">
                                                 Eliminar
                                             </button>

@@ -31,12 +31,12 @@
 
                 {{-- Avisos de las acciones sobre los items (cambiar / quitar) --}}
                 @if(session('success'))
-                    <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 text-sm rounded-md">
+                    <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 text-sm rounded-md">
                         {{ session('success') }}
                     </div>
                 @endif
                 @if(session('error'))
-                    <div class="mb-4 px-4 py-3 bg-red-100 text-red-800 text-sm rounded-md">
+                    <div class="mb-4 px-4 py-3 bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 text-sm rounded-md">
                         {{ session('error') }}
                     </div>
                 @endif

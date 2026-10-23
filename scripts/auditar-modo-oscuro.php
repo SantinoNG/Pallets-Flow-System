@@ -55,6 +55,27 @@ $deberia = [
     'border-gray-300' => ['dark:border-zinc-700'],
     'border-zinc-200' => ['dark:border-zinc-800'],
     'border-zinc-300' => ['dark:border-zinc-700', 'dark:border-zinc-600'],
+
+    /*
+     * Colores de aviso y de acciones destructivas.
+     *
+     * Faltaban: el boton "Quitar" del carrito quedo con bg-red-50 sin
+     * variante y en modo oscuro se veia como un recuadro casi blanco sobre
+     * la tabla zinc. Se agregan para que no vuelva a pasar.
+     */
+    'bg-red-50'        => ['dark:bg-red-950/40'],
+    'bg-red-100'       => ['dark:bg-red-950/40'],
+    'bg-green-100'     => ['dark:bg-green-950/40'],
+    'bg-amber-50'      => ['dark:bg-amber-950/40'],
+    'text-red-600'     => ['dark:text-red-400', 'dark:text-red-300'],
+    'text-red-700'     => ['dark:text-red-300', 'dark:text-red-400'],
+    'text-red-800'     => ['dark:text-red-300'],
+    'text-green-700'   => ['dark:text-green-300', 'dark:text-green-400'],
+    'text-green-800'   => ['dark:text-green-300'],
+    'text-amber-600'   => ['dark:text-amber-400'],
+    'border-red-200'   => ['dark:border-red-900'],
+    'border-green-400' => ['dark:border-green-900'],
+    'border-amber-200' => ['dark:border-amber-900'],
 ];
 
 $totalHuecos = 0;

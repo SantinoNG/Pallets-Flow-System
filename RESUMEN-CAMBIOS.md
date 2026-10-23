@@ -70,6 +70,24 @@ De paso, `scripts/testear-flujo-venta.php` ya no usa el artículo 1 fijo: elige
 el primero **con stock** leyendo el desplegable. Cada corrida registra una
 venta y descuenta stock, así que antes fallaba por datos y no por código.
 
+### Modo oscuro: el “Quitar” y los avisos
+
+Revisando la pantalla del carrito apareció un detalle: el botón **Quitar**
+tenía `bg-red-50` **sin variante `dark:`**, así que en modo oscuro se veía como
+un recuadro casi blanco sobre la tabla zinc (y lo mismo pasaba con los avisos
+de éxito/error y con los botones de borrar de los listados).
+
+Se corrigió el patrón en **13 vistas** (25 reemplazos): los avisos, los chips de
+stock y los botones destructivos ahora usan `dark:bg-*-950/40` con texto
+`dark:text-*-300`/`-400`, el mismo criterio que el resto del sistema.
+
+Además, el botón “Quitar” del carrito quedó **igual que el del checkout**, y
+`scripts/auditar-modo-oscuro.php` ahora también revisa las familias de color de
+aviso (`bg-red-50`, `bg-red-100`, `bg-green-100`, `text-red-600/700/800`,
+`text-green-700/800`, `border-red-200`, `border-green-400`, …). Antes solo
+miraba los grises, por eso el hueco pasó desapercibido: hoy la auditoría da
+**0 clases claras sin equivalente oscuro**.
+
 ---
 
 ## 0.1 Cobro: pago combinado, IVA y numeración del comprobante
