@@ -51,6 +51,8 @@ class InterfazTest extends TestCase
         '/articles/1',
         '/suppliers',
         '/suppliers/create',
+        '/materias-primas',
+        '/materias-primas/create',
         '/employees',
         '/roles',
         '/roles/create',

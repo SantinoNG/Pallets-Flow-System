@@ -120,6 +120,7 @@ class RecetasTest extends TestCase
             ->assertSee('1 bolsa')           // clavos
             ->assertSee('1.50 metros')       // tela
             ->assertSee('1 plancha')         // espuma
+            ->assertSee('Editar planos')
             ->assertSee('$24,100.00');       // costo total de materiales
     }
 
@@ -143,8 +144,8 @@ class RecetasTest extends TestCase
         $this->actingAs($this->admin())
             ->get('/articles')
             ->assertOk()
-            ->assertSee('7 insumo(s) en la receta')
-            ->assertSee('Receta');
+            ->assertSee('7 insumo(s) en los planos')
+            ->assertSee('Planos');
     }
 
     #[Test]

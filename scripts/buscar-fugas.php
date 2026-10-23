@@ -30,11 +30,12 @@ $c->login($base, $email, $clave);
 $paginas = [
     '/dashboard', '/articles', '/articles/1/edit', '/articles/create',
     '/suppliers', '/suppliers/1/edit', '/suppliers/create',
+    '/materias-primas', '/materias-primas/1/edit', '/materias-primas/create',
     '/employees', '/employees/1/edit', '/employees/create',
     '/roles', '/roles/1/edit', '/roles/create',
     '/usuarios', '/usuarios/1/roles',
     '/cart', '/sales', '/sales/1', '/profile', '/tutorial',
-    '/articles/pdf', '/employees/pdf', '/proveedores/pdf', '/usuarios/pdf', '/sales/1/pdf',
+    '/articles/pdf', '/employees/pdf', '/proveedores/pdf', '/materias-primas/pdf', '/usuarios/pdf', '/sales/1/pdf',
 ];
 
 echo "  Rol: {$email}\n";

@@ -3,23 +3,127 @@
 Proyecto: `C:\laragon\www\Pallets-Flow-System`
 Fecha: 22 de octubre de 2026
 
-**13 tandas de trabajo · 14 archivos tocados en esta última (proveedores y recetas)**
+**14 tandas de trabajo · 21 archivos tocados en esta última (materias primas y planos)**
 
 Nada fue commiteado a GitHub. Todo el trabajo está en commits locales.
 
 > El resumen está ordenado de lo más nuevo a lo más viejo. La **sección 0**
-> documenta la última tanda: los **8 proveedores nuevos** y el **cálculo de
-> materias primas por producto** (unidad de medida, costo, variedad y alcance
-> con stock). La **sección 0.1**, el recuadro del cobro, el cálculo automático
-> de lo que falta y las cuotas. La **sección 0.2**, la edición del pedido desde
-> el checkout. La **sección 0.3**, el pago combinado, el IVA y la numeración de
-> los comprobantes. La sección 1 documenta la separación entre clientes y
-> personal, y el cierre de las fugas de información. La sección 2, el rediseño
-> de la interfaz con paleta industrial y modo oscuro.
+> documenta la última tanda: el **apartado propio de materias primas** (con
+> presentación, stock y proveedor) y el cambio de **"receta" a "planos"**. La
+> **sección 0.1**, los **8 proveedores nuevos** y el **cálculo de materias
+> primas por producto**. La **sección 0.2**, el recuadro del cobro, el cálculo
+> automático de lo que falta y las cuotas. La **sección 0.3**, la edición del
+> pedido desde el checkout. La **sección 0.4**, el pago combinado, el IVA y la
+> numeración de los comprobantes. La sección 1 documenta la separación entre
+> clientes y personal, y el cierre de las fugas de información. La sección 2, el
+> rediseño de la interfaz con paleta industrial y modo oscuro.
 
 ---
 
-## 0. Proveedores y recetas: materias primas con cantidad y variedad
+## 0. Materias primas: apartado propio y "planos"
+
+Había dos cosas mezcladas. Por un lado, los insumos solo se podían dar de alta
+desde el formulario de un proveedor: para cargar una materia prima había que
+entrar a Proveedores. Por el otro, la pantalla del detalle del artículo hablaba
+de **"receta"**, que no es la palabra que usa el taller.
+
+Ahora **Materias primas es un apartado propio**, separado de Proveedores, y la
+interfaz dice **"planos"** en lugar de "receta".
+
+### De "receta" a "planos"
+
+Solo cambió lo que se ve; las tablas y los modelos siguen igual
+(`article_materials`, `rawMaterials`, `quantity_required`):
+
+| Antes | Ahora |
+|---|---|
+| Receta del artículo | Planos del artículo |
+| Editar receta | **Editar planos** |
+| Cargar la receta | Cargar los planos |
+| N insumo(s) en la receta | N insumo(s) en los planos |
+| Botón "Receta" en el listado | Botón **"Planos"** |
+
+### El apartado nuevo
+
+`GET /materias-primas` (**Materias primas** en el menú lateral) muestra todos
+los insumos juntos, con lo que el depósito necesita saber:
+
+- **Cuatro indicadores**: materias primas cargadas, presentaciones distintas,
+  insumos bajo mínimo y **valor del stock** a costo de reposición.
+- **Filtros** por materia prima, proveedor, presentación y "solo bajo mínimo".
+- **Tabla** con la materia prima (y en cuántos planos se usa), la presentación,
+  el stock (en rojo si está bajo mínimo), el mínimo, el proveedor que la brinda,
+  el costo por unidad de compra y las acciones.
+- **Exportar PDF** con los mismos filtros que la pantalla.
+
+### La presentación: "caja de bisagras" o "por unidad"
+
+La presentación es la **unidad en la que se compra** el insumo. El formulario
+la elige de una lista cerrada y muestra el ejemplo:
+
+> Cómo se compra: caja de bisagras, bolsa de clavos, por unidad, metro de
+> madera...
+
+Las opciones son las mismas de `RawMaterial::UNIDADES`: unidad, metro, bolsa,
+caja, litro, pliego, rollo, plancha y kg. Así "Bisagras metálicas" se muestra
+en **unidades** y "Tornillos autoperforantes (caja x100)" en **cajas**.
+
+### Alta, edición y borrado
+
+El formulario carga:
+
+| Campo | Detalle |
+|---|---|
+| Materia prima | Nombre del insumo |
+| Presentación | Caja, bolsa, unidad, metro... |
+| Costo por unidad | Lo que sale una unidad de compra |
+| Proveedor que la brinda | Se elige de los proveedores cargados |
+| Stock actual | Cantidad disponible en esa presentación |
+| Stock mínimo | Debajo de esto aparece como "bajo mínimo" |
+
+Al guardar se crea (o actualiza) también la fila de `raw_material_stock`, en la
+misma operación.
+
+**No se puede borrar** una materia prima que está en los planos de un artículo:
+el sistema avisa y nombra los productos que la usan, en vez de romper la clave
+foránea de `article_materials`.
+
+### Quién puede entrar
+
+| Rol | Listado y PDF | Alta / edición / borrado |
+|---|---|---|
+| Jefe, Administrador, Encargado | Sí | Sí |
+| Depósito | Sí | No (ve el stock, no lo administra) |
+| Cliente, Vendedor | No | No |
+
+La vista esconde los botones para el Depósito y las rutas de escritura vuelven
+a controlar el rol.
+
+### Integración con Proveedores
+
+El listado de proveedores ya mostraba cuántas materias primas brinda cada uno.
+Ahora ese número es un **enlace** a `/materias-primas?supplier=ID`, y en la
+tabla de materias primas el nombre del proveedor lleva a Proveedores filtrado
+por empresa.
+
+### Pruebas
+
+Se agregó `tests/Feature/MateriasPrimasTest.php` con **10 casos**: listado,
+permisos del Depósito, opciones de presentación, alta con stock, presentación
+inválida, edición, borrado bloqueado por planos, borrado permitido, filtros y
+PDF. También se actualizaron las pruebas de recetas, exportaciones, fugas,
+interfaz y los scripts de auditoría.
+
+**Total: 192 pruebas, 1741 aserciones, todas pasando.**
+
+> Al verificar el demo, el artículo 1 tenía cantidades raras (999.999 metros y
+> 0 listones) de una prueba manual anterior. Se volvió a correr
+> `php artisan db:seed --class=ArticleSeeder` para restaurar los planos y el
+> stock de demostración.
+
+---
+
+## 0.1 Proveedores y recetas: materias primas con cantidad y variedad
 
 El módulo de proveedores tenía **dos** proveedores y cuatro materias primas de
 textil (tela, hilo, botones, cierre) que no tenían nada que ver con los muebles
@@ -133,7 +237,7 @@ algodón 100%", que ya no existe).
 
 ---
 
-## 0.1 Cobro: recuadro, lo que falta automático y cuotas
+## 0.2 Cobro: recuadro, lo que falta automático y cuotas
 
 La pantalla de confirmación tenía los medios de pago sueltos: el botón
 “+ Agregar otro medio” quedaba perdido entre el total y el formulario, y no
@@ -191,7 +295,7 @@ queda en **174 tests y 1.201 assertions**.
 
 ---
 
-## 0.2 Editar el pedido desde el checkout
+## 0.3 Editar el pedido desde el checkout
 
 Antes, si el cliente o el vendedor se daba cuenta en la pantalla de
 confirmación de que se había equivocado de producto (o de cantidad), tenía que
@@ -270,7 +374,7 @@ miraba los grises, por eso el hueco pasó desapercibido: hoy la auditoría da
 
 ---
 
-## 0.3 Cobro: pago combinado, IVA y numeración del comprobante
+## 0.4 Cobro: pago combinado, IVA y numeración del comprobante
 
 Tres cosas del circuito de venta que no cerraban con la realidad:
 
@@ -733,7 +837,7 @@ queda igual.
 
 | Indicador | Antes | Después |
 |---|---|---|
-| Tests | 5 pasan / 20 fallan | **182 pasan / 0 fallan** |
+| Tests | 5 pasan / 20 fallan | **192 pasan / 0 fallan** |
 | Rutas que devuelven HTTP 500 | 4+ | **0** |
 | Tablas en la base | 21 (3 a mano) | **28 (todas por migración)** |
 | `php artisan migrate:fresh` | Rompía la base | **Deja la base completa y funcional** |
@@ -1248,7 +1352,7 @@ Si el profesor prefiere otro catálogo (por ejemplo, cambiar "Jefe" por
 ```cmd
 cd /d C:\laragon\www\Pallets-Flow-System
 
-REM 1. Tests (debe dar 182 passed)
+REM 1. Tests (debe dar 192 passed)
 php artisan test
 
 REM 2. La base completa desde cero

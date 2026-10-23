@@ -20,7 +20,7 @@ curl_exec($ch); curl_close($ch);
 
 $paginas = [
     '/login', '/register', '/dashboard', '/articles', '/articles/create',
-    '/suppliers', '/employees', '/roles', '/roles/create', '/users',
+    '/suppliers', '/materias-primas', '/employees', '/roles', '/roles/create', '/users',
     '/usuarios/1/roles', '/cart', '/sales', '/profile', '/tutorial',
 ];
 

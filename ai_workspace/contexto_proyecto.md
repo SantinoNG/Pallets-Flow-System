@@ -10,7 +10,7 @@
 
 Sistema de gestión para una empresa de producción/venta de pallets (artículos terminados fabricados a partir de materias primas). Cubre:
 
-- Catálogo de **artículos** (productos terminados) con stock y receta de materias primas.
+- Catálogo de **artículos** (productos terminados) con stock y **planos** de materias primas (la receta interna).
 - **Proveedores** y **materias primas** con stock.
 - **Empleados**, **clientes** y **usuarios** con roles.
 - Flujo de venta: **carrito → venta → comprobante** (el modelo de datos ya existe; la capa HTTP del carrito aún no).
@@ -107,6 +107,7 @@ Resultado: el filtro "Últimos 90 días" del dashboard muestra **4 meses con ven
 | Empleados | CRUD | `EmployeeController`, vistas `employees/*` |
 | Artículos (+ stock + materias primas) | CRUD. **Con foto**: se sube desde el formulario (JPG/PNG/WebP, máx 2 MB) y se guarda en `storage/app/public/articles/`. La columna `articles.image` es nullable; cuando está vacía, la vista dibuja un placeholder industrial. | `ArticleController`, vistas `articles/*`, `Article::imagen_url` |
 | Proveedores (+ materias primas + stock) | CRUD | `SupplierController`, vistas `suppliers/*` |
+| **Materias primas** | **CRUD propio**, separado de Proveedores. Lista con presentación (caja, bolsa, unidad, metro...), stock, mínimo, costo, proveedor y en cuántos planos se usa. Filtros, KPIs y PDF. El Depósito solo consulta. | `RawMaterialController`, vistas `raw-materials/*` |
 | Tutorial / Guía técnica | Vista estática | `resources/views/tutorial/index.blade.php` |
 | **Carrito de compras** | **Funcional** (controlador, rutas `cart.*` y vistas). El cobro acepta **varios medios de pago** (`payments[]`) y valida que sumen el total. | `CartController`, `App\Support\MediosPago`, vistas `cart/*` |
 | **Ventas / Comprobantes** | **Funcional.** Listado paginado con filtros (medio de pago, empleado, rango de fechas), detalle y comprobante en PDF (dompdf). `Sale::total()` calcula el monto desde los items del carrito, porque la tabla `sales` no tiene columna de importe. El comprobante muestra **numero fiscal por cliente**, **neto + IVA 21% + total** y el **detalle de pagos**. | `SaleController`, vistas `sales/*`, `Sale`, `Receipt`, `App\Support\Iva` |
@@ -127,11 +128,11 @@ tecnica.
 | Sin destello | El script del `<head>` aplica la clase **antes** de pintar. | `layouts/app.blade.php`, `layouts/guest.blade.php` |
 | Interruptor | Componente reutilizable, boton sol/luna. | `resources/views/components/theme-toggle.blade.php` |
 | Tipografia | `Barlow` (grotesca tecnica) para la interfaz, `IBM Plex Mono` para los datos. Antes estaba `Figtree`, que **nunca se cargaba** (no habia `@font-face` ni link a Google Fonts): el navegador usaba la del sistema. | `tailwind.config.js` -> `theme.extend.fontFamily` |
-| Numeros en tablas | `font-mono tabular-nums` en las celdas de dato (ID, precios, cantidades, stock) para que las columnas de decimales alineen. | vistas de `articles`, `sales`, `employees`, `roles`, `suppliers`, `users`, `cart` |
+| Numeros en tablas | `font-mono tabular-nums` en las celdas de dato (ID, precios, cantidades, stock) para que las columnas de decimales alineen. | vistas de `articles`, `sales`, `employees`, `roles`, `suppliers`, `raw-materials`, `users`, `cart` |
 | Esquinas | Radios achicados (`rounded-lg` = 0.25rem): la industria es precisa, no redondeada. | `tailwind.config.js` -> `theme.extend.borderRadius` |
 | Boton principal | `x-primary-button` paso de `bg-gray-800` a `bg-hazard-600`: la accion primaria es del color de marca. | `resources/views/components/primary-button.blade.php` |
 | Paginacion | Se publicaron las vistas de Laravel (`resources/views/vendor/pagination/`) y se reestilaron: usaban el azul de Laravel. | `resources/views/vendor/pagination/` |
-| Boton de PDF | **Siempre en rojo** (`bg-red-600`), en todos los modulos. Es la unica accion de la interfaz que conserva el rojo de Tailwind, y es a proposito: el rojo queda reservado para lo que genera un documento o saca datos del sistema, y lo separa del naranja de marca. | `articles/index`, `employees/index`, `suppliers/index`, `users/index`, `sales/index`, `sales/show` |
+| Boton de PDF | **Siempre en rojo** (`bg-red-600`), en todos los modulos. Es la unica accion de la interfaz que conserva el rojo de Tailwind, y es a proposito: el rojo queda reservado para lo que genera un documento o saca datos del sistema, y lo separa del naranja de marca. | `articles/index`, `employees/index`, `suppliers/index`, `raw-materials/index`, `users/index`, `sales/index`, `sales/show` |
 | Rotulos principales | Los rotulos en mayusculas de las tarjetas del dashboard van en **blanco puro** en modo oscuro (`dark:text-zinc-100`): son el texto que define cada tarjeta. El texto de apoyo (subtitulos, contadores) se queda en gris claro (`dark:text-zinc-300`) para no competir con los datos. | `views/livewire/dashboard.blade.php` |
 | Logo | Archivo `public/images/logo-marca.svg`: el monograma "PF" con el pallet y la hoja, sobre pergamino. Se muestra con el componente `<x-app-logo>` en el sidebar y en el login. Hay dos PNG derivados porque el PDF no renderiza SVG: `logo-marca-256.png` (cabecera de los comprobantes) y `marca.png` (la marca sola, con fondo transparente, para la marca de agua). | `public/images/logo-marca.svg`, `components/app-logo.blade.php` |
 | Marca de agua | Los comprobantes (HTML y PDF) llevan la marca de la empresa **difuminada** por detras del contenido: `opacity` 0.06 en el HTML y `/CA 0.07` en el PDF, con dompdf. En el PDF se dibuja a 315x315 pt, centrada en la A4. | `views/cart/receipt.blade.php`, `views/sales/pdf.blade.php` |
@@ -148,7 +149,7 @@ y busca el email de cualquier otro usuario en todas las paginas que ese rol
 puede ver) y `http-cliente.php` (el cliente HTTP con las cookies en memoria que
 comparten los scripts de testeo).
 
-**Pruebas:** 182 tests, 1525 aserciones, todas en verde.
+**Pruebas:** 192 tests, 1741 aserciones, todas en verde.
 `tests/Feature/InterfazTest.php` (5 casos, 354 aserciones) fija
 el comportamiento: el script del tema va antes del `<body>`, el interruptor
 esta en el login y en el panel, ninguna pagina deja superficies sin variante
@@ -162,9 +163,13 @@ desde el checkout: cambiar producto, cambiar cantidad sin re-preciar, fusionar
 renglones repetidos, tope de stock, quitar (y volver al carrito si era el
 ultimo) y que no se pueda tocar el item de otro carrito.
 `tests/Feature/RecetasTest.php` (8 casos) fija los 10 proveedores, las 16
-materias primas con unidad y costo, la receta de los 8 articulos, el
+materias primas con unidad y costo, los planos de los 8 articulos, el
 singular/plural ("1 bolsa" / "3 bolsas"), el costo de materiales, el alcance
-limitado por stock y que el Cliente reciba 403 en la receta.
+limitado por stock y que el Cliente reciba 403 en los planos.
+`tests/Feature/MateriasPrimasTest.php` (10 casos) fija el apartado propio:
+listado con presentación y proveedor, permisos del Depósito (consulta pero no
+gestiona), alta con stock, presentación inválida, edición, borrado bloqueado
+si el insumo está en los planos, filtros y PDF.
 
 ### 6.2 Cobro, IVA y comprobante
 
@@ -198,20 +203,25 @@ limitado por stock y que el Cliente reciba 403 en la receta.
 | Seguridad | El `CartItem` tiene que pertenecer al `Cart` de la URL: si no, 404 (no se edita el renglon de otro cambiando el id). | `updateItem`, `removeItem` |
 | Cuando se guarda | La cantidad se guarda en `change` (al salir del campo), no solo con el boton: asi no se puede escribir una cantidad nueva y confirmar la compra con la vieja. | vista |
 
-### 6.4 Proveedores, materias primas y recetas
+### 6.4 Proveedores, materias primas y planos
 
 | Elemento | Decision | Donde se define |
 |---|---|---|
 | Proveedores | **10** en total: los 2 originales (Distribuidora Norte, Materiales del Sur) y 8 nuevos (maderas, aserradero, tornillos, clavos, pinturas, telas, espumas, herrajes). | `SupplierSeeder` |
-| Unidad de medida | Cada insumo dice en que se mide: `unidad`, `metro`, `bolsa`, `caja`, `litro`, `pliego`, `rollo`, `plancha`, `kg`. Se guarda en singular y la vista pluraliza. | `raw_materials.unit`, `RawMaterial::UNIDADES` |
-| Costo del insumo | `unit_cost` es el costo de **una** unidad del insumo. El costo de materiales de un producto es la suma de `cantidad_required * unit_cost`. | `raw_materials.unit_cost`, `ArticleController@show` |
-| Receta | `article_materials` (articulo + materia prima + `quantity_required`) dice que lleva cada producto. Las 8 recetas tienen entre 5 y 8 insumos. | `ArticleSeeder` |
-| Pantalla de receta | `GET /articles/{article}` (solo personal): variedad, costo de materiales, margen bruto, alcance con stock y la tabla de insumos con cantidad, proveedor, stock actual, costo unitario y subtotal. | `ArticleController@show`, `views/articles/show.blade.php` |
+| **Apartado de materias primas** | `GET /materias-primas`: modulo propio, separado de Proveedores. KPIs (insumos, presentaciones, bajo minimo, valor del stock), filtros por insumo/proveedor/presentacion/bajo minimo, tabla con stock y costo, y PDF. | `RawMaterialController`, `views/raw-materials/*` |
+| Presentacion | La **unidad de compra** del insumo: `unidad`, `metro`, `bolsa`, `caja`, `litro`, `pliego`, `rollo`, `plancha`, `kg`. Se elige de una lista cerrada y la vista pluraliza. El formulario da el ejemplo "caja de bisagras, bolsa de clavos, por unidad". | `raw_materials.unit`, `RawMaterial::UNIDADES`, `views/raw-materials/partials/campos.blade.php` |
+| Costo del insumo | `unit_cost` es el costo de **una** unidad de compra. El costo de materiales de un producto es la suma de `cantidad_required * unit_cost`. | `raw_materials.unit_cost`, `ArticleController@show` |
+| Alta / edicion | Un solo formulario pide materia prima, presentacion, costo, proveedor, stock actual y stock minimo; al guardar crea o actualiza tambien `raw_material_stock`. | `RawMaterialController@store`, `@update` |
+| Borrado | No se borra un insumo que esta en los planos de un articulo: avisa y nombra los productos. Si no se usa, borra el insumo y su stock. | `RawMaterialController@destroy` |
+| Permisos | Jefe, Administrador y Encargado gestionan; **Deposito solo consulta** el listado y el PDF; Cliente y Vendedor no entran. | rutas `raw-materials.*`, `views/raw-materials/index.blade.php` |
+| Enlace con Proveedores | El conteo de materias primas del proveedor lleva a `/materias-primas?supplier=ID`; el nombre del proveedor en la tabla de insumos lleva a Proveedores filtrado por empresa. | `views/suppliers/index.blade.php`, `views/raw-materials/index.blade.php` |
+| Planos | `article_materials` (articulo + materia prima + `quantity_required`) dice que lleva cada producto. Las 8 recetas tienen entre 5 y 8 insumos. En la interfaz se llama **planos**, no "receta". | `ArticleSeeder` |
+| Pantalla de planos | `GET /articles/{article}` (solo personal): variedad, costo de materiales, margen bruto, alcance con stock y la tabla de insumos con cantidad, proveedor, stock actual, costo unitario y subtotal. | `ArticleController@show`, `views/articles/show.blade.php` |
 | Alcance con stock | Para cada insumo se calcula `floor(stock / cantidad_requerida)` y se toma el minimo. El insumo que da ese minimo se muestra como **limitante**. | `ArticleController@show` |
-| Listado | Debajo del nombre del articulo aparece "N insumo(s) en la receta" y el boton **Receta**. El Cliente no ve ninguna de las dos cosas. | `views/articles/index.blade.php` |
+| Listado | Debajo del nombre del articulo aparece "N insumo(s) en los planos" y el boton **Planos**. El Cliente no ve ninguna de las dos cosas. | `views/articles/index.blade.php` |
 | Proveedores en pantalla | Cada fila muestra cuantas materias primas tiene y cada chip muestra la unidad (`Tabla de pallet reciclada · unidades`). | `views/suppliers/index.blade.php` |
 | Alta de proveedor | Por cada materia prima se pide descripcion + unidad (desplegable). El servidor valida contra `RawMaterial::UNIDADES` y usa `unidad` si no se elige. | `views/suppliers/create.blade.php`, `SupplierController@store` |
-| Idempotencia | `SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` actualizan por nombre. `RawMaterialSeeder` borra los insumos viejos con su stock y su renglon de receta; `ArticleSeeder` rehace la receta de cada articulo. | seeders |
+| Idempotencia | `SupplierSeeder`, `RawMaterialSeeder` y `ArticleSeeder` actualizan por nombre. `RawMaterialSeeder` borra los insumos viejos con su stock y su renglon de planos; `ArticleSeeder` rehace los planos de cada articulo. | seeders |
 
 ## 7. Deuda técnica y hallazgos a tener en cuenta
 
@@ -256,7 +266,7 @@ limitado por stock y que el Cliente reciba 403 en la receta.
     - En dompdf 3.x las opciones viven dentro de `dompdf.options.*`: el service provider mueve ahi las claves de nivel superior.
 46. **RESUELTO** — **Borrar un artículo o un proveedor daba HTTP 500** por claves foraneas:
     - Un artículo vendido tiene items en carritos (`cart_items.id_article`) y ese item es el historial de la venta. Ahora `ArticleController@destroy` cuenta las ventas y avisa ("tiene N venta(s) registradas") en vez de reventar. Los items que quedaron en carritos SIN venta se limpian y el artículo se borra.
-    - Un proveedor tiene materias primas (`raw_materials.id_supplier`) y esas pueden estar en la receta de un artículo (`article_materials`). Ahora `SupplierController@destroy` avisa si estan en alguna receta; si no, borra las materias con su stock.
+    - Un proveedor tiene materias primas (`raw_materials.id_supplier`) y esas pueden estar en los planos de un artículo (`article_materials`). Ahora `SupplierController@destroy` avisa si estan en alguna receta; si no, borra las materias con su stock.
     - De paso, `ArticleController@update` creaba la fila de stock si no existia: si el artículo se habia quedado sin fila, el update reventaba con un error de tipo.
 47. **PENDIENTE** — El `SaleSeeder` no es idempotente (inserta las ventas con `insertGetId`): correr `db:seed` dos veces sobre la misma base duplica las ventas y viola la clave foranea de `receipts.id_sale`. El flujo previsto sigue siendo `migrate:fresh --seed`.
 36. **RESUELTO** — El rol Cliente no podia ver el catalogo (403) y el carrito le mostraba el flujo de caja del mostrador ("seleccionar cliente"), que es para el personal. Ahora el Cliente compra como usuario final: ve el catalogo en modo lectura (sin botones de alta, edicion, borrado ni PDF), tiene **su propio carrito** (`/mi-carrito`, resuelto desde su ficha, no desde un parametro) y el mostrador sigue intacto para el personal.

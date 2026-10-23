@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\DashboardController;
@@ -133,6 +134,26 @@ Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function
     Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
     Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+});
+
+// -----------------------------------------------------------------------------
+// MÓDULO DE MATERIAS PRIMAS
+// -----------------------------------------------------------------------------
+// Es un apartado propio, separado de Proveedores: acá se ve el insumo, su
+// presentación (caja, bolsa, unidad, metro...), su stock, su costo y qué
+// proveedor lo brinda. El Depósito consulta; Jefe, Administrador y Encargado
+// gestionan.
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado|Deposito'])->group(function () {
+    Route::get('/materias-primas', [RawMaterialController::class, 'index'])->name('raw-materials.index');
+    Route::get('/materias-primas/pdf', [RawMaterialController::class, 'exportPdf'])->name('raw-materials.pdf');
+});
+
+Route::middleware(['auth', 'role:Jefe|Administrador|Encargado'])->group(function () {
+    Route::get('/materias-primas/create', [RawMaterialController::class, 'create'])->name('raw-materials.create');
+    Route::post('/materias-primas', [RawMaterialController::class, 'store'])->name('raw-materials.store');
+    Route::get('/materias-primas/{material}/edit', [RawMaterialController::class, 'edit'])->name('raw-materials.edit');
+    Route::put('/materias-primas/{material}', [RawMaterialController::class, 'update'])->name('raw-materials.update');
+    Route::delete('/materias-primas/{material}', [RawMaterialController::class, 'destroy'])->name('raw-materials.destroy');
 });
 
 // -----------------------------------------------------------------------------

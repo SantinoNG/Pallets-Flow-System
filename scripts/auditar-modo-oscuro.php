@@ -27,7 +27,7 @@ curl_setopt_array($ch = curl_init("$base/login"), [
 curl_exec($ch); curl_close($ch);
 
 $paginas = [
-    '/dashboard', '/articles', '/articles/create', '/articles/1', '/suppliers', '/suppliers/create', '/employees',
+    '/dashboard', '/articles', '/articles/create', '/articles/1', '/suppliers', '/suppliers/create', '/materias-primas', '/materias-primas/create', '/employees',
     '/roles', '/roles/create', '/usuarios', '/usuarios/create', '/usuarios/1/roles',
     '/cart', '/sales', '/profile', '/tutorial',
 ];

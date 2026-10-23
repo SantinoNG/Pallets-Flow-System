@@ -101,9 +101,10 @@ class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 
                             <tr class="bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 transition">
                                 <td class="px-6 py-4 font-semibold text-gray-900 dark:text-zinc-100">
                                     {{ $supplier->company_name }}
-                                    <span class="block text-[11px] font-normal text-gray-400 dark:text-zinc-500">
-                                        {{ $supplier->rawMaterials->count() }} materia(s) prima(s)
-                                    </span>
+                                    <a href="{{ route('raw-materials.index', ['supplier' => $supplier->id_supplier]) }}"
+                                       class="block text-[11px] font-normal text-hazard-600 dark:text-hazard-500 hover:text-hazard-700 dark:hover:text-hazard-400 transition">
+                                        {{ $supplier->rawMaterials->count() }} materia(s) prima(s) →
+                                    </a>
                                 </td>
                                 <td class="px-6 py-4 text-gray-500 dark:text-zinc-400">{{ $supplier->supplier_email }}</td>
                                 <td class="px-6 py-4 text-gray-500 dark:text-zinc-400">{{ $supplier->supplier_phone }}</td>

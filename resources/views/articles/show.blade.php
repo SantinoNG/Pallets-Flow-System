@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-zinc-100 leading-tight">
-                Receta del artículo
+                Planos del artículo
             </h2>
             <a href="{{ route('articles.index') }}"
                class="text-sm text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 hover:bg-gray-200 dark:hover:bg-zinc-800 px-4 py-2 rounded-md transition">
@@ -50,7 +50,7 @@
                     <div class="sm:self-start">
                         <a href="{{ route('articles.edit', $article->id_article) }}"
                            class="inline-block bg-hazard-600 hover:bg-hazard-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">
-                            Editar receta
+                            Editar planos
                         </a>
                     </div>
                 </div>
@@ -116,7 +116,7 @@
                         </p>
                         <a href="{{ route('articles.edit', $article->id_article) }}"
                            class="inline-block mt-3 text-sm font-medium text-hazard-600 dark:text-hazard-400 hover:text-hazard-700 dark:hover:text-hazard-300">
-                            Cargar la receta →
+                            Cargar los planos →
                         </a>
                     </div>
                 @else

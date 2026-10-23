@@ -125,7 +125,7 @@
                                             {{ $article->article_name }}
                                         </a>
                                         <span class="block text-[11px] text-gray-400 dark:text-zinc-500 font-normal">
-                                            {{ $article->raw_materials_count }} insumo(s) en la receta
+                                            {{ $article->raw_materials_count }} insumo(s) en los planos
                                         </span>
                                     @else
                                         {{ $article->article_name }}
@@ -157,7 +157,7 @@
                                         <div class="inline-flex flex-wrap justify-center items-center gap-2">
                                             <a href="{{ route('articles.show', $article->id_article) }}"
                                                class="font-medium text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-950 px-3 py-2 rounded-md transition">
-                                                Receta
+                                                Planos
                                             </a>
                                             <a href="{{ route('articles.edit', $article->id_article) }}"
                                                class="font-medium text-hazard-600 hover:text-hazard-900 bg-hazard-50 px-3 py-2 rounded-md transition">

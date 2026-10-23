@@ -56,6 +56,7 @@ class ExportacionesTest extends TestCase
             '/articles'  => ['articles/pdf', 'articulos'],
             '/employees' => ['employees/pdf', 'empleados'],
             '/suppliers' => ['proveedores/pdf', 'proveedores'],
+            '/materias-primas' => ['materias-primas/pdf', 'materias primas'],
             '/usuarios'  => ['usuarios/pdf', 'usuarios'],
         ];
     }

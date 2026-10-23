@@ -17,6 +17,7 @@ $c->login($base, $email, $clave);
 $paginas = [
     '/dashboard', '/articles', '/articles/create', '/articles/1/edit',
     '/suppliers', '/suppliers/create', '/suppliers/1/edit',
+    '/materias-primas', '/materias-primas/create', '/materias-primas/1/edit',
     '/employees', '/employees/create', '/employees/1/edit',
     '/roles', '/roles/create', '/roles/1/edit',
     '/usuarios', '/usuarios/1/roles',

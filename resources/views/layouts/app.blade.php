@@ -77,6 +77,17 @@
                         </a>
                         @endrole
 
+                        <!-- Materias primas -->
+                        {{-- Apartado propio, separado de Proveedores: el
+                             insumo con su presentación y su stock. El Depósito
+                             consulta; los demás gestionan. --}}
+                        @role('Jefe|Administrador|Encargado|Deposito')
+                        <a href="{{ route('raw-materials.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('raw-materials.*') ? 'bg-hazard-600 text-white shadow-md' : 'hover:bg-zinc-800 hover:text-white' }}">
+                            <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg>
+                            <span>Materias primas</span>
+                        </a>
+                        @endrole
+
                         <p class="px-3 text-[10px] uppercase text-zinc-400 font-bold tracking-wider mt-6 mb-2">Administración</p>
 
                         <!-- Empleados -->

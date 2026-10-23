@@ -75,7 +75,7 @@ class FugasTest extends TestCase
 
         $paginas = [
             '/dashboard', '/articles', '/cart', '/sales', '/profile', '/tutorial',
-            '/articles/pdf', '/employees/pdf', '/proveedores/pdf', '/usuarios/pdf',
+            '/articles/pdf', '/employees/pdf', '/proveedores/pdf', '/materias-primas/pdf', '/usuarios/pdf',
         ];
 
         foreach ($paginas as $ruta) {
